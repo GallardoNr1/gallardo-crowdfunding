@@ -1,0 +1,530 @@
+---
+import type { ContributionLevel } from '../lib/supabase';
+
+export interface Props {
+  levels?: ContributionLevel[];
+  currency?: string;
+  onLevelSelected?: string; // nombre de la función callback
+}
+
+const {
+  levels = [],
+  currency = '€',
+  onLevelSelected = 'handleLevelSelection',
+} = Astro.props;
+---
+
+<div class='contributors-section'>
+  <h3 class='contributors-title'>🏰 Niveles de Contribución</h3>
+
+  <div class='contribution-levels'>
+    {
+      levels.map((level) => (
+        <div
+          class='level-card'
+          data-level-id={level.id}
+          data-amount={level.amount}
+          style={`--level-color: ${level.color}`}
+        >
+          <div class='level-emoji'>{level.emoji}</div>
+          <div class='level-name'>{level.name}</div>
+          <div class='level-amount'>
+            {level.amount} {currency}
+          </div>
+          <div class='level-description'>{level.description}</div>
+          <div class='level-glow' />
+        </div>
+      ))
+    }
+  </div>
+
+  <div
+    class='selected-level-info'
+    id='selectedLevelInfo'
+    style='display: none;'
+  >
+    <div class='selection-badge'>
+      <span
+        class='selection-emoji'
+        id='selectionEmoji'
+        >🎯</span
+      >
+      <span class='selection-text'>
+        Has seleccionado: <strong id='selectionName'>Nivel</strong>
+        (<span id='selectionAmount'>0</span>
+        {currency})
+      </span>
+    </div>
+  </div>
+
+  <button
+    class='contribute-button'
+    id='contributeButton'
+    disabled
+  >
+    <span class='button-icon'>✨</span>
+    <span class='button-text'>Selecciona un nivel primero</span>
+    <span class='button-icon'>✨</span>
+  </button>
+
+  <div class='contribution-tips'>
+    <h4 class='tips-title'>💡 Tips de Contribución</h4>
+    <div class='tips-grid'>
+      <div class='tip-item'>
+        <span class='tip-icon'>🎯</span>
+        <span class='tip-text'>Cada euro nos acerca más al dragón</span>
+      </div>
+      <div class='tip-item'>
+        <span class='tip-icon'>👨‍👩‍👧‍👦</span>
+        <span class='tip-text'>Es una experiencia familiar única</span>
+      </div>
+      <div class='tip-item'>
+        <span class='tip-icon'>🧱</span>
+        <span class='tip-text'>3,745 piezas de diversión garantizada</span>
+      </div>
+      <div class='tip-item'>
+        <span class='tip-icon'>🎲</span>
+        <span class='tip-text'>Perfecto para nuestras aventuras D&D</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .contributors-section {
+    background: linear-gradient(145deg, #e8f5e8, #c8e6c8);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contributors-section::before {
+    content: '⚔️';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 100px;
+    opacity: 0.1;
+    transform: rotate(15deg);
+  }
+
+  .contributors-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: #2e7d32;
+    text-align: center;
+    margin-bottom: 25px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .contribution-levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .level-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .level-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    border-color: var(--level-color);
+  }
+
+  .level-card.selected {
+    border-color: var(--level-color);
+    background: linear-gradient(145deg, #fff, #f8f9fa);
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  .level-card.selected .level-glow {
+    opacity: 1;
+  }
+
+  .level-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at center,
+      var(--level-color),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .level-emoji {
+    font-size: 3.5rem;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .level-name {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .level-amount {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--level-color);
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .level-description {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.4;
+    position: relative;
+    z-index: 1;
+  }
+
+  .selected-level-info {
+    background: linear-gradient(145deg, #fff3e0, #ffcc02);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    text-align: center;
+    border: 2px solid #ff9800;
+    animation: slideDown 0.4s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .selection-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    color: #e65100;
+    font-weight: 600;
+  }
+
+  .selection-emoji {
+    font-size: 1.5rem;
+    animation: bounce 2s infinite;
+  }
+
+  .contribute-button {
+    background: linear-gradient(145deg, #ff6b35, #f7931e);
+    color: white;
+    border: none;
+    padding: 18px 45px;
+    border-radius: 25px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 auto 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contribute-button:disabled {
+    background: linear-gradient(145deg, #bbb, #999);
+    cursor: not-allowed;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: none;
+  }
+
+  .contribute-button:not(:disabled):hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 35px rgba(255, 107, 53, 0.4);
+  }
+
+  .contribute-button:not(:disabled):active {
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  .button-icon {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+  }
+
+  .contribute-button:not(:disabled):hover .button-icon {
+    transform: scale(1.2);
+  }
+
+  .contribution-tips {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 15px;
+    padding: 25px;
+    border: 2px solid rgba(46, 125, 50, 0.2);
+  }
+
+  .tips-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    color: #2e7d32;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .tip-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: white;
+    border-radius: 10px;
+    transition: transform 0.2s ease;
+  }
+
+  .tip-item:hover {
+    transform: translateX(5px);
+  }
+
+  .tip-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .tip-text {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .contributors-section {
+      padding: 20px;
+    }
+
+    .contribution-levels {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+
+    .level-card {
+      padding: 20px 15px;
+    }
+
+    .level-emoji {
+      font-size: 3rem;
+    }
+
+    .level-amount {
+      font-size: 1.6rem;
+    }
+
+    .contribute-button {
+      padding: 15px 35px;
+      font-size: 1.1rem;
+    }
+
+    .tips-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .selection-badge {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .level-card {
+      padding: 18px 12px;
+    }
+
+    .level-emoji {
+      font-size: 2.5rem;
+    }
+
+    .contribute-button {
+      padding: 12px 25px;
+      font-size: 1rem;
+    }
+  }
+</style>
+
+<script>
+  class ContributionLevels {
+    private selectedLevel: any = null;
+    private selectedLevelInfo: HTMLElement;
+    private contributeButton: HTMLElement;
+
+    constructor() {
+      this.selectedLevelInfo = document.getElementById('selectedLevelInfo')!;
+      this.contributeButton = document.getElementById('contributeButton')!;
+      this.init();
+    }
+
+    private init() {
+      // Añadir event listeners a todas las cartas
+      const levelCards = document.querySelectorAll('.level-card');
+      levelCards.forEach((card) => {
+        card.addEventListener('click', (e) => this.handleLevelClick(e));
+      });
+
+      // Event listener para el botón de contribuir
+      this.contributeButton.addEventListener('click', () =>
+        this.handleContribute()
+      );
+    }
+
+    private handleLevelClick(event: Event) {
+      const card = event.currentTarget as HTMLElement;
+      const levelId = card.dataset.levelId;
+      const amount = parseInt(card.dataset.amount || '0');
+
+      if (card.classList.contains('selected')) {
+        this.resetSelection();
+        return;
+      }
+      // Remover selección anterior
+      document.querySelectorAll('.level-card').forEach((c) => {
+        c.classList.remove('selected');
+      });
+
+      // Añadir selección actual
+      card.classList.add('selected');
+
+      // Guardar datos del nivel seleccionado
+      this.selectedLevel = {
+        id: levelId,
+        amount: amount,
+        name: card.querySelector('.level-name')?.textContent,
+        emoji: card.querySelector('.level-emoji')?.textContent,
+      };
+
+      // Actualizar UI
+      this.updateSelectedLevelInfo();
+      this.updateContributeButton();
+    }
+
+    private updateSelectedLevelInfo() {
+      if (!this.selectedLevel) return;
+
+      const selectionEmoji = document.getElementById('selectionEmoji')!;
+      const selectionName = document.getElementById('selectionName')!;
+      const selectionAmount = document.getElementById('selectionAmount')!;
+
+      selectionEmoji.textContent = this.selectedLevel.emoji;
+      selectionName.textContent = this.selectedLevel.name;
+      selectionAmount.textContent = this.selectedLevel.amount;
+
+      // Mostrar la info con animación
+      this.selectedLevelInfo.style.display = 'block';
+    }
+
+    private updateContributeButton() {
+      const buttonText = this.contributeButton.querySelector('.button-text')!;
+
+      if (this.selectedLevel) {
+        this.contributeButton.removeAttribute('disabled');
+        buttonText.textContent = `¡Contribuir ${this.selectedLevel.amount}€!`;
+      } else {
+        this.contributeButton.setAttribute('disabled', 'true');
+        buttonText.textContent = 'Selecciona un nivel primero';
+      }
+    }
+
+    private handleContribute() {
+      if (!this.selectedLevel) {
+        alert('Por favor, selecciona un nivel de contribución primero 😊');
+        return;
+      }
+      // Disparar evento personalizado para que otros componentes puedan escuchar
+      window.openModal('contributionModal');
+      setTimeout(() => {
+        document.dispatchEvent(event);
+      }, 100);
+      const event = new CustomEvent('levelSelected', {
+        detail: this.selectedLevel,
+      });
+      document.dispatchEvent(event);
+    }
+
+    // Método público para obtener el nivel seleccionado
+    public getSelectedLevel() {
+      return this.selectedLevel;
+    }
+
+    // Método público para resetear la selección
+    public resetSelection() {
+      this.selectedLevel = null;
+      document.querySelectorAll('.level-card').forEach((card) => {
+        card.classList.remove('selected');
+      });
+      this.selectedLevelInfo.style.display = 'none';
+      this.updateContributeButton();
+    }
+  }
+
+  // Añadir estilos para la animación de partículas
+  const style = document.createElement('style');
+  style.textContent = `
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.5);
+            }
+        }
+    `;
+  document.head.appendChild(style);
+
+  // Inicializar cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    new ContributionLevels();
+  });
+
+  // Exponer globalmente para otros componentes
+  (window as any).contributionLevels = ContributionLevels;
+</script>

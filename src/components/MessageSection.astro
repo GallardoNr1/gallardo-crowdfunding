@@ -1,0 +1,553 @@
+---
+import type { FamilyMember } from '../lib/supabase';
+import CallToAction from './CallToAction.astro';
+import SupportMessageSection from './react/SupportMessageSection/SupportMessageSection';
+import SupportMessageFrom from './SupportMessageFrom.astro';
+
+export interface Props {
+  familyMembers?: FamilyMember[];
+  mainMessage?: string;
+  showPhotos?: boolean;
+  allowComments?: boolean;
+}
+
+const defaultMainMessage = `
+¡Hola familia y amigos queridos! 🐉❤️
+
+Queremos compartir con ustedes un sueño familiar muy especial. Como familia, hemos descubierto la magia de Dungeons & Dragons y nos ha unido de una manera increíble. Cada fin de semana nos reunimos alrededor de la mesa para vivir aventuras épicas, crear personajes fascinantes y sobre todo, para reír y soñar juntos.
+
+Cuando vimos este increíble set de LEGO del Dragón Rojo, supimos inmediatamente que era perfecto para nosotros. No es solo un set de construcción - es el escenario donde crearemos recuerdos familiares que durarán toda la vida.
+
+Imaginen: 3,745 piezas que construiremos juntos, una mazmorra completa para nuestras aventuras, y por supuesto, el majestuoso dragón rojo que será el centro de nuestras historias más épicas. Cada pieza que coloquemos será un momento compartido, cada aventura que vivamos será un recuerdo precioso.
+
+Este no es solo un crowdfunding - es una invitación a ser parte de nuestra aventura familiar. Cada contribución, sin importar el tamaño, nos acerca más a nuestro objetivo y significa que ustedes también forman parte de esta historia mágica.
+
+¡Únanse a nuestra quest y ayúdennos a hacer realidad este sueño familiar! 🏰✨
+`;
+
+const {
+  familyMembers = [],
+  mainMessage = defaultMainMessage,
+  showPhotos = true,
+  allowComments = true,
+} = Astro.props;
+---
+
+<div class='message-section'>
+  <div class='section-header'>
+    <h3 class='section-title'>💝 Mensaje de Nuestra Familia</h3>
+  </div>
+
+  <div class='main-message'>
+    <div class='message-content'>
+      <div class='message-icon'>🏰</div>
+      <div
+        class='message-text'
+        id='messageText'
+      >
+        {
+          mainMessage
+            .split('\n')
+            .map((paragraph) => paragraph.trim() && <p>{paragraph}</p>)
+        }
+      </div>
+    </div>
+
+    <div class='message-signature'>
+      <div class='signature-text'>Con amor,</div>
+      <div class='family-name'>La Familia Aventurera 🐉</div>
+      <div class='signature-date'>
+        {
+          new Date().toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class='family-members'>
+    <h4 class='members-title'>👨‍👩‍👧‍👦 Conoce a Nuestros Aventureros</h4>
+    <div class='members-grid'>
+      {
+        familyMembers.map((member, index) => (
+          <div
+            class='member-card'
+            style={`--animation-delay: ${index * 0.2}s`}
+          >
+            <div class='member-avatar'>
+              <span class='avatar-emoji'>{member.emoji}</span>
+              <div class='avatar-border' />
+              {member.age && <div class='age-badge'>{member.age}</div>}
+            </div>
+
+            <div class='member-info'>
+              <div class='member-name'>{member.name}</div>
+              <div class='member-role'>{member.role}</div>
+              <div class='member-message'>
+                <div class='quote-mark'>"</div>
+                <p class='quote-text'>{member.message}</p>
+                <div class='quote-mark closing'>"</div>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  {
+    showPhotos && (
+      <div class='family-photos'>
+        <h4 class='photos-title'>📸 Momentos de Nuestras Aventuras</h4>
+        <div class='photos-grid'>
+          <div
+            class='photo-placeholder'
+            data-photo='1'
+          >
+            <div class='photo-icon'>🎲</div>
+            <div class='photo-caption'>Nuestra primera aventura</div>
+          </div>
+          <div
+            class='photo-placeholder'
+            data-photo='2'
+          >
+            <div class='photo-icon'>🏰</div>
+            <div class='photo-caption'>Construyendo juntos</div>
+          </div>
+          <div
+            class='photo-placeholder'
+            data-photo='3'
+          >
+            <div class='photo-icon'>🐉</div>
+            <div class='photo-caption'>¡Batalla épica!</div>
+          </div>
+          <div
+            class='photo-placeholder'
+            data-photo='4'
+          >
+            <div class='photo-icon'>👨‍👩‍👧‍👦</div>
+            <div class='photo-caption'>Familia aventurera</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    allowComments && (
+      <div class='comments-section'>
+        <SupportMessageSection
+          client:load
+          projectId='commentsContainer'
+        />
+        <SupportMessageFrom />
+      </div>
+    )
+  }
+  <CallToAction />
+</div>
+
+<style>
+  .message-section {
+    background: linear-gradient(145deg, #fce4ec, #f8bbd9);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .message-section::before {
+    content: '💕';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    font-size: 150px;
+    opacity: 0.1;
+    transform: rotate(15deg);
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #c2185b;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .title-decoration {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .heart-icon {
+    font-size: 1.5rem;
+    animation: heartbeat 2s ease-in-out infinite;
+  }
+
+  .sparkle {
+    font-size: 1.2rem;
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
+
+  @keyframes heartbeat {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+  }
+
+  @keyframes sparkle {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: rotate(180deg);
+    }
+  }
+
+  .main-message {
+    background: white;
+    border-radius: 18px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border: 3px solid #f48fb1;
+    position: relative;
+  }
+
+  .message-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .message-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+    margin-top: 5px;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .message-text {
+    flex: 1;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #444;
+  }
+
+  .message-text p {
+    margin-bottom: 15px;
+  }
+
+  .message-text p:last-child {
+    margin-bottom: 0;
+  }
+
+  .message-signature {
+    margin-top: 25px;
+    text-align: right;
+    border-top: 2px solid #f8bbd9;
+    padding-top: 15px;
+  }
+
+  .signature-text {
+    font-size: 1rem;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 5px;
+  }
+
+  .family-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    color: #c2185b;
+    margin-bottom: 5px;
+  }
+
+  .signature-date {
+    font-size: 0.9rem;
+    color: #888;
+  }
+
+  .family-members {
+    margin-bottom: 30px;
+  }
+
+  .members-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: #c2185b;
+    text-align: center;
+    margin-bottom: 25px;
+  }
+
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .member-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #f8bbd9;
+    animation: slideInUp 0.6s ease-out var(--animation-delay);
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    border-color: #e91e63;
+  }
+
+  .member-card:hover .floating-heart,
+  .member-card:hover .floating-star {
+    opacity: 1;
+    animation: floatEffect 2s ease-in-out infinite;
+  }
+
+  .member-avatar {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px;
+  }
+
+  .avatar-emoji {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(145deg, #e91e63, #c2185b);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    box-shadow: 0 6px 20px rgba(233, 30, 99, 0.3);
+  }
+
+  .avatar-border {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 3px solid #f8bbd9;
+    border-radius: 50%;
+    animation: borderPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes borderPulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  .age-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff5722;
+    color: white;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .member-info {
+    text-align: center;
+  }
+
+  .member-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    color: #c2185b;
+    margin-bottom: 5px;
+  }
+
+  .member-role {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-style: italic;
+  }
+
+  .member-message {
+    position: relative;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid #e91e63;
+  }
+
+  .quote-mark {
+    font-size: 2rem;
+    color: #e91e63;
+    opacity: 0.6;
+    position: absolute;
+    top: -5px;
+    left: 5px;
+    font-family: serif;
+  }
+
+  .quote-mark.closing {
+    bottom: -15px;
+    right: 5px;
+    top: auto;
+    left: auto;
+  }
+
+  .quote-text {
+    font-size: 0.95rem;
+    color: #555;
+    line-height: 1.5;
+    margin: 10px 15px;
+    font-style: italic;
+  }
+
+  .member-effects {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+
+  @keyframes floatEffect {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(180deg);
+    }
+  }
+
+  .family-photos {
+    margin-bottom: 30px;
+  }
+
+  .photos-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: #c2185b;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .photo-placeholder {
+    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 2px dashed #f8bbd9;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .photo-placeholder:hover {
+    border-color: #e91e63;
+    transform: scale(1.02);
+    background: linear-gradient(145deg, #fff, #fce4ec);
+  }
+
+  .photo-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+  }
+
+  .photo-caption {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .message-section {
+      padding: 20px;
+    }
+
+    .section-title {
+      font-size: 1.6rem;
+    }
+
+    .main-message {
+      padding: 20px;
+    }
+
+    .message-content {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .members-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .photos-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .comment-form {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cta-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

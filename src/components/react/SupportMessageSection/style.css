@@ -1,0 +1,201 @@
+/* Estilos adicionales para el FamilyMessageSection mejorado */
+
+/* Header de comentarios con botón de refrescar */
+.comments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.comments-title {
+  margin: 0;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.5rem;
+  color: #c2185b;
+}
+
+/* Mensaje de error */
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 2px solid rgba(244, 67, 54, 0.2);
+  border-radius: 12px;
+  margin-bottom: 15px;
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+.retry-button {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+/* Estado sin comentarios */
+.no-comments {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  border: 2px dashed #e9ecef;
+}
+
+.no-comments p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Footer de comentarios */
+.comments-footer {
+  margin-top: 15px;
+  text-align: center;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.comments-count {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Mejoras en el contenedor de comentarios */
+.comments-container {
+  position: relative;
+  padding: 0 1rem;
+  max-height: 400px; /* Aumentado para mejor visibilidad */
+  overflow-y: auto;
+  margin-bottom: 15px;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar personalizada */
+.comments-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comments-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.comments-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #e91e63, #c2185b);
+  border-radius: 10px;
+}
+
+.comments-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #c2185b, #ad1457);
+}
+
+/* Animación para nuevos mensajes */
+.comment-item {
+  transition: all 0.3s ease;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.comment-item:last-child {
+  animation: slideInUp 0.5s ease-out, glow 2s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 0 rgba(233, 30, 99, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(233, 30, 99, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(233, 30, 99, 0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .comments-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .refresh-button {
+    align-self: center;
+  }
+
+  .error-message {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .comments-container {
+    max-height: 300px;
+    padding: 0 0.5rem;
+  }
+}
+
+/* Estados de hover mejorados */
+.comment-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Indicador de mensaje nuevo */
+.comment-item.new-message {
+  border-left: 4px solid #4caf50;
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.1), transparent);
+}
+
+/* Efecto de "typing" para simular mensaje en tiempo real */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: rgba(108, 117, 125, 0.1);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.typing-indicator::after {
+  content: '💬 Alguien está escribiendo...';
+  color: #6c757d;
+  font-style: italic;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}

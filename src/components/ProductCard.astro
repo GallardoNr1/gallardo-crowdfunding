@@ -1,0 +1,114 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  imageAlt: string;
+}
+
+const { title, description, price, imageUrl, imageAlt } = Astro.props;
+---
+
+<div class='main-card'>
+  <a
+    class='product-title'
+    href='https://www.lego.com/es-es/product/dungeons-dragons-red-dragon-s-tale-21348'
+    target='_blank'
+    title='Ver set'
+  >
+    <img
+      src={imageUrl}
+      alt={imageAlt}
+      class='lego-image'
+    />
+  </a>
+  <h2 class='product-title'>{title}</h2>
+  <p class='product-description'>{description}</p>
+  <div class='price'>
+    <span>💰</span>
+    <span>{price.toFixed(2)} €</span>
+  </div>
+</div>
+
+<style>
+  .main-card {
+    background: linear-gradient(145deg, #ffffffcc, #f0f0f0);
+    border-radius: 25px;
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .main-card::before {
+    content: '🐉';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    font-size: 120px;
+    opacity: 0.1;
+    transform: rotate(15deg);
+  }
+
+  .lego-image {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 15px;
+    margin: 0 auto 30px;
+    display: block;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+  }
+
+  .lego-image:hover {
+    transform: scale(1.05);
+  }
+
+  .product-info {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .product-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.5rem;
+    color: #d32f2f;
+    margin-bottom: 15px;
+  }
+
+  .product-description {
+    font-size: 1.1rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2e7d32;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  @media (max-width: 768px) {
+    .main-card {
+      padding: 20px;
+    }
+
+    .product-title {
+      font-size: 1.8rem;
+    }
+
+    .price {
+      font-size: 1.5rem;
+    }
+  }
+</style>

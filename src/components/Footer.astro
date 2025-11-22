@@ -1,0 +1,166 @@
+---
+import type { ProjectConfig } from '../lib/supabase';
+
+interface Props {
+  projectConfig: ProjectConfig | null;
+}
+
+const { projectConfig = null } = Astro.props;
+---
+
+<div class='page-footer'>
+  <div class='footer-content'>
+    <div class='footer-message'>
+      <h3>🎉 ¡Gracias por ser parte de nuestra aventura!</h3>
+      <p>
+        Cada contribución nos acerca más a nuestro sueño familiar. ¡Juntos
+        haremos que esta quest sea épica!
+      </p>
+    </div>
+
+    <div class='footer-stats'>
+      <div class='stat'>
+        <span class='stat-number'>🐉</span>
+        <span class='stat-text'>1 Dragón Épico</span>
+      </div>
+      <div class='stat'>
+        <span class='stat-number'>3,745</span>
+        <span class='stat-text'>Piezas de LEGO</span>
+      </div>
+      <div class='stat'>
+        <span class='stat-number'>∞</span>
+        <span class='stat-text'>Aventuras</span>
+      </div>
+      <div class='stat'>
+        <span class='stat-number'>❤️</span>
+        <span class='stat-text'>Amor Familiar</span>
+      </div>
+    </div>
+
+    <!-- <div class='footer-links'>
+      <span class='footer-link'>📧 Contacto</span>
+      <span class='footer-separator'>•</span>
+      <span class='footer-link'>❓ FAQ</span>
+      <span class='footer-separator'>•</span>
+      <span class='footer-link'>🔒 Privacidad</span>
+    </div> -->
+
+    <div class='footer-copyright'>
+      <p>
+        💝 Hecho con amor por una familia aventurera • {
+          new Date().getFullYear()
+        }
+      </p>
+      {
+        projectConfig && (
+          <p class='footer-status'>
+            Estado del proyecto:{' '}
+            <span class='status-{projectConfig.project_status}'>
+              {projectConfig.project_status}
+            </span>
+          </p>
+        )
+      }
+    </div>
+  </div>
+</div>
+<style>
+  .page-footer {
+    background: linear-gradient(145deg, #2c3e50, #34495e);
+    color: white;
+    border-radius: 20px 20px 0 0;
+    margin-top: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-footer::before {
+    content: '✨';
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    font-size: 100px;
+    opacity: 0.1;
+    transform: rotate(-15deg);
+  }
+
+  .footer-content {
+    padding: 40px 30px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-message {
+    margin-bottom: 30px;
+  }
+
+  .footer-message h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .footer-message p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    line-height: 1.6;
+  }
+
+  .footer-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .stat-text {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
+  .footer-links {
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+
+  .footer-link {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .footer-link:hover {
+    opacity: 0.7;
+  }
+
+  .footer-separator {
+    margin: 0 15px;
+    opacity: 0.5;
+  }
+
+  .footer-copyright {
+    opacity: 0.7;
+    font-size: 0.85rem;
+  }
+
+  .footer-status {
+    margin-top: 5px;
+    font-size: 0.8rem;
+  }
+</style>

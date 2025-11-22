@@ -1,0 +1,92 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'button'> {
+  toCloseId: string;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const { toCloseId, size = 'md', class: className, ...rest } = Astro.props;
+
+const classes = ['button-close', , `button-close--${size}`, className]
+  .filter(Boolean)
+  .join(' ');
+---
+
+<button
+  class={classes}
+  data-to-close={toCloseId}
+  aria-label='Cerrar'
+  {...rest}
+>
+  <svg
+    width='24'
+    height='24'
+    viewBox='0 0 24 24'
+    fill='currentColor'
+  >
+    <path
+      d='M18 6L6 18M6 6l12 12'
+      stroke='currentColor'
+      stroke-width='2'
+      stroke-linecap='round'
+    ></path>
+  </svg>
+</button>
+
+<style>
+  .button-close {
+    flex: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    cursor: pointer;
+    color: white;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .button-close:focus {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  .button-close:active {
+    transform: scale(var(--active-scale));
+  }
+
+  /* Tamaños */
+  .button-close--sm {
+    padding: 0.25rem;
+  }
+
+  .button-close--sm svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .button-close--md {
+    padding: 0.5rem;
+  }
+
+  .button-close--md svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .button-close--lg {
+    padding: 0.75rem;
+  }
+
+  .button-close--lg svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .button-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+</style>

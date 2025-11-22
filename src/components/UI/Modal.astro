@@ -1,0 +1,212 @@
+---
+import CloseButton from './CloseButton.astro';
+
+interface Props {
+  id: string;
+  title?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  showCloseButton?: boolean;
+}
+
+const {
+  id,
+  title = 'Modal',
+  size = 'md',
+  showCloseButton = true,
+} = Astro.props;
+---
+
+<dialog
+  id={`${id}-overlay`}
+  class={`modal-dialog ${size}`}
+  aria-labelledby={`${id}-title`}
+>
+  <div class='modal-content'>
+    <div class='modal-header'>
+      <slot name='beforeTitle' />
+      <div class='modal-header__text'>
+        <h2
+          id={`${id}-title`}
+          class='modal-title'
+        >
+          {title}
+        </h2>
+        <slot name='afterTitle' />
+      </div>
+
+      {
+        showCloseButton && (
+          <CloseButton
+            toCloseId={id}
+            onclick={`closeModal('${id}')`}
+          />
+        )
+      }
+    </div>
+
+    <div
+      class='modal-body'
+      id={`${id}-content`}
+    >
+      <slot />
+    </div>
+
+    <footer class='modal-footer'>
+      <slot name='modal-footer' />
+    </footer>
+  </div>
+</dialog>
+
+<style>
+  .modal-dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+    margin: auto;
+    max-width: 700px;
+  }
+
+  .modal-dialog::backdrop {
+    background: var(--overlay);
+    backdrop-filter: blur(4px);
+  }
+
+  /* Tamaños del modal */
+  .modal-dialog.sm {
+    max-width: 400px;
+  }
+
+  .modal-dialog.lg {
+    max-width: 700px;
+  }
+
+  .modal-dialog.xl {
+    max-width: 900px;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Asegura altura máxima de la ventana */
+    width: 100%;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background: linear-gradient(145deg, #667eea, #764ba2);
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .modal-header__text {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    padding: 1.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: var(--text-primary);
+  }
+
+  .modal-footer {
+    background: #f8f9fa;
+    padding: 20px 30px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  /* Scroll personalizado */
+  .modal-body::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .modal-body::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+  }
+
+  .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #5a6fd8;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .modal-dialog {
+      width: 95vw;
+      max-height: 95vh;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+      padding: 1rem;
+    }
+
+    .modal-footer {
+      flex-direction: column-reverse;
+    }
+
+    .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  declare global {
+    interface Window {
+      openModal: (modalId: string) => void;
+      closeModal: (modalId: string) => void;
+    }
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    window.openModal = (modalId) => {
+      const modalDialog = document.getElementById(
+        `${modalId}-overlay`
+      ) as HTMLDialogElement;
+      if (modalDialog) {
+        modalDialog.showModal();
+        document.body.style.overflow = 'hidden';
+
+        // Focus en el primer elemento focuseable
+        const firstFocusable = modalDialog.querySelector(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        ) as HTMLElement;
+        firstFocusable.focus();
+      }
+    };
+
+    // // Función global para cerrar modal
+    window.closeModal = (modalId) => {
+      const modalDialog = document.getElementById(
+        `${modalId}-overlay`
+      ) as HTMLDialogElement;
+      if (modalDialog) {
+        modalDialog.close();
+        document.body.style.overflow = '';
+      }
+    };
+  });
+</script>

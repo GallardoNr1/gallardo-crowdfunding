@@ -1,0 +1,1511 @@
+---
+import Modal from './UI/Modal.astro';
+
+export interface PaymentMethod {
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+    enabled: boolean;
+}
+
+export interface Props {
+    paymentMethods?: PaymentMethod[];
+    currency?: string;
+    showRewards?: boolean;
+}
+
+const defaultPaymentMethods: PaymentMethod[] = [
+    {
+        id: "cash",
+        name: "En efectivo",
+        icon: "🤝",
+        description: "Pago en mano",
+        enabled: true
+    },
+    {
+        id: "bizum",
+        name: "Bizum",
+        icon: "📱",
+        description: "Pago instantáneo desde tu móvil",
+        enabled: true
+    }
+];
+
+const { 
+    paymentMethods = defaultPaymentMethods,
+    currency = "€",
+    showRewards = true
+} = Astro.props;
+---
+
+<Modal id="contributionModal" title='¡Únete a la Aventura!'>
+    <div class="modal-icon" slot="beforeTitle">🐉</div>
+    <p class="modal-subtitle" slot="afterTitle">Ayuda a la familia a conseguir su dragón épico</p>
+
+    <div class="dialog-content">
+        <form id="contributionForm" class="contribution-form">
+            <div class="modal-body">
+                <section class="contribution-summary">
+                    <div class="summary-header">
+                        <h3>📝 Resumen de tu Contribución</h3>
+                    </div>
+                    
+                    <div class="selected-level" id="selectedLevelDisplay">
+                        <div class="level-info">
+                            <div class="level-badge">
+                                <span class="level-emoji" id="levelEmoji" aria-hidden="true">🎯</span>
+                            </div>
+                            <div class="level-details">
+                                <div class="level-name" id="levelName">Selecciona un nivel</div>
+                                <div class="level-description" id="levelDescription">Elige un nivel de contribución</div>
+                            </div>
+                            <div class="level-amount" id="levelAmount">0 {currency}</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="selectedLevelId" name="levelId" required>
+                    <input type="hidden" id="selectedAmount" name="amount" required>
+
+                    {showRewards && (
+                        <div class="rewards-section">
+                            <h4 class="rewards-title">🎁 Recompensas de tu Contribución</h4>
+                            <div class="rewards-list" id="rewardsList" role="list">
+                                <!-- Se llenarán dinámicamente -->
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                <section class="contributor-form">
+                    <h3 class="form-title">👤 Tus Datos de Héroe</h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="contributorName">Nombre *</label>
+                            <input 
+                                type="text" 
+                                id="contributorName" 
+                                name="contributorName"
+                                placeholder="¿Cómo te llamaremos, héroe?"
+                                required
+                                minlength="2"
+                                autocomplete="name"
+                            >
+                            <div class="input-icon" aria-hidden="true">⚔️</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contributorEmail">Email *</label>
+                            <input 
+                                type="email" 
+                                id="contributorEmail" 
+                                name="contributorEmail"
+                                placeholder="tu.email@aventura.com"
+                                required
+                                autocomplete="email"
+                            >
+                            <div class="input-icon" aria-hidden="true">📧</div>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="contributorMessage">Mensaje de Apoyo (opcional)</label>
+                            <textarea 
+                                id="contributorMessage" 
+                                name="contributorMessage"
+                                placeholder="Deja un mensaje de apoyo a la familia..."
+                                maxlength="150"
+                                rows="3"
+                            ></textarea>
+                            <div class="char-counter" id="charCounter" aria-live="polite">0/150</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contributorEmoji">Tu Emoji de Aventurero</label>
+                            <select id="contributorEmoji" name="contributorEmoji">
+                                <option value="🦸">🦸 Superhéroe</option>
+                                <option value="🧙">🧙 Mago</option>
+                                <option value="⚔️">⚔️ Guerrero</option>
+                                <option value="🏹">🏹 Arquero</option>
+                                <option value="🛡️">🛡️ Defensor</option>
+                                <option value="🎭">🎭 Bardo</option>
+                                <option value="🕵️">🕵️ Explorador</option>
+                                <option value="💫">💫 Estrella</option>
+                                <option value="🌟">🌟 Leyenda</option>
+                                <option value="❤️">❤️ Corazón</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="isAnonymous" name="isAnonymous">
+                                <label for="isAnonymous">🥷 Contribución anónima</label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="payment-section">
+                    <h3 class="payment-title">💳 Método de Pago</h3>
+                    
+                    <fieldset class="payment-methods">
+                        <legend class="sr-only">Selecciona tu método de pago</legend>
+                        {paymentMethods.map((method) => (
+                            <label class={`payment-method ${!method.enabled ? 'disabled' : ''}`}>
+                                <input 
+                                    type="radio" 
+                                    name="paymentMethod" 
+                                    value={method.id}
+                                    disabled={!method.enabled}
+                                    required
+                                >
+                                <div class="method-content">
+                                    <div class="method-icon" aria-hidden="true">{method.icon}</div>
+                                    <div class="method-info">
+                                        <div class="method-name">{method.name}</div>
+                                        <div class="method-description">{method.description}</div>
+                                    </div>
+                                </div>
+                            </label>
+                        ))}
+                    </fieldset>
+
+                    <!-- Instrucciones dinámicas -->
+                    <div class="payment-instructions" id="paymentInstructions" style="display: none;" role="region" aria-live="polite">
+                        <div class="instructions-content" id="instructionsContent">
+                            <!-- Se llenarán dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Información de Seguridad -->
+                    <div class="security-info">
+                        <div class="security-badge">
+                            <span class="security-icon" aria-hidden="true">🔒</span>
+                            <span class="security-text">Contribución 100% segura</span>
+                        </div>
+                        <div class="trust-indicators">
+                            <span class="trust-item">Familiar</span>
+                            <span class="trust-item">Seguro</span>
+                            <span class="trust-item">Directo</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="terms-section">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
+                        <label for="acceptTerms">
+                            Acepto los <a href="#" class="terms-link">términos y condiciones</a> 
+                            y entiendo que es un proyecto familiar de crowdfunding
+                        </label>
+                    </div>
+                </section>
+            </div>
+        </form>
+
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;" role="status" aria-live="assertive">
+            <div class="loading-content">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <div class="loading-text">Procesando tu contribución...</div>
+                <div class="loading-subtext">Por favor, no cierres esta ventana</div>
+            </div>
+        </div>
+    </div>
+    
+    <div slot="modal-footer">
+        <div class="footer-summary">
+            <div class="total-amount">
+                <span class="total-label">Total a contribuir:</span>
+                <span class="total-value" id="totalAmount">0 {currency}</span>
+            </div>
+        </div>
+        
+        <div class="footer-actions">
+            <button type="button" class="cancel-button" id="cancelContribution">
+                Cancelar
+            </button>
+            <button type="submit" form="contributionForm" class="contribute-final-button" id="finalContributeButton" disabled>
+                <span class="button-icon" aria-hidden="true">🚀</span>
+                <span class="button-text">¡Contribuir Ahora!</span>
+                <span class="button-icon" aria-hidden="true">✨</span>
+            </button>
+        </div>
+    </div>
+</Modal>
+
+<Modal id="successModal">
+    <div class="success-container">
+        <div class="success-content">
+            <div class="success-animation">
+                <div class="success-icon" aria-hidden="true">🎉</div>
+                <div class="success-rings" aria-hidden="true">
+                    <div class="ring ring-1"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="ring ring-3"></div>
+                </div>
+            </div>
+            
+            <h2 class="success-title">¡Contribución Registrada!</h2>
+            <p class="success-message">
+                ¡Gracias por unirte a nuestra aventura épica! 🐉<br>
+                Tu apoyo significa el mundo para nuestra familia.
+            </p>
+            
+            <div class="success-details" id="successDetails">
+                <!-- Se llenará dinámicamente con los detalles -->
+            </div>
+        </div>
+    </div>
+</Modal>
+
+<style>
+    .contribution-form {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Screen Reader Only */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .modal-icon {
+        font-size: 3rem;
+        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        animation: bounce 2s infinite;
+    }
+
+    .modal-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    /* Resumen de Contribución */
+    .contribution-summary {
+        background: linear-gradient(145deg, #fff3e0, #ffcc02);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 25px;
+        border: 2px solid #ff9800;
+    }
+
+    .summary-header h3 {
+        font-family: 'Fredoka One', cursive;
+        color: #e65100;
+        margin-bottom: 15px;
+        font-size: 1.3rem;
+    }
+
+    .selected-level {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .level-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .level-badge {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(145deg, #ff9800, #f57c00);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+    }
+
+    .level-details {
+        flex: 1;
+    }
+
+    .level-name {
+        font-weight: 700;
+        color: #333;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+    }
+
+    .level-description {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .level-amount {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #ff9800;
+    }
+
+    /* Recompensas */
+    .rewards-section {
+        margin-top: 15px;
+    }
+
+    .rewards-title {
+        font-size: 1.1rem;
+        color: #e65100;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .rewards-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .reward-item {
+        background: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        border: 1px solid #ff9800;
+        color: #e65100;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Formulario */
+    .contributor-form {
+        margin-bottom: 25px;
+    }
+
+    .form-title {
+        font-family: 'Fredoka One', cursive;
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .form-group {
+        position: relative;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input:invalid:not(:focus) {
+        border-color: #e74c3c;
+    }
+
+    .input-icon {
+        position: absolute;
+        right: 15px;
+        top: 38px;
+        font-size: 1.2rem;
+        pointer-events: none;
+    }
+
+    .char-counter {
+        position: absolute;
+        right: 10px;
+        bottom: 8px;
+        font-size: 0.8rem;
+        color: #999;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+    }
+
+    /* Métodos de Pago */
+    .payment-section {
+        margin-bottom: 25px;
+    }
+
+    .payment-title {
+        font-family: 'Fredoka One', cursive;
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+    }
+
+    .payment-methods {
+        border: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+        display: grid;
+        gap: 10px;
+    }
+
+    .payment-method {
+        display: block;
+        padding: 0;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        position: relative;
+    }
+
+    .payment-method input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .method-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .payment-method:hover:not(.disabled) {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+
+    .payment-method:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .payment-method input[type="radio"]:checked + .method-content {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+
+    .payment-method input[type="radio"]:checked + .method-content::after {
+        content: '✓';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #667eea;
+        color: white;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    .payment-method.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+
+    .method-icon {
+        font-size: 2rem;
+        width: 50px;
+        text-align: center;
+    }
+
+    .method-info {
+        flex: 1;
+    }
+
+    .method-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 3px;
+    }
+
+    .method-description {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    /* Instrucciones de pago */
+    .payment-instructions {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        border: 2px solid #17a2b8;
+        margin-top: 15px;
+    }
+
+    .instructions-content h4 {
+        color: #17a2b8;
+        margin-bottom: 15px;
+        font-family: 'Fredoka One', cursive;
+    }
+
+    .bank-details {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #666;
+    }
+
+    .detail-value {
+        color: #333;
+        font-family: monospace;
+        font-weight: 600;
+    }
+
+    .copy-button {
+        background: #17a2b8;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin-left: 10px;
+        transition: background 0.2s;
+    }
+
+    .copy-button:hover {
+        background: #138496;
+    }
+
+    .copy-button:focus {
+        outline: 2px solid #17a2b8;
+        outline-offset: 2px;
+    }
+
+    /* Información de Seguridad */
+    .security-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .security-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #2e7d32;
+        font-weight: 600;
+    }
+
+    .trust-indicators {
+        display: flex;
+        gap: 10px;
+    }
+
+    .trust-item {
+        background: #2e7d32;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Términos y Condiciones */
+    .terms-section {
+        margin-bottom: 20px;
+    }
+
+    .terms-section .checkbox-group label {
+        font-size: 0.9rem;
+        color: #666;
+        line-height: 1.4;
+    }
+
+    .terms-link {
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    .terms-link:hover {
+        text-decoration: underline;
+    }
+
+    .terms-link:focus {
+        outline: 2px solid #667eea;
+        outline-offset: 1px;
+    }
+
+    /* Footer del Modal */
+    .footer-summary {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .total-amount {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .total-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 2px;
+    }
+
+    .total-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #2e7d32;
+    }
+
+    .footer-actions {
+        display: flex;
+        gap: 15px;
+    }
+
+    .cancel-button {
+        padding: 12px 25px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        color: #666;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .cancel-button:hover {
+        border-color: #ccc;
+        background: #f5f5f5;
+    }
+
+    .cancel-button:focus {
+        outline: 2px solid #667eea;
+        outline-offset: 2px;
+    }
+
+    .contribute-final-button {
+        background: linear-gradient(145deg, #4caf50, #45a049);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .contribute-final-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+    }
+
+    .contribute-final-button:focus {
+        outline: 2px solid white;
+        outline-offset: 2px;
+    }
+
+    .contribute-final-button:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border-radius: 20px;
+    }
+
+    .loading-content {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    .loading-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .loading-subtext {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Modal de Éxito */
+    .success-container {
+        padding: 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        background: white;
+        border-radius: 20px;
+    }
+
+    .success-animation {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .success-icon {
+        font-size: 5rem;
+        margin-bottom: 15px;
+        animation: successBounce 1s ease-out;
+    }
+
+    .success-rings {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .ring {
+        position: absolute;
+        border: 3px solid #4caf50;
+        border-radius: 50%;
+        opacity: 0;
+        animation: ringExpand 2s ease-out infinite;
+    }
+
+    .ring-1 {
+        width: 100px;
+        height: 100px;
+        margin: -50px 0 0 -50px;
+        animation-delay: 0s;
+    }
+
+    .ring-2 {
+        width: 150px;
+        height: 150px;
+        margin: -75px 0 0 -75px;
+        animation-delay: 0.5s;
+    }
+
+    .ring-3 {
+        width: 200px;
+        height: 200px;
+        margin: -100px 0 0 -100px;
+        animation-delay: 1s;
+    }
+
+    @keyframes successBounce {
+        0% { transform: scale(0); }
+        60% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes ringExpand {
+        0% {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        50% {
+            opacity: 0.8;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.2);
+        }
+    }
+
+    .success-title {
+        font-family: 'Fredoka One', cursive;
+        font-size: 2rem;
+        color: #4caf50;
+        margin-bottom: 15px;
+    }
+
+    .success-message {
+        font-size: 1.1rem;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 25px;
+    }
+
+    .success-details {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
+
+    .success-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .share-button,
+    .close-success-button {
+        padding: 12px 25px;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+    }
+
+    .share-button {
+        background: linear-gradient(145deg, #2196f3, #1976d2);
+        color: white;
+    }
+
+    .close-success-button {
+        background: #e0e0e0;
+        color: #666;
+    }
+
+    .share-button:hover,
+    .close-success-button:hover {
+        transform: translateY(-2px);
+    }
+
+    .share-button:focus,
+    .close-success-button:focus {
+        outline: 2px solid #2196f3;
+        outline-offset: 2px;
+    }
+
+    /* Animaciones Generales */
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-10px); }
+        60% { transform: translateY(-5px); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .footer-actions {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .cancel-button,
+        .contribute-final-button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .success-container {
+            padding: 30px 20px;
+        }
+
+        .success-actions {
+            flex-direction: column;
+        }
+
+        .security-info {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .payment-instructions {
+            padding: 15px;
+        }
+
+        .loading-content {
+            padding: 30px 20px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .level-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .level-badge {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        .payment-method .method-content {
+            padding: 12px;
+        }
+
+        .method-icon {
+            font-size: 1.5rem;
+            width: 40px;
+        }
+
+        .contribution-summary,
+        .contributor-form,
+        .payment-section {
+            margin-bottom: 20px;
+        }
+    }
+
+    /* Soporte para navegadores que no tienen :focus-visible */
+    @supports not selector(:focus-visible) {
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+    }
+
+    /* Mejoras para focus-visible */
+    @supports selector(:focus-visible) {
+        button:focus:not(:focus-visible),
+        input:focus:not(:focus-visible),
+        select:focus:not(:focus-visible),
+        textarea:focus:not(:focus-visible) {
+            outline: none;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+    }
+</style>
+
+<script>
+import { createContribution } from "../lib/supabase";
+
+    class ContributionModalManager {
+        private loadingOverlay: HTMLElement;
+        private form: HTMLFormElement;
+        private selectedLevel: any = null;
+
+        constructor() {
+            this.loadingOverlay = document.getElementById('loadingOverlay')!;
+            this.form = document.getElementById('contributionForm') as HTMLFormElement;
+            this.init();
+        }
+
+        private init() {
+            this.setupModalControls();
+            this.setupFormHandling();
+            this.setupPaymentMethodChange();
+            this.setupCopyButtons()
+            
+            // Escuchar cuando se selecciona un nivel
+            document.addEventListener('levelSelected', (e: any) => {
+                this.handleLevelSelected(e.detail);
+            });
+        }
+
+        private setupModalControls() {
+            const cancelBtn = document.getElementById('cancelContribution');
+            
+            // Usar tu sistema de modales personalizado para cerrar
+            cancelBtn?.addEventListener('click', () => {
+                // Asumiendo que tienes una función global para cerrar modales
+                this.closeModal();
+            });
+        }
+
+        private setupFormHandling() {
+            // Validación en tiempo real
+            const inputs = this.form.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                input.addEventListener('input', () => this.validateForm());
+                input.addEventListener('change', () => this.validateForm());
+            });
+
+            // Contador de caracteres para mensaje
+            const messageInput = document.getElementById('contributorMessage') as HTMLTextAreaElement;
+            const charCounter = document.getElementById('charCounter');
+            
+            messageInput?.addEventListener('input', () => {
+                const count = messageInput.value.length;
+                if (charCounter) {
+                    charCounter.textContent = `${count}/150`;
+                    charCounter.style.color = count > 140 ? '#f44336' : '#999';
+                }
+            });
+
+            // Manejar envío del formulario
+            this.form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleFormSubmit();
+            });
+
+            // Botones del modal de éxito
+            const closeSuccessBtn = document.getElementById('closeSuccess');
+            const shareBtn = document.getElementById('shareContribution');
+
+            closeSuccessBtn?.addEventListener('click', () => this.closeSuccessModal());
+            shareBtn?.addEventListener('click', () => this.shareContribution());
+        }
+
+        private setupPaymentMethodChange() {
+            const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
+            
+            paymentMethods.forEach(method => {
+                method.addEventListener('change', () => {
+                    this.handlePaymentMethodChange((method as HTMLInputElement).value);
+                });
+            });
+        }
+
+        private handlePaymentMethodChange(methodId: string) {
+            const instructionsContainer = document.getElementById('paymentInstructions')!;
+            const instructionsContent = document.getElementById('instructionsContent')!;
+            
+            // Ocultar instrucciones por defecto
+            instructionsContainer.style.display = 'none';
+            
+            // Mostrar instrucciones específicas
+            if (methodId === 'bizum') {
+                instructionsContent.innerHTML = `
+                    <h4>📱 Instrucciones para Bizum</h4>
+                    <div class="bank-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Número Bizum:</span>
+                            <span class="detail-value">648 029 265</span>
+                            <button type="button" class="copy-button" data-copy="648029265">📋</button>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Importe:</span>
+                            <span class="detail-value">${this.selectedLevel?.amount || 0}€</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Concepto:</span>
+                            <span class="detail-value">LEGO D&D + tu nombre</span>
+                        </div>
+                    </div>
+                    <p><strong>📋 Instrucciones:</strong></p>
+                    <ol style="margin: 10px 0; padding-left: 20px;">
+                        <li>Envía el Bizum al número <strong>648 029 265</strong></li>
+                        <li>Pon como concepto: <strong>"LEGO D&D + tu nombre"</strong></li>
+                        <li>Una vez enviado, envía el formulario para registrar tu contribución</li>
+                        <li>Te confirmaremos la recepción por email</li>
+                    </ol>
+                    <div style="background: #e8f5e8; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <strong>💡 Tip:</strong> El concepto nos ayuda a identificar tu contribución más rápido.
+                    </div>
+                `;
+                instructionsContainer.style.display = 'block';
+                
+            } else if (methodId === 'cash') {
+                instructionsContent.innerHTML = `
+                    <h4>🤝 Pago en Efectivo</h4>
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+                        <p><strong>📍 Instrucciones:</strong></p>
+                        <ol style="margin: 10px 0; padding-left: 20px;">
+                            <li>Envía el formulario para registrar tu intención</li>
+                            <li>Te contactaremos por email para coordinar</li>
+                            <li>Acordaremos lugar y momento para el intercambio</li>
+                            <li>¡Nos vemos pronto para la entrega! 😊</li>
+                        </ol>
+                        <div style="background: #e8f5e8; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                            <strong>💚 Perfecto para:</strong> Familiares, amigos cercanos y vecinos de la zona.
+                        </div>
+                    </div>
+                `;
+                instructionsContainer.style.display = 'block';
+            }
+        }
+
+        private validateForm(): boolean {
+            const formData = new FormData(this.form);
+            const submitButton = document.getElementById('finalContributeButton') as HTMLButtonElement;
+            
+            // Verificar campos requeridos
+            const isValid = this.form.checkValidity() && this.selectedLevel;
+            
+            if (submitButton) {
+                submitButton.disabled = !isValid;
+                submitButton.style.opacity = isValid ? '1' : '0.6';
+            }
+            
+            return isValid;
+        }
+
+        private async handleFormSubmit() {
+            if (!this.validateForm()) {
+                return;
+            }
+
+            this.showLoading();
+
+            try {
+                // Obtener datos del formulario
+                const formData = new FormData(this.form);
+                const contributionData = {
+                    levelId: formData.get('levelId'),
+                    amount: formData.get('amount'),
+                    contributorName: formData.get('contributorName'),
+                    contributorEmail: formData.get('contributorEmail'),
+                    contributorMessage: formData.get('contributorMessage'),
+                    contributorEmoji: formData.get('contributorEmoji'),
+                    isAnonymous: formData.get('isAnonymous') === 'on',
+                    paymentMethod: formData.get('paymentMethod'),
+                    // acceptTerms: formData.get('acceptTerms') === 'on'
+                };
+
+                await this.submitContribution(contributionData);
+
+                this.hideLoading();
+                this.showSuccessModal(contributionData);
+
+            } catch (error) {
+                this.hideLoading();
+                alert('Error al enviar la contribución. Por favor, inténtalo de nuevo.');
+            }
+        }
+
+        private async submitContribution(data: any): Promise<void> {
+            
+            // Simular delay de red
+            await createContribution(data);
+            
+            // Disparar evento para actualizar la página principal
+            this.updateMainPageData(data);
+        }
+
+        private showLoading() {
+            this.loadingOverlay.style.display = 'flex';
+            this.loadingOverlay.setAttribute('aria-live', 'assertive');
+        }
+
+        private hideLoading() {
+            this.loadingOverlay.style.display = 'none';
+        }
+
+        private showSuccessModal(contributionData: any) {
+            // Cerrar modal principal usando tu sistema
+            this.closeModal();
+            
+            const successDetails = document.getElementById('successDetails');
+            
+            if (successDetails) {
+                const paymentMethodNames: any = {
+                    'cash': 'En efectivo',
+                    'bizum': 'Bizum'
+                };
+
+                let statusMessage = '';
+                if (contributionData.paymentMethod === 'bizum') {
+                    statusMessage = '<div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-top: 15px;"><strong>📱 Siguiente paso:</strong> Envía el Bizum al 648 029 265 con el concepto "LEGO D&D + tu nombre"</div>';
+                } else if (contributionData.paymentMethod === 'cash') {
+                    statusMessage = '<div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-top: 15px;"><strong>🤝 Siguiente paso:</strong> Te contactaremos por email para coordinar la entrega en efectivo</div>';
+                }
+
+                successDetails.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div style="font-size: 2rem;" aria-hidden="true">${this.selectedLevel.emoji}</div>
+                        <div>
+                            <div style="font-weight: 700; color: #333;">Nivel: ${this.selectedLevel.name}</div>
+                            <div style="color: #666;">Contribución: ${this.selectedLevel.amount} €</div>
+                        </div>
+                    </div>
+                    <div style="text-align: left;">
+                        <strong>Nombre:</strong> ${contributionData.contributorName}<br>
+                        <strong>Email:</strong> ${contributionData.contributorEmail}<br>
+                        <strong>Método de pago:</strong> ${paymentMethodNames[contributionData.paymentMethod] || contributionData.paymentMethod}<br>
+                        ${contributionData.contributorMessage ? `<strong>Mensaje:</strong> "${contributionData.contributorMessage}"<br>` : ''}
+                        <strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}
+                    </div>
+                    ${statusMessage}
+                `;
+            }
+
+            // Abrir modal de éxito usando tu sistema
+            this.openSuccessModal();
+        }
+
+        private updateMainPageData(contributionData: any) {
+            const event = new CustomEvent('contributionCompleted', {
+                detail: {
+                    amount: this.selectedLevel.amount,
+                    contributor: {
+                        name: contributionData.contributorName,
+                        emoji: contributionData.contributorEmoji,
+                        message: contributionData.contributorMessage,
+                        level: this.selectedLevel.name,
+                        color: this.selectedLevel.color || '#4caf50',
+                        isAnonymous: contributionData.isAnonymous
+                    }
+                }
+            });
+
+            document.dispatchEvent(event);
+        }
+
+        private shareContribution() {
+            const shareText = `¡Acabo de contribuir al crowdfunding familiar para conseguir el set de LEGO D&D! 🐉✨ 
+            
+Nivel: ${this.selectedLevel.name} (${this.selectedLevel.amount}€)
+
+¡Únete a esta aventura épica y ayuda a esta familia a crear recuerdos mágicos! 
+
+#LEGODnD #CrowdfundingFamiliar #AventuraEpica`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: '🐉 ¡Contribución Registrada!',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('¡Texto copiado al portapapeles! Ahora puedes pegarlo en tus redes sociales 📱');
+                });
+            }
+        }
+
+        // Métodos para integrar con tu sistema de modales
+        private closeModal() {
+            window.closeModal('contributionModal');
+            this.resetForm();
+        }
+
+        private openSuccessModal() {
+            window.openModal('successModal');
+        }
+
+        private closeSuccessModal() {
+            window.closeModal('successModal');
+        }
+
+        private resetForm() {
+            this.form.reset();
+            
+            // Limpiar campos adicionales
+            const charCounter = document.getElementById('charCounter');
+            if (charCounter) charCounter.textContent = '0/150';
+            
+            // Ocultar instrucciones
+            document.getElementById('paymentInstructions')!.style.display = 'none';
+            
+            // Resetear validación
+            this.validateForm();
+        }
+
+        private handleLevelSelected(levelData: any) {
+            this.selectedLevel = levelData;
+            this.updateModalContent();
+            this.openModal();
+        }
+
+        private openModal() {
+            window.openModal('contributionModal');
+            
+            // Focus en el primer campo del formulario
+            setTimeout(() => {
+                const nameInput = document.getElementById('contributorName') as HTMLInputElement;
+                nameInput?.focus();
+            }, 100);
+        }
+
+        private updateModalContent() {
+            if (!this.selectedLevel) return;
+
+            // Actualizar elementos visuales
+            const levelEmoji = document.getElementById('levelEmoji');
+            const levelName = document.getElementById('levelName');
+            const levelDescription = document.getElementById('levelDescription');
+            const levelAmount = document.getElementById('levelAmount');
+            const totalAmount = document.getElementById('totalAmount');
+
+            if (levelEmoji) levelEmoji.textContent = this.selectedLevel.emoji;
+            if (levelName) levelName.textContent = this.selectedLevel.name;
+            if (levelDescription) levelDescription.textContent = `Nivel ${this.selectedLevel.name} - ¡Gracias por tu apoyo!`;
+            if (levelAmount) levelAmount.textContent = `${this.selectedLevel.amount} €`;
+            if (totalAmount) totalAmount.textContent = `${this.selectedLevel.amount} €`;
+
+            // Actualizar campos ocultos del formulario
+            const levelIdInput = document.getElementById('selectedLevelId') as HTMLInputElement;
+            const amountInput = document.getElementById('selectedAmount') as HTMLInputElement;
+
+            if (levelIdInput) levelIdInput.value = this.selectedLevel.id;
+            if (amountInput) amountInput.value = this.selectedLevel.amount;
+
+            this.updateRewards();
+            this.validateForm();
+        }
+
+        private updateRewards() {
+            const rewardsList = document.getElementById('rewardsList');
+            if (!rewardsList || !this.selectedLevel) return;
+
+            const rewards = this.getRewardsForLevel(this.selectedLevel.amount);
+            
+            rewardsList.innerHTML = rewards.map(reward => 
+                `<span class="reward-item" role="listitem">${reward.icon} ${reward.text}</span>`
+            ).join('');
+        }
+
+        private getRewardsForLevel(amount: number): any[] {
+            const baseRewards = [
+                { icon: '💌', text: 'Agradecimiento personal' },
+                { icon: '📝', text: 'Tu nombre en la lista de héroes' }
+            ];
+
+            if (amount >= 25) {
+                baseRewards.push({ icon: '📸', text: 'Foto del dragón construido' });
+            }
+
+            if (amount >= 50) {
+                baseRewards.push({ icon: '🎲', text: 'Invitación a una sesión D&D virtual' });
+            }
+
+            if (amount >= 100) {
+                baseRewards.push({ icon: '🎁', text: 'Regalo sorpresa de la familia' });
+            }
+
+            if (amount >= 200) {
+                baseRewards.push({ icon: '👑', text: 'Estado de Señor/Señora Dragón' });
+                baseRewards.push({ icon: '🏰', text: 'Derechos de naming del dragón' });
+            }
+
+            return baseRewards;
+        }
+
+        private setupCopyButtons() {
+            // Delegar eventos para botones de copiar
+            document.addEventListener('click', async (e) => {
+                const target = e.target as HTMLElement;
+                if (target.classList.contains('copy-button')) {
+                    const textToCopy = target.dataset.copy;
+                    if (textToCopy) {
+                        await this.copyToClipboard(textToCopy, target);
+                    }
+                }
+            });
+        }
+
+        private async copyToClipboard(text: string, button: HTMLElement) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = button.textContent;
+                button.textContent = '✅';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Error al copiar:', err);
+            }
+        }
+
+        // Métodos públicos para uso externo
+        public setLevel(levelData: any) {
+            this.selectedLevel = levelData;
+            this.updateModalContent();
+        }
+
+        public getSelectedLevel() {
+            return this.selectedLevel;
+        }
+    }
+    
+
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+        new ContributionModalManager();
+    });
+</script>

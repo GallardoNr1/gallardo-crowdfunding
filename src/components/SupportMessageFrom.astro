@@ -1,0 +1,640 @@
+<div class='add-comment'>
+  <form
+    class='comment-form'
+    id='commentForm'
+  >
+    <div class='form-avatar'>😊</div>
+    <div class='form-input'>
+      <label
+        for='newComment'
+        class='sr-only'
+        >Tu mensaje de apoyo</label
+      >
+      <textarea
+        id='newComment'
+        name='comment'
+        placeholder='Deja un mensaje de apoyo para la familia...'
+        maxlength='200'
+        required
+        aria-describedby='char-count comment-help'
+      ></textarea>
+      <div
+        id='char-count'
+        class='char-counter'
+      >
+        0/200
+      </div>
+      <div
+        id='comment-help'
+        class='help-text'
+      >
+        Comparte tu apoyo a esta hermosa familia
+      </div>
+
+      <!-- Campos adicionales opcionales -->
+      <div class='form-row'>
+        <input
+          type='text'
+          name='author_name'
+          placeholder='Tu nombre (opcional)'
+          maxlength='50'
+          class='author-input'
+        />
+        <input
+          type='email'
+          name='author_email'
+          placeholder='Tu email (opcional)'
+          class='email-input'
+        />
+      </div>
+
+      <!-- Campo oculto para identificar el proyecto -->
+      <input
+        type='hidden'
+        name='project_id'
+        value='dragon-lego-family'
+      />
+      <input
+        type='hidden'
+        name='csrf_token'
+        value='{{ csrf_token }}'
+      />
+
+      <div class='input-actions'>
+        <button
+          type='submit'
+          class='send-button'
+          id='sendComment'
+          aria-label='Enviar mensaje de apoyo'
+        >
+          <span class='button-icon'>💌</span>
+          <span class='button-text'>Enviar</span>
+          <span
+            class='loading-spinner'
+            style='display: none;'
+            >⏳</span
+          >
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+  /* Estilos adicionales para el formulario */
+  .add-comment {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    margin-top: 20px;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .form-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(145deg, #ff9800, #f57c00);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .form-input {
+    flex: 1;
+  }
+
+  .form-input textarea {
+    width: 100%;
+    border: 2px solid #f8bbd9;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .form-input textarea:focus {
+    outline: none;
+    border-color: #e91e63;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.2);
+  }
+
+  .input-actions {
+    margin-top: 10px;
+    text-align: right;
+  }
+
+  .send-button {
+    background: linear-gradient(145deg, #e91e63, #c2185b);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .send-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .author-input,
+  .email-input {
+    border: 2px solid #f8bbd9;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .author-input:focus,
+  .email-input:focus {
+    outline: none;
+    border-color: #e91e63;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.2);
+  }
+
+  .char-counter {
+    font-size: 0.8rem;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
+    transition: color 0.3s ease;
+  }
+
+  .char-counter.warning {
+    color: #ff9800;
+    font-weight: 600;
+  }
+
+  .char-counter.danger {
+    color: #f44336;
+    font-weight: 700;
+  }
+
+  .help-text {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Estados del botón */
+  .send-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .send-button.loading {
+    pointer-events: none;
+  }
+
+  .send-button.success {
+    background: linear-gradient(145deg, #4caf50, #45a049);
+  }
+
+  .form-error {
+    background: #ffebee;
+    border: 1px solid #f44336;
+    color: #c62828;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    animation: slideInDown 0.3s ease-out;
+  }
+
+  .form-success {
+    background: #e8f5e8;
+    border: 1px solid #4caf50;
+    color: #2e7d32;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    animation: slideInDown 0.3s ease-out;
+  }
+
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .comment-form {
+      flex-direction: column;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .add-comment {
+      padding: 10px;
+    }
+  }
+</style>
+
+<script>
+  import { createSupportMessage } from '../lib/supabase';
+
+  class CommentFormHandler {
+    private form: HTMLFormElement;
+    private textarea: HTMLTextAreaElement;
+    private submitButton: HTMLButtonElement;
+    private charCounter: HTMLElement;
+    private buttonText: HTMLElement;
+    private loadingSpinner: HTMLElement;
+    private authorInput: HTMLInputElement;
+    private emailInput: HTMLInputElement;
+
+    constructor() {
+      this.form = document.getElementById('commentForm') as HTMLFormElement;
+      this.textarea = document.getElementById(
+        'newComment'
+      ) as HTMLTextAreaElement;
+      this.submitButton = document.getElementById(
+        'sendComment'
+      ) as HTMLButtonElement;
+      this.charCounter = document.getElementById('char-count') as HTMLElement;
+      this.buttonText = this.submitButton?.querySelector(
+        '.button-text'
+      ) as HTMLElement;
+      this.loadingSpinner = this.submitButton?.querySelector(
+        '.loading-spinner'
+      ) as HTMLElement;
+
+      // MEJORAR: Usar querySelector más específico
+      this.authorInput = this.form?.querySelector(
+        'input[name="author_name"]'
+      ) as HTMLInputElement;
+      this.emailInput = this.form?.querySelector(
+        'input[name="author_email"]'
+      ) as HTMLInputElement;
+
+      // VERIFICAR: Que los elementos existan
+      if (!this.form) {
+        console.error('Formulario no encontrado');
+        return;
+      }
+      if (!this.textarea) {
+        console.error('Textarea no encontrado');
+        return;
+      }
+
+      this.init();
+    }
+
+    private init() {
+      if (!this.form || !this.textarea) return;
+
+      // Manejar envío del formulario
+      this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+
+      // Contador de caracteres en tiempo real
+      this.textarea.addEventListener('input', () => this.updateCharCounter());
+
+      // Envío con Ctrl + Enter
+      this.textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          this.form.requestSubmit();
+        }
+      });
+
+      // Validación en tiempo real
+      this.textarea.addEventListener('blur', () => this.validateComment());
+
+      // Validación de email en tiempo real
+      if (this.emailInput) {
+        this.emailInput.addEventListener('blur', () => this.validateEmail());
+      }
+
+      // Auto-resize del textarea
+      this.textarea.addEventListener('input', () => this.autoResizeTextarea());
+
+      // Inicializar contador
+      this.updateCharCounter();
+    }
+
+    private autoResizeTextarea() {
+      this.textarea.style.height = 'auto';
+      this.textarea.style.height =
+        Math.min(this.textarea.scrollHeight, 150) + 'px';
+    }
+
+    private async handleSubmit(e: Event) {
+      e.preventDefault();
+
+      if (!this.validateForm()) return;
+
+      try {
+        this.setLoadingState(true);
+
+        const commentValue = this.textarea.value.trim();
+        const authorValue = this.authorInput?.value.trim() || '';
+        const emailValue = this.emailInput?.value.trim() || '';
+
+        const response = await createSupportMessage({
+          message: commentValue,
+          author_name: authorValue,
+          author_email: emailValue,
+          author_emoji: '',
+        });
+        if (response.success) {
+          this.handleSuccess(response);
+        } else {
+          this.handleError(response.error || 'Error al enviar el comentario');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.handleError('Error de conexión. Por favor, inténtalo de nuevo.');
+      } finally {
+        this.setLoadingState(false);
+      }
+    }
+
+    private validateForm(): boolean {
+      const comment = this.textarea.value.trim();
+
+      if (comment.length === 0) {
+        this.showError('Por favor, escribe un mensaje antes de enviarlo 😊');
+        this.textarea.focus();
+        return false;
+      }
+
+      if (comment.length > 200) {
+        this.showError('El mensaje es demasiado largo. Máximo 200 caracteres.');
+        this.textarea.focus();
+        return false;
+      }
+
+      // Validar email si se proporciona
+      if (this.emailInput && this.emailInput.value.trim()) {
+        if (!this.isValidEmail(this.emailInput.value.trim())) {
+          this.showError('Por favor, introduce un email válido.');
+          this.emailInput.focus();
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    private validateComment(): boolean {
+      const comment = this.textarea.value.trim();
+      this.clearErrors();
+
+      if (comment.length > 200) {
+        this.showError('El mensaje es demasiado largo. Máximo 200 caracteres.');
+        return false;
+      }
+
+      return true;
+    }
+
+    private validateEmail(): boolean {
+      if (!this.emailInput || !this.emailInput.value.trim()) return true;
+
+      const email = this.emailInput.value.trim();
+      if (!this.isValidEmail(email)) {
+        this.showError('Por favor, introduce un email válido.');
+        return false;
+      }
+
+      this.clearErrors();
+      return true;
+    }
+
+    private isValidEmail(email: string): boolean {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    private updateCharCounter() {
+      if (!this.charCounter) return;
+
+      const length = this.textarea.value.length;
+      this.charCounter.textContent = `${length}/200`;
+
+      // Cambiar color según la proximidad al límite
+      this.charCounter.className = 'char-counter';
+      if (length > 180) {
+        this.charCounter.classList.add('danger');
+      } else if (length > 150) {
+        this.charCounter.classList.add('warning');
+      }
+    }
+
+    private setLoadingState(loading: boolean) {
+      if (!this.submitButton) return;
+
+      this.submitButton.disabled = loading;
+      this.submitButton.classList.toggle('loading', loading);
+
+      if (this.buttonText && this.loadingSpinner) {
+        this.buttonText.style.display = loading ? 'none' : 'inline';
+        this.loadingSpinner.style.display = loading ? 'inline' : 'none';
+      }
+
+      // Deshabilitar todos los inputs durante el envío
+      const inputs = this.form.querySelectorAll('input, textarea');
+      inputs.forEach((input) => {
+        (input as HTMLInputElement).disabled = loading;
+      });
+    }
+
+    private async handleSuccess(result: any) {
+      this.showSuccess('¡Mensaje enviado! Gracias por tu apoyo ❤️');
+      this.form.reset();
+      this.updateCharCounter();
+      this.autoResizeTextarea();
+
+      // Cambiar botón temporalmente
+      if (this.submitButton) {
+        this.submitButton.classList.add('success');
+        setTimeout(() => {
+          this.submitButton.classList.remove('success');
+        }, 3000);
+      }
+
+      // 🆕 CAMBIO: Enviar evento para AGREGAR (no recargar)
+      this.dispatchNewMessageEvent(result);
+    }
+
+    // 🆕 MÉTODO ACTUALIZADO: Enviar acción 'add' con datos completos
+    private dispatchNewMessageEvent(result: any) {
+      // Asegurarse de incluir todos los datos necesarios
+      const messageData = {
+        id: result.data?.id || `temp-${Date.now()}`, // ID desde la BD o temporal
+        author_name: result.data?.author_name || 'Usuario',
+        message: result.data?.message || result.data?.text || '',
+        author_emoji: result.data?.author_emoji || '👤',
+        is_from_contributor: result.data?.is_from_contributor ?? false,
+        is_approved: result.data?.is_approved ?? true,
+        created_at: result.data?.created_at || new Date().toISOString(),
+        updated_at: result.data?.updated_at || new Date().toISOString(),
+      };
+
+      const event = new CustomEvent('newSupportMessage', {
+        detail: {
+          message: messageData,
+          timestamp: new Date().toISOString(),
+          action: 'add', // 🎯 CAMBIO CLAVE: 'add' en vez de 'reload'
+        },
+        bubbles: true,
+        composed: true,
+      });
+
+      this.form.dispatchEvent(event);
+    }
+
+    private handleError(message: string) {
+      this.showError(message);
+
+      // Hacer vibrar el botón en caso de error (si el dispositivo lo soporta)
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+    }
+
+    private showError(message: string) {
+      this.clearMessages();
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'form-error';
+      errorDiv.textContent = message;
+      // Optionally set styles directly if needed:
+      errorDiv.style.background = '#ffebee';
+      errorDiv.style.border = '1px solid #f44336';
+      errorDiv.style.color = '#c62828';
+      errorDiv.style.padding = '10px';
+      errorDiv.style.borderRadius = '6px';
+      errorDiv.style.marginTop = '10px';
+      errorDiv.style.fontSize = '0.9rem';
+      errorDiv.style.animation = 'slideInDown 0.3s ease-out';
+      this.form.appendChild(errorDiv);
+
+      // Auto-remover después de 5 segundos
+      // setTimeout(() => {
+      //   if (errorDiv.parentNode) {
+      //     errorDiv.remove();
+      //   }
+      // }, 5000);
+    }
+
+    private showSuccess(message: string) {
+      this.clearMessages();
+      const successDiv = document.createElement('div');
+      successDiv.className = 'form-success';
+      successDiv.textContent = message;
+      this.form.appendChild(successDiv);
+
+      // Auto-remover después de 5 segundos
+      setTimeout(() => {
+        if (successDiv.parentNode) {
+          successDiv.remove();
+        }
+      }, 5000);
+    }
+
+    private clearMessages() {
+      const messages = this.form.querySelectorAll('.form-error, .form-success');
+      messages.forEach((msg) => msg.remove());
+    }
+
+    private clearErrors() {
+      const errors = this.form.querySelectorAll('.form-error');
+      errors.forEach((error) => error.remove());
+    }
+
+    // Método público para resetear el formulario
+    public reset() {
+      this.form.reset();
+      this.updateCharCounter();
+      this.autoResizeTextarea();
+      this.clearMessages();
+    }
+
+    // Método público para obtener los datos del formulario
+    public getFormData() {
+      return {
+        comment: this.textarea.value.trim(),
+        author_name: this.authorInput?.value.trim() || '',
+        author_email: this.emailInput?.value.trim() || '',
+      };
+    }
+  }
+
+  // Declarar tipos globales
+  declare global {
+    interface Window {
+      messageSection: any;
+      commentFormHandler: CommentFormHandler;
+      createSupportMessage?: (data: any) => Promise<any>;
+    }
+  }
+
+  // Inicializar cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    const commentFormHandler = new CommentFormHandler();
+
+    // Exponer globalmente
+    window.commentFormHandler = commentFormHandler;
+  });
+</script>

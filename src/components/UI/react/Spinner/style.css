@@ -1,0 +1,48 @@
+/* Contenedor del spinner */
+.spinner-container {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+/* Círculo exterior - gira hacia la izquierda */
+.outer-circle {
+  position: absolute;
+  width: 40px;
+  height: 100%;
+  border: 3px solid transparent;
+  border-top: 3px solid #e91e63;
+  border-right: 3px solid #f48fb1;
+  border-radius: 50%;
+  animation: spin-left 2s linear infinite;
+}
+
+/* Emoji interior - gira hacia la derecha */
+.inner-emoji {
+  font-size: 20px;
+  animation: spin-right 1.5s linear infinite;
+}
+
+/* Rotación hacia la izquierda */
+@keyframes spin-left {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* Rotación hacia la derecha */
+@keyframes spin-right {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

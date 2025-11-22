@@ -1,0 +1,488 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import ProductCard from '../components/ProductCard.astro';
+import ProgressSection from '../components/ProgressSection.astro';
+import ContributionLevels from '../components/ContributionLevels.astro';
+import ContributorsList from '../components/ContributorsList.astro';
+import MessageSection from '../components/MessageSection.astro';
+import ContributionModal from '../components/ContributionModal.astro';
+import SupabaseTest from '../components/SupabaseTest.astro';
+import {
+  getContributionLevels,
+  getFamilyMembers,
+  getProjectConfig,
+  getPublicContributions,
+  type ContributionLevel,
+  type FamilyMember,
+  type PublicContribution,
+} from '../lib/supabase';
+import Footer from '../components/Footer.astro';
+import FloatingEleents from '../components/FloatingEleents.astro';
+
+// Obtener configuración del proyecto desde Supabase
+let projectConfig = null;
+let errorLoadingConfig = false;
+let contributionLevels: ContributionLevel[] = [];
+let contibutionsList: PublicContribution[] = [];
+let familyMembers: FamilyMember[] = [];
+
+try {
+  projectConfig = await getProjectConfig();
+  contributionLevels = await getContributionLevels();
+  contibutionsList = await getPublicContributions();
+  familyMembers = await getFamilyMembers();
+} catch (error) {
+  console.error('Error loading data base:', error);
+  errorLoadingConfig = true;
+}
+
+// Datos del producto (se pueden obtener de la configuración o mantener estáticos)
+const productData = {
+  title:
+    projectConfig?.project_name ||
+    'Dungeons & Dragons: El Cuento del Dragón Rojo',
+  description:
+    projectConfig?.project_description ||
+    '¡Únete a nuestra quest familiar para conseguir este increíble set de LEGO! Con 3,745 piezas, este dragón rojo será el centro de nuestras aventuras de D&D. Incluye una mazmorra completa, figuras de héroes y por supuesto, ¡el majestuoso dragón rojo!',
+  price: projectConfig?.target_amount || 479.99,
+  imageUrl:
+    projectConfig?.project_image_url ||
+    'https://www.lego.com/cdn/cs/set/assets/blt77c2304db5a4c6fd/21348_alt1.jpg',
+  imageAlt: "LEGO D&D Red Dragon's Tale",
+};
+---
+
+<BaseLayout title='🐉 ¡Ayúdanos a conseguir nuestro Dragón Rojo! 🔥'>
+  <FloatingEleents />
+
+  <div class='container'>
+    {
+      errorLoadingConfig && (
+        <div class='global-error-banner'>
+          <div class='error-content'>
+            <span class='error-icon'>⚠️</span>
+            <div class='error-text'>
+              <strong>Modo de demostración:</strong>
+              Algunos datos son de ejemplo debido a problemas de conexión con la
+              base de datos.
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    <ProductCard
+      title={productData.title}
+      description={productData.description}
+      price={productData.price}
+      imageUrl={productData.imageUrl}
+      imageAlt={productData.imageAlt}
+    />
+
+    <ProgressSection
+      currentAmount={contibutionsList.reduce((sum, c) => sum + c.amount, 0)}
+      targetAmount={projectConfig?.target_amount ?? 0}
+    />
+    <ContributionLevels levels={contributionLevels} />
+    <ContributorsList contributors={contibutionsList} />
+    <MessageSection familyMembers={familyMembers} />
+  </div>
+  <Footer
+    slot='footer'
+    projectConfig={projectConfig}
+  />
+
+  <style>
+    .global-error-banner {
+      background: linear-gradient(145deg, #fff3cd, #ffeaa7);
+      border: 2px solid #ffc107;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+    }
+
+    .error-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .error-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .error-text {
+      color: #856404;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    .error-text strong {
+      color: #533f03;
+    }
+
+    .status-active {
+      color: #4caf50;
+      font-weight: 600;
+    }
+
+    .status-completed {
+      color: #2196f3;
+      font-weight: 600;
+    }
+
+    .status-paused {
+      color: #ff9800;
+      font-weight: 600;
+    }
+
+    .status-cancelled {
+      color: #f44336;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .footer-content {
+        padding: 30px 20px;
+      }
+
+      .footer-message h3 {
+        font-size: 1.5rem;
+      }
+
+      .footer-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .footer-separator {
+        display: none;
+      }
+
+      .global-error-banner {
+        margin: 10px;
+        padding: 15px;
+      }
+
+      .error-content {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+  </style>
+
+  <script>
+    // Manejar eventos de contribución completada
+    document.addEventListener('contributionCompleted', (event: any) => {
+      const { amount, contributor } = event.detail;
+
+      // Los componentes individuales ya manejan sus propias actualizaciones
+      // Este es el lugar central para coordinar actualizaciones globales
+
+      // Mostrar celebración global
+      showGlobalCelebration(contributor);
+
+      // Actualizar título de la página si es necesario
+      if (typeof document !== 'undefined') {
+        const originalTitle = document.title;
+        document.title = `🎉 ¡Nueva contribución! - ${originalTitle}`;
+
+        // Restaurar título después de 5 segundos
+        setTimeout(() => {
+          document.title = originalTitle;
+        }, 5000);
+      }
+    });
+
+    function showGlobalCelebration(contributor: any) {
+      // Crear efectos de celebración global
+      const celebration = document.createElement('div');
+      celebration.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        `;
+
+      // Añadir confetti más intenso
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          createGlobalConfetti(celebration);
+        }, i * 30);
+      }
+
+      document.body.appendChild(celebration);
+
+      // Mostrar notificación de nueva contribución
+      showContributionNotification(contributor);
+
+      // Limpiar después de 8 segundos
+      setTimeout(() => {
+        if (document.body.contains(celebration)) {
+          document.body.removeChild(celebration);
+        }
+      }, 8000);
+    }
+
+    function createGlobalConfetti(container: HTMLElement) {
+      const confetti = document.createElement('div');
+      const emojis = [
+        '🎉',
+        '✨',
+        '🌟',
+        '💫',
+        '🎊',
+        '🎁',
+        '💝',
+        '🐉',
+        '🏰',
+        '⚔️',
+        '🛡️',
+        '🏹',
+      ];
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+      confetti.textContent = emoji;
+      confetti.style.cssText = `
+            position: absolute;
+            font-size: ${Math.random() * 25 + 15}px;
+            left: ${Math.random() * 100}vw;
+            top: -50px;
+            animation: globalConfettiFall ${Math.random() * 4 + 3}s linear forwards;
+            transform: rotate(${Math.random() * 360}deg);
+            z-index: 10000;
+        `;
+
+      container.appendChild(confetti);
+
+      // Limpiar confetti individual
+      setTimeout(() => {
+        if (container.contains(confetti)) {
+          container.removeChild(confetti);
+        }
+      }, 8000);
+    }
+
+    function showContributionNotification(contributor: any) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(145deg, #4caf50, #45a049);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+            z-index: 10001;
+            animation: slideInRight 0.5s ease-out;
+            max-width: 300px;
+            font-family: 'Poppins', sans-serif;
+        `;
+
+      notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <span style="font-size: 1.5rem;">${contributor.emoji}</span>
+                <strong style="font-size: 1.1rem;">¡Nueva contribución!</strong>
+            </div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">
+                <strong>${contributor.name}</strong> se unió como <strong>${contributor.level}</strong>
+                ${contributor.message ? `<br><em>"${contributor.message}"</em>` : ''}
+            </div>
+        `;
+
+      document.body.appendChild(notification);
+
+      // Remover después de 6 segundos
+      setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.5s ease-in';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 500);
+      }, 6000);
+    }
+
+    // Añadir estilos para animaciones globales
+    const globalStyles = document.createElement('style');
+    globalStyles.textContent = `
+        @keyframes globalConfettiFall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        /* Mejoras visuales adicionales */
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Efecto de scroll suave */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Indicador de carga para componentes */
+        .loading-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estados de conexión */
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.online {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .connection-status.offline {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+        }
+    `;
+    document.head.appendChild(globalStyles);
+
+    // Monitorear estado de conexión
+    function updateConnectionStatus() {
+      let statusIndicator = document.getElementById('connectionStatus');
+
+      if (!statusIndicator) {
+        statusIndicator = document.createElement('div');
+        statusIndicator.id = 'connectionStatus';
+        statusIndicator.className = 'connection-status';
+        document.body.appendChild(statusIndicator);
+      }
+
+      if (navigator.onLine) {
+        statusIndicator.className = 'connection-status online';
+        statusIndicator.textContent = '🟢 Conectado';
+      } else {
+        statusIndicator.className = 'connection-status offline';
+        statusIndicator.textContent = '🔴 Sin conexión';
+      }
+    }
+
+    // Event listeners para estado de conexión
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Smooth scroll para navegación interna
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar estado de conexión
+      updateConnectionStatus();
+
+      // Animar elementos al hacer scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px',
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, observerOptions);
+
+      // Observar todas las secciones principales
+      const sections = document.querySelectorAll(
+        '.main-card, .progress-section, .contributors-section, .message-section'
+      );
+      sections.forEach((section) => observer.observe(section));
+    });
+
+    // Función de utilidad para debugging
+    (window as any).debugCrowdfunding = {
+      triggerTestContribution: () => {
+        const testContribution = {
+          amount: 25,
+          contributor: {
+            name: 'Usuario de Prueba',
+            emoji: '🧪',
+            level: 'Guerrero',
+            message: 'Esta es una contribución de prueba',
+            color: '#ff9800',
+            isAnonymous: false,
+          },
+        };
+
+        document.dispatchEvent(
+          new CustomEvent('contributionCompleted', {
+            detail: testContribution,
+          })
+        );
+      },
+
+      getComponentsStatus: () => {
+        return {
+          contributionLevels: !!(window as any).contributionLevels,
+          contributorsList: !!(window as any).contributorsList,
+          contributionModal: !!(window as any).contributionModal,
+          messageSection: !!(window as any).messageSection,
+        };
+      },
+    };
+  </script>
+</BaseLayout>

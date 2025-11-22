@@ -1,0 +1,462 @@
+---
+import { 
+  getProjectOverview, 
+  getContributionLevels, 
+  getPublicContributions, 
+  getFamilyMembers,
+  testConnection,
+  type ContributionLevel,
+  type PublicContribution,
+  type FamilyMember
+} from '../lib/supabase'
+
+// Probar la conexión y obtener datos
+let connectionStatus = false
+let projectData = null
+let levelsData = [] as ContributionLevel[]
+let contributionsData = [] as PublicContribution[]
+let familyData = [] as FamilyMember[]
+let errorMessage = ''
+
+try {
+  // Probar conexión
+  connectionStatus = await testConnection()
+  
+  if (connectionStatus) {
+    // Obtener datos del proyecto
+    projectData = await getProjectOverview()
+    levelsData = await getContributionLevels()
+    contributionsData = await getPublicContributions(5) // Solo 5 para prueba
+    familyData = await getFamilyMembers()
+  }
+} catch (error) {
+  console.error('Error in SupabaseTest:', error)
+  if (error instanceof Error) {
+    errorMessage = error.message || 'Error desconocido'
+  } else {
+    errorMessage = 'Error desconocido'
+  }
+}
+---
+
+<div class="supabase-test">
+  <div class="test-header">
+    <h2>🧪 Test de Conexión con Supabase</h2>
+    <div class={`connection-status ${connectionStatus ? 'connected' : 'disconnected'}`}>
+      {connectionStatus ? '✅ Conectado' : '❌ Desconectado'}
+    </div>
+  </div>
+
+  {errorMessage && (
+    <div class="error-message">
+      <h3>❌ Error:</h3>
+      <p>{errorMessage}</p>
+      <div class="error-help">
+        <h4>Posibles soluciones:</h4>
+        <ul>
+          <li>Verifica que las variables de entorno estén configuradas en <code>.env.local</code></li>
+          <li>Asegúrate de que la URL y la clave de Supabase sean correctas</li>
+          <li>Verifica que hayas ejecutado el script SQL en Supabase</li>
+          <li>Reinicia el servidor de desarrollo (<code>npm run dev</code>)</li>
+        </ul>
+      </div>
+    </div>
+  )}
+
+  {connectionStatus && (
+    <div class="test-results">
+      <!-- Datos del Proyecto -->
+      {projectData && (
+        <div class="test-section">
+          <h3>📊 Datos del Proyecto</h3>
+          <div class="data-grid">
+            <div class="data-item">
+              <span class="data-label">Nombre:</span>
+              <span class="data-value">{projectData.project_name}</span>
+            </div>
+            <div class="data-item">
+              <span class="data-label">Objetivo:</span>
+              <span class="data-value">{projectData.target_amount} {projectData.currency}</span>
+            </div>
+            <div class="data-item">
+              <span class="data-label">Recaudado:</span>
+              <span class="data-value">{projectData.current_amount} {projectData.currency}</span>
+            </div>
+            <div class="data-item">
+              <span class="data-label">Progreso:</span>
+              <span class="data-value">{projectData.progress_percentage}%</span>
+            </div>
+            <div class="data-item">
+              <span class="data-label">Contribuyentes:</span>
+              <span class="data-value">{projectData.total_contributors}</span>
+            </div>
+            <div class="data-item">
+              <span class="data-label">Estado:</span>
+              <span class="data-value">{projectData.project_status}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <!-- Niveles de Contribución -->
+      {levelsData.length > 0 && (
+        <div class="test-section">
+          <h3>🎯 Niveles de Contribución ({levelsData.length})</h3>
+          <div class="levels-grid">
+            {levelsData.map(level => (
+              <div class="level-card">
+                <div class="level-emoji">{level.emoji}</div>
+                <div class="level-name">{level.name}</div>
+                <div class="level-amount">{level.amount}€</div>
+                <div class="level-description">{level.description}</div>
+                <div class="level-rewards">
+                  Recompensas: {level.rewards.length}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Contribuciones Públicas -->
+      {contributionsData.length > 0 && (
+        <div class="test-section">
+          <h3>💝 Contribuciones Recientes ({contributionsData.length})</h3>
+          <div class="contributions-list">
+            {contributionsData.map(contribution => (
+              <div class="contribution-item">
+                <div class="contributor-info">
+                  <span class="contributor-emoji">{contribution.contributor_emoji}</span>
+                  <span class="contributor-name">{contribution.contributor_name}</span>
+                </div>
+                <div class="contribution-details">
+                  <span class="contribution-amount">{contribution.amount}€</span>
+                  <span class="contribution-level">{contribution.level_name}</span>
+                </div>
+                {contribution.message && (
+                  <div class="contribution-message">"{contribution.message}"</div>
+                )}
+                <div class="contribution-date">
+                  {new Date(contribution.created_at).toLocaleDateString('es-ES')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Miembros de la Familia -->
+      {familyData.length > 0 && (
+        <div class="test-section">
+          <h3>👨‍👩‍👧‍👦 Familia ({familyData.length})</h3>
+          <div class="family-grid">
+            {familyData.map(member => (
+              <div class="family-member">
+                <div class="member-emoji">{member.emoji}</div>
+                <div class="member-name">{member.name}</div>
+                {member.age && <div class="member-age">{member.age} años</div>}
+                <div class="member-role">{member.role}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div class="test-footer">
+        <p>✅ ¡Conexión exitosa! Ya puedes usar datos reales en tus componentes.</p>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .supabase-test {
+    background: linear-gradient(145deg, #f0f2f5, #e1e5e9);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    border: 2px solid #ddd;
+  }
+
+  .test-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .test-header h2 {
+    color: #333;
+    font-family: 'Fredoka One', cursive;
+  }
+
+  .connection-status {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .connection-status.connected {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+
+  .connection-status.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .error-message h3 {
+    color: #721c24;
+    margin-bottom: 10px;
+  }
+
+  .error-help {
+    margin-top: 15px;
+  }
+
+  .error-help h4 {
+    color: #721c24;
+    margin-bottom: 8px;
+  }
+
+  .error-help ul {
+    color: #721c24;
+    padding-left: 20px;
+  }
+
+  .error-help code {
+    background: rgba(0,0,0,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  .test-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .test-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+  }
+
+  .data-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+  }
+
+  .data-label {
+    font-weight: 600;
+    color: #666;
+  }
+
+  .data-value {
+    color: #333;
+    font-weight: 500;
+  }
+
+  .levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+  }
+
+  .level-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+
+  .level-emoji {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .level-name {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+  }
+
+  .level-amount {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #28a745;
+    margin-bottom: 5px;
+  }
+
+  .level-description {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 5px;
+  }
+
+  .level-rewards {
+    font-size: 0.8rem;
+    color: #888;
+  }
+
+  .contributions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .contribution-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #28a745;
+  }
+
+  .contributor-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .contributor-emoji {
+    font-size: 1.5rem;
+  }
+
+  .contributor-name {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .contribution-details {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+  }
+
+  .contribution-amount {
+    font-weight: 700;
+    color: #28a745;
+  }
+
+  .contribution-level {
+    color: #666;
+    font-weight: 500;
+  }
+
+  .contribution-message {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  .contribution-date {
+    font-size: 0.85rem;
+    color: #888;
+  }
+
+  .family-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+
+  .family-member {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+
+  .member-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+  }
+
+  .member-name {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+  }
+
+  .member-age {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+  }
+
+  .member-role {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+  }
+
+  .test-footer {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+  }
+
+  .test-footer p {
+    color: #155724;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .test-header {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .data-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .levels-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .family-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .contribution-details {
+      flex-direction: column;
+      gap: 5px;
+    }
+  }
+</style>
