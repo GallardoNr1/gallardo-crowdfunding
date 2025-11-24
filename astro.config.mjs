@@ -9,5 +9,5 @@ export default defineConfig({
   integrations: [react()],
   output: 'server',
   adapter: node({ mode: 'standalone' }),
-  base: '/lego-crowdfunding',
+  base: '/',
 });

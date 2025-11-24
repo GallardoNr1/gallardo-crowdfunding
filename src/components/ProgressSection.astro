@@ -3,9 +3,10 @@ export interface Props {
   currentAmount: number;
   targetAmount: number;
   currency?: string;
+  title?: string;
 }
 
-const { currentAmount, targetAmount, currency = '€' } = Astro.props;
+const { currentAmount, targetAmount, currency = '€', title } = Astro.props;
 
 // Calcular porcentaje
 const percentage = Math.min((currentAmount / targetAmount) * 100, 100);
@@ -13,7 +14,7 @@ const roundedPercentage = Math.round(percentage);
 ---
 
 <div class='progress-section'>
-  <h3 class='progress-title'>🎯 Progreso de la Aventura</h3>
+  <h3 class='progress-title'>{title}</h3>
 
   <div class='progress-container'>
     <div

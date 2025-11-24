@@ -1,6 +1,8 @@
 ---
 import type { FamilyMember } from '../lib/supabase';
 import CallToAction from './CallToAction.astro';
+import FamilyMembers from './FamilyMembers.astro';
+import FamilyPhotos from './FamilyPhotos.astro';
 import SupportMessageSection from './react/SupportMessageSection/SupportMessageSection';
 import SupportMessageFrom from './SupportMessageFrom.astro';
 
@@ -9,6 +11,18 @@ export interface Props {
   mainMessage?: string;
   showPhotos?: boolean;
   allowComments?: boolean;
+  memberTitle?: string;
+  callToAction: {
+    icon: string;
+    title: string;
+    text: string;
+    stats: { number: string; label: string }[];
+  };
+  photoSection: {
+    title: string;
+    photos: { emoji: string; caption: string }[];
+  };
+  project_id: string;
 }
 
 const defaultMainMessage = `
@@ -30,6 +44,10 @@ const {
   mainMessage = defaultMainMessage,
   showPhotos = true,
   allowComments = true,
+  memberTitle = 'Member Title',
+  callToAction,
+  photoSection,
+  project_id,
 } = Astro.props;
 ---
 
@@ -55,7 +73,7 @@ const {
 
     <div class='message-signature'>
       <div class='signature-text'>Con amor,</div>
-      <div class='family-name'>La Familia Aventurera 🐉</div>
+      <div class='family-name'>La Familia Gallardo Esclapez</div>
       <div class='signature-date'>
         {
           new Date().toLocaleDateString('es-ES', {
@@ -68,86 +86,29 @@ const {
     </div>
   </div>
 
-  <div class='family-members'>
-    <h4 class='members-title'>👨‍👩‍👧‍👦 Conoce a Nuestros Aventureros</h4>
-    <div class='members-grid'>
-      {
-        familyMembers.map((member, index) => (
-          <div
-            class='member-card'
-            style={`--animation-delay: ${index * 0.2}s`}
-          >
-            <div class='member-avatar'>
-              <span class='avatar-emoji'>{member.emoji}</span>
-              <div class='avatar-border' />
-              {member.age && <div class='age-badge'>{member.age}</div>}
-            </div>
-
-            <div class='member-info'>
-              <div class='member-name'>{member.name}</div>
-              <div class='member-role'>{member.role}</div>
-              <div class='member-message'>
-                <div class='quote-mark'>"</div>
-                <p class='quote-text'>{member.message}</p>
-                <div class='quote-mark closing'>"</div>
-              </div>
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  </div>
+  <FamilyMembers
+    familyMembers={familyMembers}
+    title={memberTitle}
+  />
 
   {
     showPhotos && (
-      <div class='family-photos'>
-        <h4 class='photos-title'>📸 Momentos de Nuestras Aventuras</h4>
-        <div class='photos-grid'>
-          <div
-            class='photo-placeholder'
-            data-photo='1'
-          >
-            <div class='photo-icon'>🎲</div>
-            <div class='photo-caption'>Nuestra primera aventura</div>
-          </div>
-          <div
-            class='photo-placeholder'
-            data-photo='2'
-          >
-            <div class='photo-icon'>🏰</div>
-            <div class='photo-caption'>Construyendo juntos</div>
-          </div>
-          <div
-            class='photo-placeholder'
-            data-photo='3'
-          >
-            <div class='photo-icon'>🐉</div>
-            <div class='photo-caption'>¡Batalla épica!</div>
-          </div>
-          <div
-            class='photo-placeholder'
-            data-photo='4'
-          >
-            <div class='photo-icon'>👨‍👩‍👧‍👦</div>
-            <div class='photo-caption'>Familia aventurera</div>
-          </div>
-        </div>
-      </div>
+      <FamilyPhotos
+        title={photoSection.title}
+        photos={photoSection.photos}
+      />
     )
   }
 
   {
     allowComments && (
       <div class='comments-section'>
-        <SupportMessageSection
-          client:load
-          projectId='commentsContainer'
-        />
-        <SupportMessageFrom />
+        <SupportMessageSection client:load />
+        <SupportMessageFrom project_id={project_id} />
       </div>
     )
   }
-  <CallToAction />
+  <CallToAction callToAction={callToAction} />
 </div>
 
 <style>
@@ -286,101 +247,6 @@ const {
     color: #888;
   }
 
-  .family-members {
-    margin-bottom: 30px;
-  }
-
-  .members-title {
-    font-family: 'Fredoka One', cursive;
-    font-size: 1.5rem;
-    color: #c2185b;
-    text-align: center;
-    margin-bottom: 25px;
-  }
-
-  .members-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-  }
-
-  .member-card {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    border: 2px solid #f8bbd9;
-    animation: slideInUp 0.6s ease-out var(--animation-delay);
-  }
-
-  @keyframes slideInUp {
-    from {
-      opacity: 0;
-      transform: translateY(40px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .member-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    border-color: #e91e63;
-  }
-
-  .member-card:hover .floating-heart,
-  .member-card:hover .floating-star {
-    opacity: 1;
-    animation: floatEffect 2s ease-in-out infinite;
-  }
-
-  .member-avatar {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 15px;
-  }
-
-  .avatar-emoji {
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(145deg, #e91e63, #c2185b);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    box-shadow: 0 6px 20px rgba(233, 30, 99, 0.3);
-  }
-
-  .avatar-border {
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 3px solid #f8bbd9;
-    border-radius: 50%;
-    animation: borderPulse 3s ease-in-out infinite;
-  }
-
-  @keyframes borderPulse {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 0.6;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 1;
-    }
-  }
-
   .age-badge {
     position: absolute;
     top: -5px;
@@ -398,58 +264,6 @@ const {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
-  .member-info {
-    text-align: center;
-  }
-
-  .member-name {
-    font-family: 'Fredoka One', cursive;
-    font-size: 1.3rem;
-    color: #c2185b;
-    margin-bottom: 5px;
-  }
-
-  .member-role {
-    font-size: 1rem;
-    color: #666;
-    font-weight: 600;
-    margin-bottom: 15px;
-    font-style: italic;
-  }
-
-  .member-message {
-    position: relative;
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 15px;
-    border-left: 4px solid #e91e63;
-  }
-
-  .quote-mark {
-    font-size: 2rem;
-    color: #e91e63;
-    opacity: 0.6;
-    position: absolute;
-    top: -5px;
-    left: 5px;
-    font-family: serif;
-  }
-
-  .quote-mark.closing {
-    bottom: -15px;
-    right: 5px;
-    top: auto;
-    left: auto;
-  }
-
-  .quote-text {
-    font-size: 0.95rem;
-    color: #555;
-    line-height: 1.5;
-    margin: 10px 15px;
-    font-style: italic;
-  }
-
   .member-effects {
     position: absolute;
     top: 0;
@@ -457,16 +271,6 @@ const {
     right: 0;
     bottom: 0;
     pointer-events: none;
-  }
-
-  @keyframes floatEffect {
-    0%,
-    100% {
-      transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-10px) rotate(180deg);
-    }
   }
 
   .family-photos {

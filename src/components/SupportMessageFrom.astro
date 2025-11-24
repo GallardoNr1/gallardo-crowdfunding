@@ -1,3 +1,11 @@
+---
+interface Props {
+  project_id: string;
+}
+
+const { project_id } = Astro.props;
+---
+
 <div class='add-comment'>
   <form
     class='comment-form'
@@ -52,7 +60,7 @@
       <input
         type='hidden'
         name='project_id'
-        value='dragon-lego-family'
+        value={project_id}
       />
       <input
         type='hidden'
@@ -303,6 +311,7 @@
     private loadingSpinner: HTMLElement;
     private authorInput: HTMLInputElement;
     private emailInput: HTMLInputElement;
+    private projectInput: HTMLInputElement | null;
 
     constructor() {
       this.form = document.getElementById('commentForm') as HTMLFormElement;
@@ -320,13 +329,18 @@
         '.loading-spinner'
       ) as HTMLElement;
 
-      // MEJORAR: Usar querySelector más específico
+      // Inputs adicionales
       this.authorInput = this.form?.querySelector(
         'input[name="author_name"]'
       ) as HTMLInputElement;
       this.emailInput = this.form?.querySelector(
         'input[name="author_email"]'
       ) as HTMLInputElement;
+
+      // ⬇️ NUEVO: input oculto de project_id (para que lo pase el padre)
+      this.projectInput = this.form?.querySelector(
+        'input[name="project_id"]'
+      ) as HTMLInputElement | null;
 
       // VERIFICAR: Que los elementos existan
       if (!this.form) {
@@ -379,6 +393,25 @@
         Math.min(this.textarea.scrollHeight, 150) + 'px';
     }
 
+    // ⬇️ NUEVO: resolver project_id (input oculto → URL ?id= → vacío)
+    private getProjectId(): string {
+      // 1) Primero, lo que ponga el padre en el input hidden
+      const fromInput = this.projectInput?.value?.trim();
+      if (fromInput) return fromInput;
+
+      // 2) Si no hay input o está vacío, lo buscamos en la URL (?id=)
+      try {
+        const url = new URL(window.location.href);
+        const fromQuery = url.searchParams.get('id');
+        if (fromQuery) return fromQuery;
+      } catch (err) {
+        console.warn('No se pudo leer la URL para project_id:', err);
+      }
+
+      // 3) Fallback: cadena vacía (mejor que undefined)
+      return '';
+    }
+
     private async handleSubmit(e: Event) {
       e.preventDefault();
 
@@ -390,13 +423,16 @@
         const commentValue = this.textarea.value.trim();
         const authorValue = this.authorInput?.value.trim() || '';
         const emailValue = this.emailInput?.value.trim() || '';
+        const projectId = this.getProjectId(); // ⬅️ AQUÍ SE USA
 
         const response = await createSupportMessage({
           message: commentValue,
           author_name: authorValue,
           author_email: emailValue,
           author_emoji: '',
+          project_id: projectId, // ⬅️ SE ENVÍA AL BACK
         });
+
         if (response.success) {
           this.handleSuccess(response);
         } else {
@@ -514,15 +550,13 @@
         }, 3000);
       }
 
-      // 🆕 CAMBIO: Enviar evento para AGREGAR (no recargar)
+      // Enviar evento para agregar el mensaje al UI
       this.dispatchNewMessageEvent(result);
     }
 
-    // 🆕 MÉTODO ACTUALIZADO: Enviar acción 'add' con datos completos
     private dispatchNewMessageEvent(result: any) {
-      // Asegurarse de incluir todos los datos necesarios
       const messageData = {
-        id: result.data?.id || `temp-${Date.now()}`, // ID desde la BD o temporal
+        id: result.data?.id || `temp-${Date.now()}`,
         author_name: result.data?.author_name || 'Usuario',
         message: result.data?.message || result.data?.text || '',
         author_emoji: result.data?.author_emoji || '👤',
@@ -536,7 +570,7 @@
         detail: {
           message: messageData,
           timestamp: new Date().toISOString(),
-          action: 'add', // 🎯 CAMBIO CLAVE: 'add' en vez de 'reload'
+          action: 'add',
         },
         bubbles: true,
         composed: true,
@@ -548,7 +582,6 @@
     private handleError(message: string) {
       this.showError(message);
 
-      // Hacer vibrar el botón en caso de error (si el dispositivo lo soporta)
       if (navigator.vibrate) {
         navigator.vibrate(200);
       }
@@ -559,7 +592,6 @@
       const errorDiv = document.createElement('div');
       errorDiv.className = 'form-error';
       errorDiv.textContent = message;
-      // Optionally set styles directly if needed:
       errorDiv.style.background = '#ffebee';
       errorDiv.style.border = '1px solid #f44336';
       errorDiv.style.color = '#c62828';
@@ -569,13 +601,6 @@
       errorDiv.style.fontSize = '0.9rem';
       errorDiv.style.animation = 'slideInDown 0.3s ease-out';
       this.form.appendChild(errorDiv);
-
-      // Auto-remover después de 5 segundos
-      // setTimeout(() => {
-      //   if (errorDiv.parentNode) {
-      //     errorDiv.remove();
-      //   }
-      // }, 5000);
     }
 
     private showSuccess(message: string) {
@@ -585,7 +610,6 @@
       successDiv.textContent = message;
       this.form.appendChild(successDiv);
 
-      // Auto-remover después de 5 segundos
       setTimeout(() => {
         if (successDiv.parentNode) {
           successDiv.remove();
@@ -603,7 +627,6 @@
       errors.forEach((error) => error.remove());
     }
 
-    // Método público para resetear el formulario
     public reset() {
       this.form.reset();
       this.updateCharCounter();
@@ -611,17 +634,16 @@
       this.clearMessages();
     }
 
-    // Método público para obtener los datos del formulario
     public getFormData() {
       return {
         comment: this.textarea.value.trim(),
         author_name: this.authorInput?.value.trim() || '',
         author_email: this.emailInput?.value.trim() || '',
+        project_id: this.getProjectId(),
       };
     }
   }
 
-  // Declarar tipos globales
   declare global {
     interface Window {
       messageSection: any;
@@ -630,11 +652,8 @@
     }
   }
 
-  // Inicializar cuando el DOM esté listo
   document.addEventListener('DOMContentLoaded', () => {
     const commentFormHandler = new CommentFormHandler();
-
-    // Exponer globalmente
     window.commentFormHandler = commentFormHandler;
   });
 </script>

@@ -5,20 +5,21 @@ export interface Props {
   price: number;
   imageUrl: string;
   imageAlt: string;
+  href?: string;
 }
 
-const { title, description, price, imageUrl, imageAlt } = Astro.props;
+const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
 ---
 
 <div class='main-card'>
   <a
     class='product-title'
-    href='https://www.lego.com/es-es/product/dungeons-dragons-red-dragon-s-tale-21348'
+    href={href || '#'}
     target='_blank'
     title='Ver set'
   >
     <img
-      src={imageUrl}
+      src={`${imageUrl}`}
       alt={imageAlt}
       class='lego-image'
     />

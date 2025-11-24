@@ -1,22 +1,20 @@
 ---
-// import '../styles/global.css';
-import Header from './Header.astro';
-import Footer from './Footer.astro';
 import ContributionModal from '@/components/ContributionModal.astro';
+import Header from '../Header.astro';
 
 export interface Props {
   title: string;
   description?: string;
-  subtitle?: string;
 }
 
 const {
   title,
-  description = 'Plataforma familiar de crowdfundings Gallardo',
-  subtitle,
+  description = 'Crowdfunding familiar para conseguir el set de LEGO D&D',
 } = Astro.props;
+
 const url = new URL(Astro.request.url);
 const id = url.searchParams.get('id');
+
 const customPaymentMethods = [
   {
     id: 'cash',
@@ -33,17 +31,18 @@ const customPaymentMethods = [
     enabled: true,
   },
 ];
+
 const emojiOptions: { value: string; label: string }[] = [
-  { value: '🧬', label: 'Códice Viviente' },
-  { value: '🤖', label: 'Centinela Digital' },
-  { value: '🛡️', label: 'Guardían del Sistema' },
-  { value: '⚡', label: 'Nexo Eléctrico' },
-  { value: '🛰️', label: 'Explorador Estelar' },
-  { value: '🧠', label: 'Mente Avanzada' },
-  { value: '🔮', label: 'Oráculo de Datos' },
-  { value: '🦾', label: 'Fuerza Mecánica' },
-  { value: '📡', label: 'Analista Cósmico' },
-  { value: '🌌', label: 'Viajero del Vacío' },
+  { value: '🦸', label: 'Superhéroe' },
+  { value: '🧙', label: 'Mago' },
+  { value: '⚔️', label: 'Guerrero' },
+  { value: '🏹', label: 'Arquero' },
+  { value: '🛡️', label: 'Defensor' },
+  { value: '🎭', label: 'Bardo' },
+  { value: '🕵️', label: 'Explorador' },
+  { value: '💫', label: 'Estrella' },
+  { value: '🌟', label: 'Leyenda' },
+  { value: '❤️', label: 'Corazón' },
 ];
 ---
 
@@ -60,7 +59,6 @@ const emojiOptions: { value: string; label: string }[] = [
       content={description}
     />
     <title>{title}</title>
-
     <link
       rel='preconnect'
       href='https://fonts.googleapis.com'
@@ -71,7 +69,7 @@ const emojiOptions: { value: string; label: string }[] = [
       crossorigin
     />
     <link
-      href='https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap'
+      href='https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Poppins:wght@300;400;600;700&display=swap'
       rel='stylesheet'
     />
     <link
@@ -81,29 +79,29 @@ const emojiOptions: { value: string; label: string }[] = [
   </head>
   <body>
     <Header
-      title={title}
-      subtitle={subtitle}
+      title='🐉 ¡El Dragón Rojo nos Espera! 🔥'
+      subtitle='Una aventura familiar épica con LEGO D&D'
     />
     <main class='main-content'>
       <slot />
     </main>
-    <Footer />
+    <slot name='footer' />
     <ContributionModal
       paymentMethods={customPaymentMethods}
       currency='€'
       modalTitle='Apoya el proyecto familiar'
-      modalIcon='🧡'
-      modalSubtitle='Ayuda a la familia a crear recuerdos inolvidables'
+      modalIcon='🧩'
+      modalSubtitle='Crea recuerdos con LEGO'
       summaryTitle='Resumen de tu aporte'
       formTitle='Tus datos'
       paymentTitle='Selecciona método'
       successTitle='¡Gracias por tu apoyo!'
-      successMessage='Hemos registrado tu contribución correctamente.'
+      successMessage='Hemos registrado tu contribución.'
       cancelButtonText='Cerrar'
-      confirmButtonText='Confirmar y Registrar'
+      confirmButtonText='Pagar y Registrar'
       bizumNumber='648 029 265'
-      bizumConcept='Contribución familiar + Tu Nombre'
-      totalLabel='Total a contribuir:'
+      bizumConcept='Crowdfam + Tu Nombre'
+      totalLabel='Total a pagar:'
       emojiOptions={emojiOptions}
       projectId={id ? id : ''}
     />

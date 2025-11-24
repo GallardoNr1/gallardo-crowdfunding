@@ -1,0 +1,84 @@
+---
+import { subscribeToContributionsNormalized } from '../lib/supabase';
+
+// Este componente es un demo simple que muestra contribuciones en tiempo real.
+// Inclúyelo en una página para probar. Ejemplo:
+// <RealtimeContributions />
+---
+
+<div class='realtime-contribs'>
+  <h3>Contribuciones (en vivo)</h3>
+  <div
+    id='realtimeList'
+    class='realtime-list'
+  >
+    <p class='empty'>No hay contribuciones todavía.</p>
+  </div>
+</div>
+
+<style>
+  .realtime-contribs {
+    padding: 12px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #eee;
+  }
+  .realtime-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .contrib-item {
+    padding: 10px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e6e6e6;
+  }
+  .empty {
+    color: #777;
+  }
+</style>
+
+<script type='module'>
+  import { subscribeToContributionsNormalized } from '../lib/supabase.js';
+
+  let channel = null;
+  const list = document.getElementById('realtimeList');
+
+  function renderItem(record) {
+    const div = document.createElement('div');
+    div.className = 'contrib-item';
+    div.innerHTML = `
+    <div><strong>${record.contributor_name || record.contributorName || 'Anon'}</strong> — <span style="font-weight:700">${record.amount || record.value || ''}€</span></div>
+    <div style="color:#555;font-size:0.9rem">${record.message || ''}</div>
+    <div style="color:#999;font-size:0.8rem">${new Date(record.created_at || Date.now()).toLocaleString()}</div>
+  `;
+    return div;
+  }
+
+  function addRecordToTop(record) {
+    if (!list) return;
+    // remove 'No hay contribuciones todavía.'
+    const empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+    const node = renderItem(record);
+    list.prepend(node);
+  }
+
+  // Iniciar suscripción cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    channel = subscribeToContributionsNormalized((p) => {
+      // Mostrar solo INSERTs por defecto
+      if (p.eventType && p.eventType.toUpperCase().includes('INSERT')) {
+        addRecordToTop(p.newRecord || p.raw.record || {});
+      }
+    });
+  });
+
+  // Limpiar al cerrar la página
+  window.addEventListener('beforeunload', () => {
+    if (channel && typeof channel.unsubscribe === 'function') {
+      channel.unsubscribe();
+    }
+  });
+</script>

@@ -1,0 +1,20 @@
+---
+import { ContributorsList as ReactContributorsList } from './react/ContributorsList';
+
+const {
+  contributors = [],
+  currency = '€',
+  showTotal = true,
+  maxDisplay = 20,
+  contributorsTitle = '',
+} = Astro.props;
+---
+
+<ReactContributorsList
+  client:load
+  contributors={contributors}
+  currency={currency}
+  showTotal={showTotal}
+  maxDisplay={maxDisplay}
+  contributorsTitle={contributorsTitle}
+/>

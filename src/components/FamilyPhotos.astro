@@ -1,0 +1,76 @@
+---
+export interface PhotoItem {
+  emoji: string;
+  caption: string;
+}
+
+export interface Props {
+  title?: string;
+  photos?: PhotoItem[];
+}
+
+const { title = '📸 Momentos de Nuestras Aventuras', photos = [] } =
+  Astro.props;
+---
+
+<div class='family-photos'>
+  <h4 class='photos-title'>{title}</h4>
+
+  <div class='photos-grid'>
+    {
+      photos.map((photo) => (
+        <div class='photo-placeholder'>
+          <div class='photo-icon'>{photo.emoji}</div>
+          <div class='photo-caption'>{photo.caption}</div>
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .family-photos {
+    margin-bottom: 30px;
+  }
+
+  .photos-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: #c2185b;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .photo-placeholder {
+    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 2px dashed #f8bbd9;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .photo-placeholder:hover {
+    border-color: #e91e63;
+    transform: scale(1.02);
+    background: linear-gradient(145deg, #fff, #fce4ec);
+  }
+
+  .photo-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+  }
+
+  .photo-caption {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+  }
+</style>

@@ -6,6 +6,12 @@ export interface Props {
   currency?: string;
   showTotal?: boolean;
   maxDisplay?: number;
+  contributorsTitle?: string;
+  contributorsLevels?: {
+    name: string;
+    color: string;
+    emoji: string;
+  }[];
 }
 
 const {
@@ -13,6 +19,7 @@ const {
   currency = '€',
   showTotal = true,
   maxDisplay = 20,
+  contributorsTitle = '',
 } = Astro.props;
 
 // Calcular estadísticas
@@ -24,7 +31,7 @@ const hiddenCount = Math.max(0, totalContributors - maxDisplay);
 
 <div class='contributors-section'>
   <div class='section-header'>
-    <h3 class='section-title'>🌟 Héroes de Nuestra Quest</h3>
+    <h3 class='section-title'>{contributorsTitle}</h3>
     <div class='section-stats'>
       <div class='stat-badge'>
         <span class='stat-number'>{totalContributors}</span>
@@ -61,11 +68,7 @@ const hiddenCount = Math.max(0, totalContributors - maxDisplay);
               class='level-badge'
               title={`Nivel: ${contributor.level_name}`}
             >
-              {contributor.level_name === 'Paladín' && '🏹'}
-              {contributor.level_name === 'Guerrero' && '🛡️'}
-              {contributor.level_name === 'Aventurero' && '🗡️'}
-              {contributor.level_name === 'Mago' && '🧙‍♂️'}
-              {contributor.level_name === 'Señor Dragón' && '🐉'}
+              {contributor.level_emoji}
             </div>
           </div>
 

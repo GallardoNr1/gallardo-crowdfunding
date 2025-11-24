@@ -33,6 +33,7 @@ export interface ProjectConfig {
   project_image_url?: string;
   start_date: string;
   end_date?: string;
+  redirect_url: string;
   created_at: string;
   updated_at: string;
 }
@@ -133,11 +134,32 @@ export interface ProjectOverview {
 /**
  * Obtener configuración del proyecto
  */
-export async function getProjectConfig(): Promise<ProjectConfig | null> {
+export async function getProjectsConfig(): Promise<ProjectConfig[] | null> {
   try {
     const { data, error } = await supabase
       .from('project_config')
       .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching project config:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getProjectConfig:', error);
+    return null;
+  }
+}
+export async function getProjectConfig(
+  id: string
+): Promise<ProjectConfig | null> {
+  try {
+    const { data, error } = await supabase
+      .from('project_config')
+      .select(`*`)
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -177,12 +199,15 @@ export async function getProjectOverview(): Promise<ProjectOverview | null> {
 /**
  * Obtener todos los niveles de contribución activos
  */
-export async function getContributionLevels(): Promise<ContributionLevel[]> {
+export async function getContributionLevels(
+  id: string
+): Promise<ContributionLevel[]> {
   try {
     const { data, error } = await supabase
       .from('contribution_levels')
       .select('*')
       .eq('is_active', true)
+      .eq('project_id', id)
       .order('sort_order', { ascending: true });
 
     if (error) {
@@ -201,12 +226,14 @@ export async function getContributionLevels(): Promise<ContributionLevel[]> {
  * Obtener contribuciones públicas (completadas y no anónimas)
  */
 export async function getPublicContributions(
+  id: string,
   limit: number = 50
 ): Promise<PublicContribution[]> {
   try {
     const { data, error } = await supabase
-      .from('contributions')
+      .from('public_contributions')
       .select('*')
+      .eq('project_id', id)
       .limit(limit);
 
     if (error) {
@@ -224,12 +251,13 @@ export async function getPublicContributions(
 /**
  * Obtener miembros de la familia activos
  */
-export async function getFamilyMembers(): Promise<FamilyMember[]> {
+export async function getFamilyMembers(id: string): Promise<FamilyMember[]> {
   try {
     const { data, error } = await supabase
       .from('family_members')
       .select('*')
       .eq('is_active', true)
+      .eq('project_id', id)
       .order('sort_order', { ascending: true });
 
     if (error) {
@@ -248,6 +276,7 @@ export async function getFamilyMembers(): Promise<FamilyMember[]> {
  * Obtener mensajes de apoyo aprobados
  */
 export async function getSupportMessages(
+  id: string,
   limit: number = 20
 ): Promise<{ success: boolean; data?: SupportMessage[]; error?: string }> {
   try {
@@ -255,6 +284,7 @@ export async function getSupportMessages(
       .from('support_messages')
       .select('*')
       .eq('is_approved', true)
+      .eq('project_id', id)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -314,6 +344,7 @@ export async function createContribution(contributionData: {
   isAnonymous: boolean;
   isTest?: boolean;
   metadata?: Record<string, any>;
+  projectId: string;
 }): Promise<{ success: boolean; data?: Contribution; error?: string }> {
   try {
     const contrLevel = await getContributionLevel(
@@ -337,6 +368,7 @@ export async function createContribution(contributionData: {
           completed_at: new Date().toISOString(),
           payment_status: 'completed', // Siempre empezar como pending
           payment_reference: null, // Inicialmente no hay referencia de pago
+          project_id: contributionData.projectId,
         },
       ])
       .select()
@@ -345,6 +377,42 @@ export async function createContribution(contributionData: {
     if (error) {
       console.error('Error creating contribution:', error);
       return { success: false, error: error.message };
+    }
+
+    // Si la inserción fue exitosa, intentar incrementar el current_amount
+    try {
+      const inserted = data as Contribution;
+      const projectId =
+        contributionData.projectId || (inserted as any).project_id;
+      const amount = Number(
+        contributionData.amount ?? (inserted as any).amount
+      );
+
+      if (projectId && !Number.isNaN(amount) && amount > 0) {
+        const rpcRes = await incrementProjectCurrentAmountRpc(
+          projectId,
+          amount
+        );
+        if (!rpcRes.success) {
+          console.warn(
+            'RPC increment failed after createContribution:',
+            rpcRes.error
+          );
+          // Fallback: intentar la versión JS (read + update)
+          const fallbackRes = await incrementProjectCurrentAmount(
+            projectId,
+            amount
+          );
+          if (!fallbackRes.success) {
+            console.error('Fallback increment also failed:', fallbackRes.error);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(
+        'Error incrementing project amount after createContribution:',
+        err
+      );
     }
 
     return { success: true, data };
@@ -363,6 +431,24 @@ export async function updateContributionStatus(
   paymentReference?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Primero obtener la contribución para conocer amount y project_id
+    const { data: contrib, error: fetchErr } = await supabase
+      .from('contributions')
+      .select('amount, project_id, payment_status')
+      .eq('id', contributionId)
+      .single();
+
+    if (fetchErr || !contrib) {
+      console.error(
+        'Error fetching contribution before status update:',
+        fetchErr
+      );
+      return {
+        success: false,
+        error: fetchErr?.message || 'Contribución no encontrada',
+      };
+    }
+
     const updateData: any = {
       payment_status: status,
       updated_at: new Date().toISOString(),
@@ -376,19 +462,177 @@ export async function updateContributionStatus(
       updateData.payment_reference = paymentReference;
     }
 
-    const { error } = await supabase
+    const { error: updateErr } = await supabase
       .from('contributions')
       .update(updateData)
       .eq('id', contributionId);
 
-    if (error) {
-      console.error('Error updating contribution status:', error);
-      return { success: false, error: error.message };
+    if (updateErr) {
+      console.error('Error updating contribution status:', updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    // Si el estado ahora es 'completed' y antes no lo estaba, incrementar el current_amount del proyecto
+    try {
+      const previousStatus = contrib.payment_status;
+      if (status === 'completed' && previousStatus !== 'completed') {
+        const amount = Number(contrib.amount) || 0;
+        const projectId = contrib.project_id;
+        if (projectId && amount > 0) {
+          // Intentar RPC atómico primero
+          const rpcResult = await incrementProjectCurrentAmountRpc(
+            projectId,
+            amount
+          );
+          if (!rpcResult.success) {
+            // Fallback: usar la implementación JS (read + update)
+            console.warn(
+              'RPC failed, falling back to JS increment:',
+              rpcResult.error
+            );
+            await incrementProjectCurrentAmount(projectId, amount);
+          }
+        }
+      }
+    } catch (e) {
+      // No impedir que la actualización del estado sea exitosa si el incremento falla
+      console.error(
+        'Error incrementing project current_amount after status update:',
+        e
+      );
     }
 
     return { success: true };
   } catch (error) {
     console.error('Error in updateContributionStatus:', error);
+    return { success: false, error: 'Error interno del servidor' };
+  }
+}
+
+/**
+ * Llamada a la RPC/Postgres function `increment_project_current_amount`.
+ * Requiere que implementes la función PL/pgSQL en tu base de datos Supabase.
+ * Si la RPC falla, puedes elegir un fallback (ya existe `incrementProjectCurrentAmount`).
+ */
+export async function incrementProjectCurrentAmountRpc(
+  projectId: string,
+  amountToAdd: number
+): Promise<{ success: boolean; newAmount?: number; error?: string }> {
+  if (!projectId) return { success: false, error: 'projectId requerido' };
+  const amount = Number(amountToAdd);
+  if (Number.isNaN(amount) || amount <= 0) {
+    return {
+      success: false,
+      error: 'amountToAdd debe ser un número mayor que 0',
+    };
+  }
+
+  try {
+    // Llama a la función RPC definida en la base de datos
+    const { data, error } = await supabase.rpc(
+      'increment_project_current_amount',
+      {
+        p_project_id: projectId,
+        p_amount: amount,
+      }
+    );
+
+    if (error) {
+      console.error('RPC error increment_project_current_amount:', error);
+      return { success: false, error: error.message };
+    }
+
+    // data puede ser el valor retornado por la función (numeric)
+    const newAmount = data as any;
+    return { success: true, newAmount };
+  } catch (err) {
+    console.error('Error calling RPC increment_project_current_amount:', err);
+    return { success: false, error: 'Error interno del servidor' };
+  }
+}
+
+/**
+ * Notas SQL (ejecutar en Supabase SQL editor):
+ *
+ * create or replace function increment_project_current_amount(
+ *   p_project_id uuid,
+ *   p_amount numeric
+ * ) returns numeric as $$
+ * declare
+ *   new_amount numeric;
+ * begin
+ *   update project_config
+ *   set current_amount = current_amount + p_amount,
+ *       updated_at = now()
+ *   where id = p_project_id
+ *   returning current_amount into new_amount;
+ *
+ *   if not found then
+ *     raise exception 'Project not found';
+ *   end if;
+ *
+ *   return new_amount;
+ * end;
+ * $$ language plpgsql security definer;
+ */
+
+/**
+ * Incrementa el `current_amount` del proyecto sumando una cantidad.
+ * Nota: esta implementación realiza una lectura + actualización. Si tu carga
+ * concurrente puede ser alta, considera implementar esto en la base de datos
+ * (función SQL/RPC) para garantizar atomicidad.
+ */
+export async function incrementProjectCurrentAmount(
+  projectId: string,
+  amountToAdd: number
+): Promise<{ success: boolean; newAmount?: number; error?: string }> {
+  if (!projectId) return { success: false, error: 'projectId requerido' };
+  const amount = Number(amountToAdd);
+  if (Number.isNaN(amount) || amount <= 0) {
+    return {
+      success: false,
+      error: 'amountToAdd debe ser un número mayor que 0',
+    };
+  }
+
+  try {
+    const { data: projectData, error: selectError } = await supabase
+      .from('project_config')
+      .select('current_amount')
+      .eq('id', projectId)
+      .single();
+
+    if (selectError || !projectData) {
+      console.error('Error fetching project current_amount:', selectError);
+      return {
+        success: false,
+        error: selectError?.message || 'Proyecto no encontrado',
+      };
+    }
+
+    const current = Number(projectData.current_amount) || 0;
+    const newAmount = current + amount;
+    console.log('Updating project current_amount to:', newAmount);
+    const { error: updateError } = await supabase
+      .from('project_config')
+      .update({
+        current_amount: newAmount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+    console.log(
+      'Update operation completed for projectId:',
+      projectId,
+      updateError
+    );
+    if (updateError) {
+      console.error('Error updating project current_amount:', updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true, newAmount };
+  } catch (err) {
+    console.error('Error in incrementProjectCurrentAmount:', err);
     return { success: false, error: 'Error interno del servidor' };
   }
 }
@@ -403,6 +647,7 @@ export async function createSupportMessage(messageData: {
   message: string;
   is_from_contributor?: boolean;
   contribution_id?: string;
+  project_id: string;
 }): Promise<{ success: boolean; data?: SupportMessage; error?: string }> {
   try {
     const contribiuter = await findContribution(
@@ -425,6 +670,7 @@ export async function createSupportMessage(messageData: {
       contribution_id: messageData.contribution_id || null,
       is_from_contributor: messageData.is_from_contributor || false,
       is_approved: true,
+      project_id: messageData.project_id,
     };
     const { data, error } = await supabase
       .from('support_messages')
@@ -550,6 +796,69 @@ export function subscribeToContributions(callback: (payload: any) => void) {
 }
 
 /**
+ * Wrapper que normaliza el payload de Realtime y facilita su consumo.
+ * Devuelve el canal (igual que subscribeToContributions) para poder hacer unsubscribe.
+ * El callback recibe un objeto con la forma:
+ * { eventType: 'INSERT'|'UPDATE'|'DELETE', newRecord?: any, oldRecord?: any, schema, table, commit_timestamp }
+ */
+export function subscribeToContributionsNormalized(
+  callback: (payload: {
+    eventType: string;
+    newRecord?: any;
+    oldRecord?: any;
+    schema?: string;
+    table?: string;
+    commit_timestamp?: string;
+    raw?: any;
+  }) => void
+) {
+  const handler = (raw: any) => {
+    // Diferentes versiones/formatos de supabase pueden devolver fields distintos
+    const eventType =
+      raw.eventType ||
+      raw.event ||
+      raw.type ||
+      (raw.payload && raw.payload.type) ||
+      null;
+    const newRecord =
+      raw.new ||
+      raw.record ||
+      (raw.payload && raw.payload.new) ||
+      (raw.payload && raw.payload.record) ||
+      null;
+    const oldRecord = raw.old || (raw.payload && raw.payload.old) || null;
+    const schema =
+      raw.schema || raw.payload?.schema || raw.table?.schema || null;
+    const table =
+      raw.table ||
+      raw.payload?.table ||
+      (raw.record && raw.record.table) ||
+      'contributions';
+    const commit_timestamp =
+      raw.commit_timestamp || raw.payload?.commit_timestamp || null;
+
+    try {
+      callback({
+        eventType,
+        newRecord,
+        oldRecord,
+        schema,
+        table,
+        commit_timestamp,
+        raw,
+      });
+    } catch (err) {
+      console.error(
+        'Error in subscribeToContributionsNormalized callback:',
+        err
+      );
+    }
+  };
+
+  return subscribeToContributions(handler);
+}
+
+/**
  * Suscribirse a cambios en mensajes de apoyo
  */
 export function subscribeToSupportMessages(callback: (payload: any) => void) {
@@ -562,3 +871,23 @@ export function subscribeToSupportMessages(callback: (payload: any) => void) {
     )
     .subscribe();
 }
+
+/*
+ RLS / Permisos - Checklist rápido
+ 1) Si tienes Row Level Security (RLS) activado para `contributions`, asegúrate de que
+    la política permita que el role que hace la suscripción vea los eventos necesarios.
+    - Para pruebas puedes desactivar RLS temporalmente.
+    - Si llamas a la RPC desde el cliente, la función debe ser `security definer` y
+      otorgar únicamente lo necesario (la función ejecuta UPDATE internamente).
+
+ 2) Si las suscripciones no entregan payloads al cliente, revisa:
+    - Que Realtime esté habilitado en el proyecto Supabase.
+    - Las políticas RLS sobre la tabla `contributions` (SELECT/INSERT/UPDATE).
+    - Logs en Supabase para ver si Realtime descarta el evento por permisos.
+
+ 3) Recomendación de seguridad:
+    - Para operaciones sensibles (incrementos monetarios, cambios en estados), realiza
+      la lógica en el servidor o en RPCs `security definer` y llama desde un backend.
+
+ Si quieres, puedo generar ejemplos de políticas RLS básicas para permitir suscripciones en modo prueba.
+*/

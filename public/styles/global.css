@@ -6,7 +6,8 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #bcbec0 0%, #e6e7e8 50%, #a7a8aa 100%);
+
   min-height: 100vh;
   overflow-x: hidden;
 }

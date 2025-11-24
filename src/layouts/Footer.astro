@@ -1,0 +1,102 @@
+---
+export interface Props {
+  year?: number;
+}
+
+const currentYear = new Date().getFullYear();
+const { year = currentYear } = Astro.props;
+---
+
+<footer class='footer'>
+  <div class='footer-container'>
+    <div class='footer-brand'>
+      <h3 class='brand-title'>Gallardo Crowdfunding</h3>
+      <p class='brand-tagline'>Proyectos familiares llenos de corazón 💛</p>
+    </div>
+
+    <div class='footer-links'>
+      <a
+        href='/'
+        class='footer-link'
+        >Inicio</a
+      >
+      <a
+        href='/about'
+        class='footer-link'
+        >Sobre nosotros</a
+      >
+      <a
+        href='/contact'
+        class='footer-link'
+        >Contacto</a
+      >
+    </div>
+
+    <div class='footer-copy'>
+      <p>© {year} • Plataforma familiar creada con cariño</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: #1f2937; /* gris oscuro elegante */
+    color: #e5e7eb;
+    padding: 40px 20px;
+    text-align: center;
+    border-radius: 20px 20px 0 0;
+    margin-top: 40px;
+  }
+
+  .footer-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .footer-brand {
+    margin-bottom: 20px;
+  }
+
+  .brand-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #fff;
+  }
+
+  .brand-tagline {
+    font-size: 0.95rem;
+    opacity: 0.8;
+  }
+
+  .footer-links {
+    margin: 25px 0;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .footer-link {
+    color: #e5e7eb;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: opacity 0.3s ease;
+  }
+
+  .footer-link:hover {
+    opacity: 0.6;
+  }
+
+  .footer-copy {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 600px) {
+    .footer-links {
+      flex-direction: column;
+      gap: 10px;
+    }
+  }
+</style>
