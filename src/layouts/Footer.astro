@@ -10,11 +10,17 @@ const { year = currentYear } = Astro.props;
 <footer class='footer'>
   <div class='footer-container'>
     <div class='footer-brand'>
-      <h3 class='brand-title'>Gallardo Crowdfunding</h3>
+      <a
+        href='/'
+        class='footer-link'
+        title='Ir a la página principal'
+      >
+        <h3 class='brand-title'>Gallardo Crowdfunding</h3>
+      </a>
       <p class='brand-tagline'>Proyectos familiares llenos de corazón 💛</p>
     </div>
 
-    <div class='footer-links'>
+    <!-- <div class='footer-links'>
       <a
         href='/'
         class='footer-link'
@@ -30,7 +36,7 @@ const { year = currentYear } = Astro.props;
         class='footer-link'
         >Contacto</a
       >
-    </div>
+    </div> -->
 
     <div class='footer-copy'>
       <p>© {year} • Plataforma familiar creada con cariño</p>

@@ -11,41 +11,103 @@ const {
 ---
 
 <div class='header'>
-  <h1 class='title'>{title}</h1>
-  <p class='subtitle'>{subtitle}</p>
+  <div class='left'>
+    <a
+      class='home-link'
+      href='/'
+      title='Ir a la página principal'
+    >
+      <span class='logo'>
+        <span class='logo-inner'>GC</span>
+      </span>
+    </a>
+  </div>
+
+  <div class='center'>
+    <h1 class='title'>{title}</h1>
+    <p class='subtitle'>{subtitle}</p>
+  </div>
 </div>
 
 <style>
   .header {
-    text-align: center;
-    padding: 40px 20px;
+    display: flex;
+    align-items: center;
+    padding: 35px 20px;
     margin-bottom: 40px;
     background: #1f2937;
+    gap: 20px;
+  }
+
+  .left {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .center {
+    flex: 1;
+    text-align: center;
+  }
+
+  /* === LOGO PRO === */
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
+    border: 3px solid #6b7280;
+    box-shadow:
+      0 0 10px rgba(255, 255, 255, 0.05),
+      inset 0 0 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s ease;
+  }
+
+  .logo-inner {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f9fafb;
+    letter-spacing: -1px;
+  }
+
+  .home-link:hover .logo {
+    border-color: #9ca3af;
+    transform: scale(1.06) rotate(-2deg);
+    box-shadow:
+      0 0 16px rgba(255, 255, 255, 0.12),
+      inset 0 0 14px rgba(0, 0, 0, 0.5);
   }
 
   .title {
     font-family: 'Poppins', sans-serif;
-    font-size: 2.4rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: #e5e7eb;
-    margin-bottom: 10px;
+    color: #f3f4f6;
+    margin: 0;
   }
 
   .subtitle {
     font-size: 1.1rem;
-    color: #e5e7eb;
-    max-width: 700px;
-    margin: 0 auto;
-    line-height: 1.5;
+    color: #d1d5db;
+    margin-top: 6px;
   }
 
   @media (max-width: 768px) {
-    .title {
-      font-size: 1.8rem;
+    .header {
+      flex-direction: column;
+      padding: 25px 20px;
     }
 
-    .subtitle {
-      font-size: 1rem;
+    .center {
+      text-align: center;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
     }
   }
 </style>
