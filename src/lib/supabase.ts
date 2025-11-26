@@ -891,3 +891,33 @@ export function subscribeToSupportMessages(callback: (payload: any) => void) {
 
  Si quieres, puedo generar ejemplos de políticas RLS básicas para permitir suscripciones en modo prueba.
 */
+
+export async function getImagesFromFolder(
+  projectId: string
+): Promise<string[]> {
+  const folderPath = `projects/${projectId}/fotoFami`;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from('project-assets')
+      .list(folderPath, {
+        limit: 100,
+        sortBy: { column: 'name', order: 'asc' },
+      });
+
+    if (error || !data) return [];
+
+    return data
+      .filter((item) => item.name)
+      .map((item) => {
+        const filePath = `${folderPath}/${item.name}`;
+        const { data: urlData } = supabase.storage
+          .from('project-assets')
+          .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+      });
+  } catch {
+    return [];
+  }
+}

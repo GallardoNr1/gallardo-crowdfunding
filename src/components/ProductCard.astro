@@ -1,4 +1,6 @@
 ---
+import CompletedBage from './UI/CompletedBage.astro';
+
 export interface Props {
   title: string;
   description: string;
@@ -6,12 +8,16 @@ export interface Props {
   imageUrl: string;
   imageAlt: string;
   href?: string;
+  completed?: boolean;
 }
 
-const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
+const { title, description, price, imageUrl, imageAlt, href, completed } =
+  Astro.props;
 ---
 
 <div class='main-card'>
+  {completed && <CompletedBage size='lg' />}
+
   <a
     class='product-title'
     href={href || '#'}
@@ -24,8 +30,10 @@ const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
       class='lego-image'
     />
   </a>
+
   <h2 class='product-title'>{title}</h2>
   <p class='product-description'>{description}</p>
+
   <div class='price'>
     <span>💰</span>
     <span>{price.toFixed(2)} €</span>
@@ -69,16 +77,12 @@ const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
     transform: scale(1.05);
   }
 
-  .product-info {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-
   .product-title {
     font-family: 'Fredoka One', cursive;
     font-size: 2.5rem;
     color: #d32f2f;
     margin-bottom: 15px;
+    text-align: center;
   }
 
   .product-description {
@@ -86,6 +90,7 @@ const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
     color: #555;
     line-height: 1.6;
     margin-bottom: 20px;
+    text-align: center;
   }
 
   .price {
@@ -110,6 +115,11 @@ const { title, description, price, imageUrl, imageAlt, href } = Astro.props;
 
     .price {
       font-size: 1.5rem;
+    }
+
+    .completed-badge {
+      font-size: 0.8rem;
+      padding: 6px 12px;
     }
   }
 </style>

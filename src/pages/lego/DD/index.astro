@@ -1,6 +1,7 @@
 ---
 import ContributionLevels from '@/components/ContributionLevels.astro';
 import ContributorsListReact from '@/components/ContributorsListReact.astro';
+import FamilyPhotos from '@/components/FamilyPhotos.astro';
 import FloatingEleents from '@/components/FloatingEleents.astro';
 import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
@@ -12,6 +13,7 @@ import {
   getContributionLevels,
   getPublicContributions,
   getFamilyMembers,
+  getImagesFromFolder,
   type ContributionLevel,
   type FamilyMember,
   type PublicContribution,
@@ -25,6 +27,7 @@ let errorLoadingConfig = false;
 let contributionLevels: ContributionLevel[] = [];
 let contibutionsList: PublicContribution[] = [];
 let familyMembers: FamilyMember[] = [];
+let photos: string[] = [];
 
 const url = new URL(Astro.request.url);
 const id = url.searchParams.get('id') || '';
@@ -34,10 +37,12 @@ try {
   contributionLevels = await getContributionLevels(id);
   contibutionsList = await getPublicContributions(id);
   familyMembers = await getFamilyMembers(id);
+  photos = await getImagesFromFolder(id);
 } catch (error) {
   console.error('Error loading data base:', error);
   errorLoadingConfig = true;
 }
+const completed = projectConfig?.project_status === 'completed';
 
 // Datos del producto (se pueden obtener de la configuración o mantener estáticos)
 const productData = {
@@ -65,12 +70,6 @@ const callToAction = {
   ],
 };
 
-const photos = [
-  { emoji: '🎲', caption: 'Nuestra primera aventura' },
-  { emoji: '🏰', caption: 'Construyendo juntos' },
-  { emoji: '🐉', caption: '¡Batalla épica!' },
-  { emoji: '👨‍👩‍👧‍👦', caption: 'Familia aventurera' },
-];
 
 const photoSection = {
   title: '📸 Momentos de Nuestra Aventura Familiar',
@@ -104,25 +103,34 @@ const photoSection = {
       imageUrl={productData.imageUrl}
       imageAlt={productData.imageAlt}
       href='https://www.lego.com/es-es/product/dungeons-dragons-red-dragon-s-tale-21348'
+      completed={completed}
     />
 
     <ProgressSection
-      currentAmount={contibutionsList.reduce((sum, c) => sum + c.amount, 0)}
+      currentAmount={projectConfig?.current_amount ?? 0}
       targetAmount={projectConfig?.target_amount ?? 0}
       title='🎯 Progreso de la Aventura'
     />
+    <FamilyPhotos
+      title={photoSection.title}
+      photos={photos}
+      altPreText="Foto familiar"
+      />
+
+    {!completed && 
     <ContributionLevels levels={contributionLevels} />
     <ContributorsListReact
-      contributors={contibutionsList}
-      contributorsTitle='🌟 Héroes de Nuestra Quest'
+    contributors={contibutionsList}
+    contributorsTitle='🌟 Héroes de Nuestra Quest'
     />
+  }
     <MessageSection
       familyMembers={familyMembers}
       memberTitle='👨‍👩‍👧‍👦 Conoce a Nuestros Aventureros'
       callToAction={callToAction}
-      photoSection={photoSection}
       project_id={projectConfig?.id || ''}
     />
+
   </div>
   <Footer
     slot='footer'

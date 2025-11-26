@@ -6,6 +6,8 @@ interface Props {
   title?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showCloseButton?: boolean;
+  showFooter?: boolean;
+  showHeader?: boolean;
 }
 
 const {
@@ -13,6 +15,8 @@ const {
   title = 'Modal',
   size = 'md',
   showCloseButton = true,
+  showFooter = true,
+  showHeader = true,
 } = Astro.props;
 ---
 
@@ -22,27 +26,35 @@ const {
   aria-labelledby={`${id}-title`}
 >
   <div class='modal-content'>
-    <div class='modal-header'>
-      <slot name='beforeTitle' />
-      <div class='modal-header__text'>
-        <h2
-          id={`${id}-title`}
-          class='modal-title'
-        >
-          {title}
-        </h2>
-        <slot name='afterTitle' />
-      </div>
+    {
+      showHeader ? (
+        <div class='modal-header'>
+          <slot name='beforeTitle' />
+          <div class='modal-header__text'>
+            <h2
+              id={`${id}-title`}
+              class='modal-title'
+            >
+              {title}
+            </h2>
+            <slot name='afterTitle' />
+          </div>
 
-      {
-        showCloseButton && (
-          <CloseButton
-            toCloseId={id}
-            onclick={`closeModal('${id}')`}
-          />
-        )
-      }
-    </div>
+          {showCloseButton && (
+            <CloseButton
+              toCloseId={id}
+              onclick={`closeModal('${id}')`}
+            />
+          )}
+        </div>
+      ) : (
+        <CloseButton
+          toCloseId={id}
+          floating
+          onclick={`closeModal('${id}')`}
+        />
+      )
+    }
 
     <div
       class='modal-body'
@@ -51,9 +63,13 @@ const {
       <slot />
     </div>
 
-    <footer class='modal-footer'>
-      <slot name='modal-footer' />
-    </footer>
+    {
+      showFooter && (
+        <footer class='modal-footer'>
+          <slot name='modal-footer' />
+        </footer>
+      )
+    }
   </div>
 </dialog>
 

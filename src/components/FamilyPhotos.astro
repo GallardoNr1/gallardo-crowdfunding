@@ -1,36 +1,53 @@
 ---
-export interface PhotoItem {
-  emoji: string;
-  caption: string;
-}
+import PhotoLightboxModal from './PhotoLightboxModal.astro';
 
 export interface Props {
-  title?: string;
-  photos?: PhotoItem[];
+  title: string;
+  photos: string[];
+  altPreText: string;
 }
 
-const { title = '📸 Momentos de Nuestras Aventuras', photos = [] } =
-  Astro.props;
+const { title, photos = [], altPreText } = Astro.props;
+const lightboxId = 'family-photos-modal';
 ---
 
 <div class='family-photos'>
   <h4 class='photos-title'>{title}</h4>
 
-  <div class='photos-grid'>
-    {
-      photos.map((photo) => (
-        <div class='photo-placeholder'>
-          <div class='photo-icon'>{photo.emoji}</div>
-          <div class='photo-caption'>{photo.caption}</div>
-        </div>
-      ))
-    }
+  <div class='carousel'>
+    <div class='carousel-track'>
+      {
+        photos.map((url, index) => (
+          <button
+            type='button'
+            class='carousel-item'
+            onclick={`document.dispatchEvent(new CustomEvent('photoSelected', { detail: { url: ${JSON.stringify(
+              url
+            )} } }))`}
+          >
+            <img
+              src={url}
+              alt={`${altPreText} ${index + 1}`}
+              loading='lazy'
+              class='photo-img'
+              id={`${lightboxId}-${index + 1}`}
+            />
+          </button>
+        ))
+      }
+    </div>
   </div>
 </div>
+
+<PhotoLightboxModal id={lightboxId} />
 
 <style>
   .family-photos {
     margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(145deg, #ffffffcc, #f0f0f0);
+    border-radius: 20px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   }
 
   .photos-title {
@@ -41,36 +58,76 @@ const { title = '📸 Momentos de Nuestras Aventuras', photos = [] } =
     margin-bottom: 20px;
   }
 
-  .photos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+  .carousel {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    display: flex;
+    justify-content: flex-start;
+    padding-bottom: 12px;
   }
 
-  .photo-placeholder {
+  /* Scrollbar más guay */
+  .carousel::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .carousel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .carousel::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #f48fb1, #ff80ab);
+    border-radius: 999px;
+    border: 2px solid #fce4ec;
+  }
+
+  .carousel::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, #f06292, #ec407a);
+  }
+
+  .carousel-track {
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+  }
+
+  .carousel-item {
+    min-width: 260px;
+    max-width: 320px;
+    scroll-snap-align: center;
     background: linear-gradient(145deg, #ffffff, #f5f5f5);
     border-radius: 12px;
-    padding: 20px;
+    padding: 10px;
     text-align: center;
-    border: 2px dashed #f8bbd9;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    border: 2px solid #f8bbd9;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+    cursor: zoom-in;
   }
 
-  .photo-placeholder:hover {
-    border-color: #e91e63;
-    transform: scale(1.02);
-    background: linear-gradient(145deg, #fff, #fce4ec);
+  .carousel-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
   }
 
-  .photo-icon {
-    font-size: 3rem;
-    margin-bottom: 10px;
+  .photo-img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
   }
 
-  .photo-caption {
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
+  @media (max-width: 600px) {
+    .carousel-item {
+      min-width: 220px;
+    }
+    .photo-img {
+      height: 190px;
+    }
   }
 </style>

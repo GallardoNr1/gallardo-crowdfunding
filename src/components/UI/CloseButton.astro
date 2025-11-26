@@ -3,12 +3,24 @@ import type { HTMLAttributes } from 'astro/types';
 
 interface Props extends HTMLAttributes<'button'> {
   toCloseId: string;
+  floating?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-const { toCloseId, size = 'md', class: className, ...rest } = Astro.props;
+const {
+  toCloseId,
+  floating,
+  size = 'md',
+  class: className,
+  ...rest
+} = Astro.props;
 
-const classes = ['button-close', , `button-close--${size}`, className]
+const classes = [
+  'button-close',
+  `button-close--${size}`,
+  floating && 'floating',
+  className,
+]
   .filter(Boolean)
   .join(' ');
 ---
@@ -88,5 +100,18 @@ const classes = ['button-close', , `button-close--${size}`, className]
   .button-close:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
+  }
+  .button-close.floating {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    width: 2rem;
+    height: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 20;
   }
 </style>

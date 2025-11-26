@@ -1,0 +1,72 @@
+---
+import Modal from './UI/Modal.astro';
+
+interface Props {
+  id: string;
+  title?: string;
+}
+
+const { id, title = 'Foto' } = Astro.props;
+---
+
+<Modal
+  id={id}
+  size='xl'
+  showCloseButton={true}
+  showFooter={false}
+  showHeader={false}
+>
+  <div class='photo-lightbox-wrapper'>
+    <img
+      id={`${id}-img`}
+      class='photo-lightbox-img'
+      src=''
+      alt='Foto ampliada'
+    />
+  </div>
+</Modal>
+
+<style>
+  .photo-lightbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 80vh;
+  }
+
+  .photo-lightbox-img {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 12px;
+    object-fit: contain;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('photoSelected', (event) => {
+      const modalId = 'family-photos-modal';
+      const img = document.getElementById(`${modalId}-img`);
+      console.log('PhotoLightboxModal cargado', modalId, img);
+      if (!img) return;
+
+      // 👇 Cast a CustomEvent para poder usar .detail bien tipado
+      const customEvent = event as CustomEvent<{ url?: string }>;
+      const detail = customEvent.detail || {};
+      const url = detail.url;
+
+      if (!url) return;
+
+      if (img instanceof HTMLImageElement) {
+        img.src = url;
+      }
+
+      if (window.openModal) {
+        window.openModal(modalId);
+      } else {
+        console.warn('openModal no está definido en window');
+      }
+    });
+  });
+</script>
