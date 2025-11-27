@@ -46,7 +46,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /var/www/gallardo-crowdfunding
-            pm2 stop gallardo-crowdfunding || true
-            pm2 delete gallardo-crowdfunding || true
-            pm2 start "NODE_ENV=production HOST=127.0.0.1 PORT=5025 node ./dist/server/entry.mjs" --name gallardo-crowdfunding
-            pm2 save
+            /root/.nvm/versions/node/v20.18.2/bin/pm2 stop gallardo-crowdfunding || true
+            /root/.nvm/versions/node/v20.18.2/bin/pm2 delete gallardo-crowdfunding || true
+            /root/.nvm/versions/node/v20.18.2/bin/pm2 start "NODE_ENV=production HOST=127.0.0.1 PORT=5025 node ./dist/server/entry.mjs" --name gallardo-crowdfunding
+            /root/.nvm/versions/node/v20.18.2/bin/pm2 save
