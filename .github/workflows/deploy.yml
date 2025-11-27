@@ -1,0 +1,52 @@
+name: Deploy Gallardo Crowdfunding
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # --- Crear .env.local desde secret ---
+      - name: Crear .env.local
+        run: |
+          echo "$ENV_LOCAL" > .env.local
+        env:
+          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+
+      # --- Instalación y build ---
+      - name: Install deps
+        run: npm install
+
+      - name: Build app
+        run: npm run build
+
+      # --- Copiar build al servidor ---
+      - name: Copiar build vía SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: '.'
+          target: '/var/www/gallardo-crowdfunding'
+
+      # --- Reiniciar PM2 en el servidor ---
+      - name: Restart PM2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/gallardo-crowdfunding
+            pm2 stop gallardo-crowdfunding || true
+            pm2 delete gallardo-crowdfunding || true
+            pm2 start "NODE_ENV=production HOST=127.0.0.1 PORT=5025 node ./dist/server/entry.mjs" --name gallardo-crowdfunding
+            pm2 save
