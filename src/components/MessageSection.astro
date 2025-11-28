@@ -9,7 +9,6 @@ import SupportMessageFrom from './SupportMessageFrom.astro';
 export interface Props {
   familyMembers?: FamilyMember[];
   mainMessage?: string;
-  showPhotos?: boolean;
   allowComments?: boolean;
   memberTitle?: string;
   callToAction: {
@@ -38,7 +37,6 @@ Este no es solo un crowdfunding - es una invitación a ser parte de nuestra aven
 const {
   familyMembers = [],
   mainMessage = defaultMainMessage,
-  showPhotos = true,
   allowComments = true,
   memberTitle = 'Member Title',
   callToAction,

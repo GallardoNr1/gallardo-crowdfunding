@@ -1,5 +1,5 @@
 ---
-import type { ProjectConfig } from '../lib/supabase';
+import type { ProjectConfig } from '@/lib/supabase';
 
 interface Props {
   projectConfig: ProjectConfig | null;
@@ -36,14 +36,6 @@ const { projectConfig = null } = Astro.props;
         <span class='stat-text'>Amor Familiar</span>
       </div>
     </div>
-
-    <!-- <div class='footer-links'>
-      <span class='footer-link'>📧 Contacto</span>
-      <span class='footer-separator'>•</span>
-      <span class='footer-link'>❓ FAQ</span>
-      <span class='footer-separator'>•</span>
-      <span class='footer-link'>🔒 Privacidad</span>
-    </div> -->
 
     <div class='footer-copyright'>
       <p>

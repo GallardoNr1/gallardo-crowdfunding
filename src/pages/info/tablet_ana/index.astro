@@ -1,11 +1,12 @@
 ---
 import ContributionLevels from '@/components/ContributionLevels.astro';
 import ContributorsListReact from '@/components/ContributorsListReact.astro';
+import FamilyPhotos from '@/components/FamilyPhotos.astro';
 import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Footer from '@/layouts/lego/Footer.astro';
+import Footer from '@/layouts/Footer.astro';
 import {
   getProjectConfig,
   getContributionLevels,
@@ -14,6 +15,7 @@ import {
   type ContributionLevel,
   type FamilyMember,
   type PublicContribution,
+  getImagesFromFolder,
 } from '@/lib/supabase';
 
 export const prerender = false;
@@ -24,6 +26,7 @@ let errorLoadingConfig = false;
 let contributionLevels: ContributionLevel[] = [];
 let contibutionsList: PublicContribution[] = [];
 let familyMembers: FamilyMember[] = [];
+let photos: string[] = [];
 
 const url = new URL(Astro.request.url);
 const id = url.searchParams.get('id') || '';
@@ -33,10 +36,13 @@ try {
   contributionLevels = await getContributionLevels(id);
   contibutionsList = await getPublicContributions(id);
   familyMembers = await getFamilyMembers(id);
+  photos = await getImagesFromFolder(id);
 } catch (error) {
   console.error('Error loading data base:', error);
   errorLoadingConfig = true;
 }
+
+const completed = projectConfig?.project_status === 'completed';
 
 // Datos del producto (por defecto: tablet de Ana)
 const productData = {
@@ -114,6 +120,7 @@ const photoSection = {
       href='https://www.mediamarkt.es/es/product/_tablet-lenovo-idea-tab-wifi-11-25k-8gb-ram-128gb-gris-incluye-lapiz-1603847.html'
       imageUrl={productData.imageUrl}
       imageAlt={productData.imageAlt}
+      completed={completed}
     />
 
     <ProgressSection
@@ -121,137 +128,149 @@ const photoSection = {
       targetAmount={projectConfig?.target_amount ?? 0}
       title='🎯 Un Pequeño Empujón Para Una Gran Mujer'
     />
-    <ContributionLevels levels={contributionLevels} />
-    <ContributorsListReact
-      contributors={contibutionsList}
-      contributorsTitle='✨ Impulsores de Este Regalo Especial'
-    />
+
+    {
+      photos.length > 0 && (
+        <FamilyPhotos
+          title={photoSection.title}
+          photos={photos}
+          altPreText='Foto familiar'
+        />
+      )
+    }
+
+    {
+      !completed &&
+        <ContributionLevels levels={contributionLevels} />
+          <ContributorsListReact
+          contributors={contibutionsList}
+          contributorsTitle='✨ Impulsores de Este Regalo Especial'
+          />
+    }
+
     <MessageSection
       familyMembers={familyMembers}
       mainMessage={mainMessage}
       memberTitle='🌸 La Tribu Que Le Da Alas'
       callToAction={callToAction}
-      photoSection={photoSection}
-      showPhotos={false}
       project_id={projectConfig?.id || ''}
     />
   </div>
-  <Footer
-    slot='footer'
-    projectConfig={projectConfig}
-  />
-  <style>
+  <Footer slot='footer' />
+</BaseLayout>
+
+<style>
+  .global-error-banner {
+    background: linear-gradient(145deg, #fff3cd, #ffeaa7);
+    border: 2px solid #ffc107;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+  }
+
+  .error-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .error-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+
+  .error-text {
+    color: #856404;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .error-text strong {
+    color: #533f03;
+  }
+
+  .status-active {
+    color: #4caf50;
+    font-weight: 600;
+  }
+
+  .status-completed {
+    color: #2196f3;
+    font-weight: 600;
+  }
+
+  .status-paused {
+    color: #ff9800;
+    font-weight: 600;
+  }
+
+  .status-cancelled {
+    color: #f44336;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      padding: 30px 20px;
+    }
+
+    .footer-message h3 {
+      font-size: 1.5rem;
+    }
+
+    .footer-stats {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-separator {
+      display: none;
+    }
+
     .global-error-banner {
-      background: linear-gradient(145deg, #fff3cd, #ffeaa7);
-      border: 2px solid #ffc107;
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+      margin: 10px;
+      padding: 15px;
     }
 
     .error-content {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      text-align: center;
-      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
     }
+  }
+</style>
 
-    .error-icon {
-      font-size: 2rem;
-      flex-shrink: 0;
+<script>
+  // Manejar eventos de contribución completada
+  document.addEventListener('contributionCompleted', (event: any) => {
+    const { amount, contributor } = event.detail;
+
+    // Mostrar celebración global
+    showGlobalCelebration(contributor);
+
+    // Actualizar título de la página si es necesario
+    if (typeof document !== 'undefined') {
+      const originalTitle = document.title;
+      document.title = `🎉 ¡Nueva contribución! - ${originalTitle}`;
+
+      // Restaurar título después de 5 segundos
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 5000);
     }
+  });
 
-    .error-text {
-      color: #856404;
-      font-size: 1rem;
-      line-height: 1.4;
-    }
-
-    .error-text strong {
-      color: #533f03;
-    }
-
-    .status-active {
-      color: #4caf50;
-      font-weight: 600;
-    }
-
-    .status-completed {
-      color: #2196f3;
-      font-weight: 600;
-    }
-
-    .status-paused {
-      color: #ff9800;
-      font-weight: 600;
-    }
-
-    .status-cancelled {
-      color: #f44336;
-      font-weight: 600;
-    }
-
-    @media (max-width: 768px) {
-      .footer-content {
-        padding: 30px 20px;
-      }
-
-      .footer-message h3 {
-        font-size: 1.5rem;
-      }
-
-      .footer-stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-      }
-
-      .footer-links {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .footer-separator {
-        display: none;
-      }
-
-      .global-error-banner {
-        margin: 10px;
-        padding: 15px;
-      }
-
-      .error-content {
-        flex-direction: column;
-        gap: 10px;
-      }
-    }
-  </style>
-
-  <script>
-    // Manejar eventos de contribución completada
-    document.addEventListener('contributionCompleted', (event: any) => {
-      const { amount, contributor } = event.detail;
-
-      // Mostrar celebración global
-      showGlobalCelebration(contributor);
-
-      // Actualizar título de la página si es necesario
-      if (typeof document !== 'undefined') {
-        const originalTitle = document.title;
-        document.title = `🎉 ¡Nueva contribución! - ${originalTitle}`;
-
-        // Restaurar título después de 5 segundos
-        setTimeout(() => {
-          document.title = originalTitle;
-        }, 5000);
-      }
-    });
-
-    function showGlobalCelebration(contributor: any) {
-      const celebration = document.createElement('div');
-      celebration.style.cssText = `
+  function showGlobalCelebration(contributor: any) {
+    const celebration = document.createElement('div');
+    celebration.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
@@ -261,41 +280,30 @@ const photoSection = {
             z-index: 9999;
         `;
 
-      for (let i = 0; i < 100; i++) {
-        setTimeout(() => {
-          createGlobalConfetti(celebration);
-        }, i * 30);
-      }
-
-      document.body.appendChild(celebration);
-
-      showContributionNotification(contributor);
-
+    for (let i = 0; i < 100; i++) {
       setTimeout(() => {
-        if (document.body.contains(celebration)) {
-          document.body.removeChild(celebration);
-        }
-      }, 8000);
+        createGlobalConfetti(celebration);
+      }, i * 30);
     }
 
-    function createGlobalConfetti(container: HTMLElement) {
-      const confetti = document.createElement('div');
-      const emojis = [
-        '🎉',
-        '✨',
-        '🌟',
-        '💫',
-        '🎊',
-        '🎁',
-        '💝',
-        '📚',
-        '👩‍🏫',
-        '📱',
-      ];
-      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    document.body.appendChild(celebration);
 
-      confetti.textContent = emoji;
-      confetti.style.cssText = `
+    showContributionNotification(contributor);
+
+    setTimeout(() => {
+      if (document.body.contains(celebration)) {
+        document.body.removeChild(celebration);
+      }
+    }, 8000);
+  }
+
+  function createGlobalConfetti(container: HTMLElement) {
+    const confetti = document.createElement('div');
+    const emojis = ['🎉', '✨', '🌟', '💫', '🎊', '🎁', '💝', '📚', '👩‍🏫', '📱'];
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+    confetti.textContent = emoji;
+    confetti.style.cssText = `
             position: absolute;
             font-size: ${Math.random() * 25 + 15}px;
             left: ${Math.random() * 100}vw;
@@ -305,18 +313,18 @@ const photoSection = {
             z-index: 10000;
         `;
 
-      container.appendChild(confetti);
+    container.appendChild(confetti);
 
-      setTimeout(() => {
-        if (container.contains(confetti)) {
-          container.removeChild(confetti);
-        }
-      }, 8000);
-    }
+    setTimeout(() => {
+      if (container.contains(confetti)) {
+        container.removeChild(confetti);
+      }
+    }, 8000);
+  }
 
-    function showContributionNotification(contributor: any) {
-      const notification = document.createElement('div');
-      notification.style.cssText = `
+  function showContributionNotification(contributor: any) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
@@ -331,7 +339,7 @@ const photoSection = {
             font-family: 'Poppins', sans-serif;
         `;
 
-      notification.innerHTML = `
+    notification.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <span style="font-size: 1.5rem;">${contributor.emoji}</span>
                 <strong style="font-size: 1.1rem;">¡Nueva contribución!</strong>
@@ -342,20 +350,20 @@ const photoSection = {
             </div>
         `;
 
-      document.body.appendChild(notification);
+    document.body.appendChild(notification);
 
+    setTimeout(() => {
+      notification.style.animation = 'slideOutRight 0.5s ease-in';
       setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.5s ease-in';
-        setTimeout(() => {
-          if (document.body.contains(notification)) {
-            document.body.removeChild(notification);
-          }
-        }, 500);
-      }, 6000);
-    }
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 500);
+    }, 6000);
+  }
 
-    const globalStyles = document.createElement('style');
-    globalStyles.textContent = `
+  const globalStyles = document.createElement('style');
+  globalStyles.textContent = `
         @keyframes globalConfettiFall {
             to {
                 transform: translateY(100vh) rotate(720deg);
@@ -431,81 +439,80 @@ const photoSection = {
             color: white;
         }
     `;
-    document.head.appendChild(globalStyles);
+  document.head.appendChild(globalStyles);
 
-    function updateConnectionStatus() {
-      let statusIndicator = document.getElementById('connectionStatus');
+  // function updateConnectionStatus() {
+  //   let statusIndicator = document.getElementById('connectionStatus');
 
-      if (!statusIndicator) {
-        statusIndicator = document.createElement('div');
-        statusIndicator.id = 'connectionStatus';
-        statusIndicator.className = 'connection-status';
-        document.body.appendChild(statusIndicator);
-      }
+  //   if (!statusIndicator) {
+  //     statusIndicator = document.createElement('div');
+  //     statusIndicator.id = 'connectionStatus';
+  //     statusIndicator.className = 'connection-status';
+  //     document.body.appendChild(statusIndicator);
+  //   }
 
-      if (navigator.onLine) {
-        statusIndicator.className = 'connection-status online';
-        statusIndicator.textContent = '🟢 Conectado';
-      } else {
-        statusIndicator.className = 'connection-status offline';
-        statusIndicator.textContent = '🔴 Sin conexión';
-      }
-    }
+  //   if (navigator.onLine) {
+  //     statusIndicator.className = 'connection-status online';
+  //     statusIndicator.textContent = '🟢 Conectado';
+  //   } else {
+  //     statusIndicator.className = 'connection-status offline';
+  //     statusIndicator.textContent = '🔴 Sin conexión';
+  //   }
+  // }
 
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
+  // window.addEventListener('online', updateConnectionStatus);
+  // window.addEventListener('offline', updateConnectionStatus);
 
-    document.addEventListener('DOMContentLoaded', () => {
-      updateConnectionStatus();
+  document.addEventListener('DOMContentLoaded', () => {
+    // updateConnectionStatus();
 
-      const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px',
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px',
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, observerOptions);
+
+    const sections = document.querySelectorAll(
+      '.main-card, .progress-section, .contributors-section, .message-section'
+    );
+    sections.forEach((section) => observer.observe(section));
+  });
+
+  (window as any).debugCrowdfunding = {
+    triggerTestContribution: () => {
+      const testContribution = {
+        amount: 25,
+        contributor: {
+          name: 'Usuario de Prueba',
+          emoji: '🧪',
+          level: 'Colaborador',
+          message: 'Esta es una contribución de prueba',
+          color: '#ff9800',
+          isAnonymous: false,
+        },
       };
 
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      }, observerOptions);
-
-      const sections = document.querySelectorAll(
-        '.main-card, .progress-section, .contributors-section, .message-section'
+      document.dispatchEvent(
+        new CustomEvent('contributionCompleted', {
+          detail: testContribution,
+        })
       );
-      sections.forEach((section) => observer.observe(section));
-    });
+    },
 
-    (window as any).debugCrowdfunding = {
-      triggerTestContribution: () => {
-        const testContribution = {
-          amount: 25,
-          contributor: {
-            name: 'Usuario de Prueba',
-            emoji: '🧪',
-            level: 'Colaborador',
-            message: 'Esta es una contribución de prueba',
-            color: '#ff9800',
-            isAnonymous: false,
-          },
-        };
-
-        document.dispatchEvent(
-          new CustomEvent('contributionCompleted', {
-            detail: testContribution,
-          })
-        );
-      },
-
-      getComponentsStatus: () => {
-        return {
-          contributionLevels: !!(window as any).contributionLevels,
-          contributorsList: !!(window as any).contributorsList,
-          contributionModal: !!(window as any).contributionModal,
-          messageSection: !!(window as any).messageSection,
-        };
-      },
-    };
-  </script>
-</BaseLayout>
+    getComponentsStatus: () => {
+      return {
+        contributionLevels: !!(window as any).contributionLevels,
+        contributorsList: !!(window as any).contributorsList,
+        contributionModal: !!(window as any).contributionModal,
+        messageSection: !!(window as any).messageSection,
+      };
+    },
+  };
+</script>

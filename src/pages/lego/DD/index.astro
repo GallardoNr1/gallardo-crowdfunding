@@ -111,11 +111,16 @@ const photoSection = {
       targetAmount={projectConfig?.target_amount ?? 0}
       title='🎯 Progreso de la Aventura'
     />
-    <FamilyPhotos
-      title={photoSection.title}
-      photos={photos}
-      altPreText="Foto familiar"
-      />
+    
+    {
+      photos.length > 0 && (
+        <FamilyPhotos
+          title={photoSection.title}
+          photos={photos}
+          altPreText='Foto familiar'
+        />
+      )
+    }
 
     {!completed && 
     <ContributionLevels levels={contributionLevels} />
@@ -132,12 +137,10 @@ const photoSection = {
     />
 
   </div>
-  <Footer
-    slot='footer'
-    projectConfig={projectConfig}
-  />
+  <Footer slot='footer'projectConfig={projectConfig}/>
+</LegoLayout>
 
-  <style>
+<style>
     .global-error-banner {
       background: linear-gradient(145deg, #fff3cd, #ffeaa7);
       border: 2px solid #ffc107;
@@ -224,9 +227,9 @@ const photoSection = {
         gap: 10px;
       }
     }
-  </style>
+</style>
 
-  <script>
+<script>
     // Manejar eventos de contribución completada
     document.addEventListener('contributionCompleted', (event: any) => {
       const { amount, contributor } = event.detail;
@@ -447,33 +450,33 @@ const photoSection = {
     document.head.appendChild(globalStyles);
 
     // Monitorear estado de conexión
-    function updateConnectionStatus() {
-      let statusIndicator = document.getElementById('connectionStatus');
+    // function updateConnectionStatus() {
+    //   let statusIndicator = document.getElementById('connectionStatus');
 
-      if (!statusIndicator) {
-        statusIndicator = document.createElement('div');
-        statusIndicator.id = 'connectionStatus';
-        statusIndicator.className = 'connection-status';
-        document.body.appendChild(statusIndicator);
-      }
+    //   if (!statusIndicator) {
+    //     statusIndicator = document.createElement('div');
+    //     statusIndicator.id = 'connectionStatus';
+    //     statusIndicator.className = 'connection-status';
+    //     document.body.appendChild(statusIndicator);
+    //   }
 
-      if (navigator.onLine) {
-        statusIndicator.className = 'connection-status online';
-        statusIndicator.textContent = '🟢 Conectado';
-      } else {
-        statusIndicator.className = 'connection-status offline';
-        statusIndicator.textContent = '🔴 Sin conexión';
-      }
-    }
+    //   if (navigator.onLine) {
+    //     statusIndicator.className = 'connection-status online';
+    //     statusIndicator.textContent = '🟢 Conectado';
+    //   } else {
+    //     statusIndicator.className = 'connection-status offline';
+    //     statusIndicator.textContent = '🔴 Sin conexión';
+    //   }
+    // }
 
-    // Event listeners para estado de conexión
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
+    // // Event listeners para estado de conexión
+    // window.addEventListener('online', updateConnectionStatus);
+    // window.addEventListener('offline', updateConnectionStatus);
 
     // Smooth scroll para navegación interna
     document.addEventListener('DOMContentLoaded', () => {
       // Inicializar estado de conexión
-      updateConnectionStatus();
+      // updateConnectionStatus();
 
       // Animar elementos al hacer scroll
       const observerOptions = {
@@ -527,5 +530,4 @@ const photoSection = {
         };
       },
     };
-  </script>
-</LegoLayout>
+</script>

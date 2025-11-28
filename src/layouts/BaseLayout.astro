@@ -87,7 +87,7 @@ const emojiOptions: { value: string; label: string }[] = [
     <main class='main-content'>
       <slot />
     </main>
-    <Footer />
+    <slot name='footer' />
     <ContributionModal
       paymentMethods={customPaymentMethods}
       currency='€'
