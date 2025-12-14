@@ -3,6 +3,7 @@
 import Header from './Header.astro';
 import Footer from './Footer.astro';
 import ContributionModal from '@/components/ContributionModal.astro';
+import { getPaymentMethods, getProjectBySlug } from '@/lib/supabase';
 
 export interface Props {
   title: string;
@@ -15,36 +16,10 @@ const {
   description = 'Plataforma familiar de crowdfundings Gallardo',
   subtitle,
 } = Astro.props;
-const url = new URL(Astro.request.url);
-const id = url.searchParams.get('id');
-const customPaymentMethods = [
-  {
-    id: 'cash',
-    name: 'En efectivo',
-    icon: '🤝',
-    description: 'Pago en mano',
-    enabled: true,
-  },
-  {
-    id: 'bizum',
-    name: 'Bizum',
-    icon: '📱',
-    description: 'Pago móvil rápido',
-    enabled: true,
-  },
-];
-const emojiOptions: { value: string; label: string }[] = [
-  { value: '🧬', label: 'Códice Viviente' },
-  { value: '🤖', label: 'Centinela Digital' },
-  { value: '🛡️', label: 'Guardían del Sistema' },
-  { value: '⚡', label: 'Nexo Eléctrico' },
-  { value: '🛰️', label: 'Explorador Estelar' },
-  { value: '🧠', label: 'Mente Avanzada' },
-  { value: '🔮', label: 'Oráculo de Datos' },
-  { value: '🦾', label: 'Fuerza Mecánica' },
-  { value: '📡', label: 'Analista Cósmico' },
-  { value: '🌌', label: 'Viajero del Vacío' },
-];
+
+const { slug } = Astro.params;
+const projectConfig = await getProjectBySlug(slug || '');
+const customPaymentMethods = await getPaymentMethods();
 ---
 
 <!doctype html>
@@ -101,11 +76,17 @@ const emojiOptions: { value: string; label: string }[] = [
       successMessage='Hemos registrado tu contribución correctamente.'
       cancelButtonText='Cerrar'
       confirmButtonText='Confirmar y Registrar'
-      bizumNumber='648 029 265'
-      bizumConcept='Contribución familiar + Tu Nombre'
+      bizumConcept={projectConfig?.bizum_concept || ''}
+      bizumNumber={projectConfig?.bizum_phone || ''}
       totalLabel='Total a contribuir:'
-      emojiOptions={emojiOptions}
-      projectId={id ? id : ''}
+      emojiOptions={projectConfig?.emoji_options &&
+      projectConfig.emoji_options.length > 0
+        ? projectConfig.emoji_options
+        : [
+            { value: '🙂', label: 'Amigo de la familia' },
+            { value: '💛', label: 'Colaborador' },
+          ]}
+      projectId={projectConfig?.id && projectConfig.id}
     />
   </body>
 </html>

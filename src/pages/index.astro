@@ -43,7 +43,7 @@ try {
           <ul class='projects-list'>
             {projects.map((project) => (
               <a
-                href={`${project.redirect_url}?id=${project.id}`}
+                href={`/projects/${project.slug}`}
                 target='_self'
                 rel='noopener noreferrer'
                 class='project-link'

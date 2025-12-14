@@ -2,13 +2,19 @@
 import type { FamilyMember } from '../lib/supabase';
 import CallToAction from './CallToAction.astro';
 import FamilyMembers from './FamilyMembers.astro';
-import FamilyPhotos from './FamilyPhotos.astro';
 import SupportMessageSection from './react/SupportMessageSection/SupportMessageSection';
 import SupportMessageFrom from './SupportMessageFrom.astro';
 
+export type mainMessageType = {
+  message: string;
+  signature?: string;
+  familyName?: string;
+  date?: string;
+};
+
 export interface Props {
   familyMembers?: FamilyMember[];
-  mainMessage?: string;
+  mainMessage?: mainMessageType;
   allowComments?: boolean;
   memberTitle?: string;
   callToAction: {
@@ -20,23 +26,9 @@ export interface Props {
   project_id: string;
 }
 
-const defaultMainMessage = `
-¡Hola familia y amigos queridos! 🐉❤️
-
-Queremos compartir con ustedes un sueño familiar muy especial. Como familia, hemos descubierto la magia de Dungeons & Dragons y nos ha unido de una manera increíble. Cada fin de semana nos reunimos alrededor de la mesa para vivir aventuras épicas, crear personajes fascinantes y sobre todo, para reír y soñar juntos.
-
-Cuando vimos este increíble set de LEGO del Dragón Rojo, supimos inmediatamente que era perfecto para nosotros. No es solo un set de construcción - es el escenario donde crearemos recuerdos familiares que durarán toda la vida.
-
-Imaginen: 3,745 piezas que construiremos juntos, una mazmorra completa para nuestras aventuras, y por supuesto, el majestuoso dragón rojo que será el centro de nuestras historias más épicas. Cada pieza que coloquemos será un momento compartido, cada aventura que vivamos será un recuerdo precioso.
-
-Este no es solo un crowdfunding - es una invitación a ser parte de nuestra aventura familiar. Cada contribución, sin importar el tamaño, nos acerca más a nuestro objetivo y significa que ustedes también forman parte de esta historia mágica.
-
-¡Únanse a nuestra quest y ayúdennos a hacer realidad este sueño familiar! 🏰✨
-`;
-
 const {
   familyMembers = [],
-  mainMessage = defaultMainMessage,
+  mainMessage,
   allowComments = true,
   memberTitle = 'Member Title',
   callToAction,
@@ -57,7 +49,7 @@ const {
         id='messageText'
       >
         {
-          mainMessage
+          mainMessage?.message
             .split('\n')
             .map((paragraph) => paragraph.trim() && <p>{paragraph}</p>)
         }
@@ -65,15 +57,17 @@ const {
     </div>
 
     <div class='message-signature'>
-      <div class='signature-text'>Con amor,</div>
-      <div class='family-name'>La Familia Gallardo Esclapez</div>
+      <div class='signature-text'>{mainMessage?.signature}</div>
+      <div class='family-name'>{mainMessage?.familyName}</div>
       <div class='signature-date'>
         {
-          new Date().toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+          mainMessage?.date
+            ? new Date(mainMessage.date).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })
+            : ''
         }
       </div>
     </div>
@@ -87,7 +81,10 @@ const {
   {
     allowComments && (
       <div class='comments-section'>
-        <SupportMessageSection client:load />
+        <SupportMessageSection
+          client:load
+          project_id={project_id}
+        />
         <SupportMessageFrom project_id={project_id} />
       </div>
     )

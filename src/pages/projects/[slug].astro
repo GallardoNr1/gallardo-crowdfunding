@@ -8,7 +8,6 @@ import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
 import {
-  getProjectConfig,
   getContributionLevels,
   getPublicContributions,
   getFamilyMembers,
@@ -16,6 +15,8 @@ import {
   type FamilyMember,
   type PublicContribution,
   getImagesFromFolder,
+  getProjectBySlug,
+  normalizeProjectPageContent
 } from '@/lib/supabase';
 
 export const prerender = false;
@@ -28,15 +29,17 @@ let contibutionsList: PublicContribution[] = [];
 let familyMembers: FamilyMember[] = [];
 let photos: string[] = [];
 
-const url = new URL(Astro.request.url);
-const id = url.searchParams.get('id') || '';
+const { slug } = Astro.params;
 
 try {
-  projectConfig = await getProjectConfig(id);
-  contributionLevels = await getContributionLevels(id);
-  contibutionsList = await getPublicContributions(id);
-  familyMembers = await getFamilyMembers(id);
-  photos = await getImagesFromFolder(id);
+  projectConfig = await getProjectBySlug(slug || '');
+    if (!projectConfig) {
+    throw new Error('Project not found');
+  }
+  contributionLevels = await getContributionLevels(projectConfig.id);
+  contibutionsList = await getPublicContributions(projectConfig.id);
+  familyMembers = await getFamilyMembers(projectConfig.id);
+  photos = await getImagesFromFolder(projectConfig.id);
 } catch (error) {
   console.error('Error loading data base:', error);
   errorLoadingConfig = true;
@@ -57,28 +60,28 @@ const productData = {
   imageAlt: 'Tablet Lenovo Idea Tab 11 ZAFR0389ES',
 };
 
-const mainMessage = `¡Hola familia y amigos queridos! 💖📱
-Este año queremos hacer algo muy especial para alguien que lo merece más que nadie: Ana.
-Como sabéis, es una mujer increíble, entregada, fuerte, generosa y capaz de sostener una familia enorme con una sonrisa. No solo es el corazón de nuestro hogar, también es una profesora excepcional, que pone el alma en todo lo que hace.
-Por eso queremos regalarle algo que realmente le ayude en su día a día: una tablet Lenovo Idea Tab 11, que usará tanto para preparar sus clases como para seguir formándose, organizarse mejor, leer, estudiar y, por qué no… ¡disfrutar de sus momentos de descanso!
-Queremos que este regalo sea especial, algo que venga no solo de mí, sino de todos los que la queremos: familia de ambos lados, amigos cercanos, quienes la conocen y saben el enorme cariño que se merece.
-Este crowdfunding es una invitación a participar en su sorpresa de cumpleaños.
-Cada aportación, por pequeña que sea, suma y significa muchísimo.
-Es una manera de decirle: *“te apoyamos, te valoramos y queremos que
-tengas herramientas que te faciliten la vida y te acompañen en tu camino”*.
-Gracias de corazón por uniros a este regalo tan especial para una mujer extraordinaria que lo da todo, cada día, por su familia y por sus alumnos.
-¡Vamos a hacerle el cumpleaños más bonito del mundo! 🎉❤️`;
+const content =  normalizeProjectPageContent(projectConfig?.page_content);
 
-const callToAction = {
-  icon: '🎁',
-  title: '¿Nos ayudas?',
-  text: 'Tu apoyo significa muchísimo para esta sorpresa.',
-  stats: [
-    { number: '128GB', label: 'Almacenamiento' },
-    { number: '8GB', label: 'RAM' },
-    { number: '✔️', label: 'Ideal para su trabajo' },
-  ],
-};
+const pageTitle = content.pageTitle;
+const pageSubtitle = content.pageSubtitle;
+const productUrl = content.productUrl;
+const mainMessage = content.mainMessage;
+const progressTitle = content.progressTitle;
+const contributorsTitle = content.contributorsTitle;
+const photoSectionTitle = content.photoSectionTitle;
+const callToAction = content.cta;
+
+
+// const callToAction = {
+//   icon: '🎁',
+//   title: '¿Nos ayudas?',
+//   text: 'Tu apoyo significa muchísimo para esta sorpresa.',
+//   stats: [
+//     { number: '128GB', label: 'Almacenamiento' },
+//     { number: '8GB', label: 'RAM' },
+//     { number: '✔️', label: 'Ideal para su trabajo' },
+//   ],
+// };
 
 const tabletPhotos = [
   { emoji: '🍎', caption: 'Su pasión por enseñar' },
@@ -88,14 +91,14 @@ const tabletPhotos = [
 ];
 
 const photoSection = {
-  title: '📸 Momentos Bonitos del Día a Día de Ana',
+  title: photoSectionTitle,
   photos: tabletPhotos,
 };
 ---
 
 <BaseLayout
-  title='🎁 Cumpleaños de Ana'
-  subtitle='ayudemos con su nueva tablet'
+  title={pageTitle}
+  subtitle={pageSubtitle}
 >
   <div class='container'>
     {
@@ -117,7 +120,7 @@ const photoSection = {
       title={productData.title}
       description={productData.description}
       price={productData.price}
-      href='https://www.mediamarkt.es/es/product/_tablet-lenovo-idea-tab-wifi-11-25k-8gb-ram-128gb-gris-incluye-lapiz-1603847.html'
+      href={productUrl}
       imageUrl={productData.imageUrl}
       imageAlt={productData.imageAlt}
       completed={completed}
@@ -126,7 +129,7 @@ const photoSection = {
     <ProgressSection
       currentAmount={contibutionsList.reduce((sum, c) => sum + c.amount, 0)}
       targetAmount={projectConfig?.target_amount ?? 0}
-      title='🎯 Un Pequeño Empujón Para Una Gran Mujer'
+      title={progressTitle}
     />
 
     {
@@ -144,17 +147,17 @@ const photoSection = {
         <ContributionLevels levels={contributionLevels} />
           <ContributorsListReact
           contributors={contibutionsList}
-          contributorsTitle='✨ Impulsores de Este Regalo Especial'
+          contributorsTitle={contributorsTitle}
           />
     }
 
-    <!-- <MessageSection
+    <MessageSection
       familyMembers={familyMembers}
       mainMessage={mainMessage}
       memberTitle='🌸 La Tribu Que Le Da Alas'
       callToAction={callToAction}
       project_id={projectConfig?.id || ''}
-    /> -->
+    />
   </div>
   <Footer slot='footer' />
 </BaseLayout>

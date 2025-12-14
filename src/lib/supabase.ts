@@ -36,6 +36,65 @@ export interface ProjectConfig {
   redirect_url: string;
   created_at: string;
   updated_at: string;
+  slug: string;
+  page_content?: ProjectPageContent;
+  bizum_phone?: string;
+  bizum_concept?: string;
+  emoji_options?: EmojiOption[];
+}
+
+export type mainMessageType = {
+  message: string;
+  signature?: string;
+  familyName?: string;
+  date?: string;
+};
+
+export type ProjectPageContent = {
+  pageTitle?: string;
+  pageSubtitle?: string;
+  productUrl?: string;
+  mainMessage?: mainMessageType;
+  progressTitle?: string;
+  contributorsTitle?: string;
+  photoSectionTitle?: string;
+  cta?: CtaProps;
+  bizum_phone?: string;
+  bizum_concept?: string;
+};
+
+export interface CtaProps {
+  icon: string;
+  title: string;
+  text: string;
+  stats: { number: string; label: string }[];
+}
+
+export interface EmojiOption {
+  value: string;
+  label: string;
+}
+
+export type PaymentMethodId = 'cash' | 'bizum' | 'bank_transfer';
+
+export interface EmojiOption {
+  value: string;
+  label: string;
+}
+
+export interface PaymentInstructionsTemplate {
+  title: string;
+  concept?: string;
+  steps: string[];
+  tip?: string;
+}
+
+export interface PaymentMethodConfig {
+  id: string;
+  payment_method: PaymentMethodId;
+  is_active: boolean;
+  bizum_phone?: string | null;
+  instructions?: PaymentInstructionsTemplate | null;
 }
 
 export interface ContributionLevel {
@@ -170,6 +229,28 @@ export async function getProjectConfig(
     return data;
   } catch (error) {
     console.error('Error in getProjectConfig:', error);
+    return null;
+  }
+}
+
+export async function getProjectBySlug(
+  slug: string
+): Promise<ProjectConfig | null> {
+  try {
+    const { data, error } = await supabase
+      .from('project_config')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      console.error('Error fetching project by slug:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error in getProjectBySlug:', err);
     return null;
   }
 }
@@ -322,6 +403,22 @@ export async function getContributionLevel(
   } catch (error) {
     console.error('Error in getContributionLevel:', error);
     return null;
+  }
+}
+
+export async function getPaymentMethods(): Promise<PaymentMethodConfig[]> {
+  try {
+    const { data, error } = await supabase
+      .from('payment_instructions')
+      .select('*');
+    if (error) {
+      console.error('Error fetching payment methods:', error);
+      return [];
+    }
+    return data || [];
+  } catch (error) {
+    console.error('Error in getPaymentMethods:', error);
+    return [];
   }
 }
 
@@ -920,4 +1017,33 @@ export async function getImagesFromFolder(
   } catch {
     return [];
   }
+}
+
+export function normalizeProjectPageContent(
+  raw: any
+): Required<ProjectPageContent> {
+  const c = (raw ?? {}) as ProjectPageContent;
+
+  return {
+    pageTitle: c.pageTitle ?? '',
+    pageSubtitle: c.pageSubtitle ?? '',
+    productUrl: c.productUrl ?? '#',
+    mainMessage: c.mainMessage ?? {
+      message: '',
+      signature: '',
+      familyName: '',
+      date: '',
+    },
+    progressTitle: c.progressTitle ?? '🎯 Progreso',
+    contributorsTitle: c.contributorsTitle ?? '✨ Contribuidores',
+    photoSectionTitle: c.photoSectionTitle ?? '📸 Fotos',
+    cta: {
+      icon: c.cta?.icon ?? '🎁',
+      title: c.cta?.title ?? '¿Nos ayudas?',
+      text: c.cta?.text ?? '',
+      stats: c.cta?.stats ?? [],
+    },
+    bizum_phone: c.bizum_phone ?? '',
+    bizum_concept: c.bizum_concept ?? '',
+  };
 }

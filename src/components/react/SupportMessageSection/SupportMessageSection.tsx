@@ -10,6 +10,7 @@ interface Props {
   allowComments?: boolean;
   supportMessages?: SupportMessage[];
   onAddComment?: (comment: SupportMessage) => void;
+  project_id: string;
 }
 
 // 🔔 Listener de nuevos mensajes
@@ -57,27 +58,16 @@ const SupportMessageSection: React.FC<Props> = ({
   allowComments = true,
   supportMessages = [],
   onAddComment,
+  project_id = '',
 }) => {
   const [comments, setComments] = useState<SupportMessage[]>(supportMessages);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
-  const [projectId, setProjectId] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>(project_id);
 
   const processedMessageIds = useRef<Set<string>>(new Set());
   const commentsContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const id = url.searchParams.get('id') ?? '';
-
-    if (!id) {
-      console.warn('⚠️ No hay projectId en la URL');
-      return;
-    }
-
-    setProjectId(id);
-  }, []);
 
   useEffect(() => {
     if (!projectId) return;
