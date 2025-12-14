@@ -10,33 +10,43 @@ const {
 } = Astro.props;
 ---
 
-<div class='header'>
-  <div class='left'>
-    <a
-      class='home-link'
-      href='/'
-      title='Ir a la página principal'
-    >
-      <span class='logo'>
-        <span class='logo-inner'>GC</span>
-      </span>
-    </a>
-  </div>
+<dic class='header-bg'>
+  <div class='header'>
+    <div class='left'>
+      <a
+        class='home-link'
+        href='/'
+        title='Ir a la página principal'
+      >
+        <span class='logo'>
+          <span class='logo-inner'>GC</span>
+        </span>
+      </a>
+    </div>
 
-  <div class='center'>
-    <h1 class='title'>{title}</h1>
-    <p class='subtitle'>{subtitle}</p>
+    <div class='center'>
+      <h1 class='title'>{title}</h1>
+      <p class='subtitle'>{subtitle}</p>
+    </div>
   </div>
-</div>
+</dic>
 
 <style>
+  .header-bg {
+    background: #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
   .header {
     display: flex;
     align-items: center;
     padding: 35px 20px;
     margin-bottom: 40px;
-    background: #1f2937;
     gap: 20px;
+    width: 100%;
+    max-width: 1200px;
   }
 
   .left {
