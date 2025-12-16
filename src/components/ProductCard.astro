@@ -9,13 +9,17 @@ export interface Props {
   imageAlt: string;
   href?: string;
   completed?: boolean;
+  icon?: string;
 }
 
-const { title, description, price, imageUrl, imageAlt, href, completed } =
+const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
   Astro.props;
 ---
 
-<div class='main-card'>
+<div
+  class='main-card'
+  style={icon ? `--card-icon: "${icon}"` : undefined}
+>
   {completed && <CompletedBage size='lg' />}
 
   <a
@@ -52,7 +56,7 @@ const { title, description, price, imageUrl, imageAlt, href, completed } =
   }
 
   .main-card::before {
-    content: '🐉';
+    content: var(--card-icon);
     position: absolute;
     top: -20px;
     right: -20px;

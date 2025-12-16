@@ -71,18 +71,6 @@ const contributorsTitle = content.contributorsTitle;
 const photoSectionTitle = content.photoSectionTitle;
 const callToAction = content.cta;
 
-
-// const callToAction = {
-//   icon: '🎁',
-//   title: '¿Nos ayudas?',
-//   text: 'Tu apoyo significa muchísimo para esta sorpresa.',
-//   stats: [
-//     { number: '128GB', label: 'Almacenamiento' },
-//     { number: '8GB', label: 'RAM' },
-//     { number: '✔️', label: 'Ideal para su trabajo' },
-//   ],
-// };
-
 const tabletPhotos = [
   { emoji: '🍎', caption: 'Su pasión por enseñar' },
   { emoji: '📚', caption: 'Preparando clases con cariño' },
@@ -124,6 +112,7 @@ const photoSection = {
       imageUrl={productData.imageUrl}
       imageAlt={productData.imageAlt}
       completed={completed}
+      icon={callToAction?.icon}
     />
 
     <ProgressSection
