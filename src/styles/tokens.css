@@ -1,0 +1,143 @@
+/* ============================================================
+   GALLARDO CROWDFUNDING — Design Tokens
+   Importar este archivo donde se necesiten las variables.
+   El BaseLayout ya carga global.css; este archivo es adicional.
+   ============================================================ */
+
+:root {
+
+  /* ── Colores de marca ─────────────────────────────────────── */
+  --color-brand-primary:      #d32f2f;   /* Rojo — títulos de producto */
+  --color-brand-orange:       #ff6b35;   /* Naranja — CTA principal */
+  --color-brand-orange-alt:   #f7931e;   /* Naranja claro — gradientes */
+  --color-brand-yellow:       #ffcc02;   /* Amarillo — fondos de progreso */
+  --color-brand-green:        #4caf50;   /* Verde — barra de progreso */
+  --color-brand-green-dark:   #2e7d32;   /* Verde oscuro — importes */
+  --color-brand-green-light:  #8bc34a;   /* Verde claro — gradientes */
+  --color-brand-purple:       #667eea;   /* Púrpura — focus, modal */
+  --color-brand-purple-dark:  #764ba2;   /* Púrpura oscuro — gradientes */
+
+  /* ── Colores de UI ────────────────────────────────────────── */
+  --color-header-bg:          #1f2937;   /* Header/nav */
+  --color-header-text:        #f3f4f6;
+  --color-header-subtitle:    #d1d5db;
+
+  --color-body-bg-from:       #bcbec0;   /* Gradiente fondo */
+  --color-body-bg-mid:        #e6e7e8;
+  --color-body-bg-to:         #a7a8aa;
+
+  --color-surface:            #ffffff;   /* Tarjetas, modales */
+  --color-surface-muted:      #f8f9fa;   /* Fondo ligeramente gris */
+
+  /* ── Colores de secciones ─────────────────────────────────── */
+  --color-section-progress-from: #fff3e0;
+  --color-section-progress-to:   #ffcc02;
+  --color-section-levels-from:   #e8f5e8;
+  --color-section-levels-to:     #c8e6c8;
+  --color-section-orange-accent: #e65100;
+
+  /* ── Texto ────────────────────────────────────────────────── */
+  --color-text-primary:   #333333;
+  --color-text-secondary: #555555;
+  --color-text-muted:     #666666;
+  --color-text-light:     #999999;
+
+  /* ── Estados ─────────────────────────────────────────────── */
+  --color-status-active:    #4caf50;
+  --color-status-completed: #2196f3;
+  --color-status-paused:    #ff9800;
+  --color-status-cancelled: #f44336;
+
+  /* ── Semánticos ───────────────────────────────────────────── */
+  --color-error:   #d32f2f;
+  --color-success: #2e7d32;
+  --color-warning: #ff9800;
+  --color-info:    #667eea;
+
+  /* ── Admin (backoffice) ───────────────────────────────────── */
+  --color-admin-primary:     #6366f1;
+  --color-admin-primary-dk:  #4f46e5;
+  --color-admin-sidebar:     #1e1b4b;
+  --color-admin-bg:          #f1f5f9;
+  --color-admin-border:      #e2e8f0;
+  --color-admin-text:        #0f172a;
+  --color-admin-text-muted:  #64748b;
+
+  /* ── Tipografía ───────────────────────────────────────────── */
+  --font-body:    'Poppins', sans-serif;
+  --font-display: 'Fredoka One', cursive;   /* Títulos de sección */
+  --font-admin:   'Inter', sans-serif;       /* Backoffice */
+  --font-mono:    monospace;
+
+  --text-xs:   0.75rem;    /*  12px */
+  --text-sm:   0.875rem;   /*  14px */
+  --text-base: 1rem;       /*  16px */
+  --text-md:   1.1rem;     /* ~18px */
+  --text-lg:   1.2rem;     /*  19px */
+  --text-xl:   1.4rem;     /* ~22px */
+  --text-2xl:  1.8rem;     /*  29px */
+  --text-3xl:  2rem;       /*  32px */
+  --text-4xl:  2.5rem;     /*  40px */
+
+  --font-weight-normal:    400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
+
+  --leading-tight:  1.2;
+  --leading-normal: 1.4;
+  --leading-relaxed: 1.6;
+
+  /* ── Espaciado ────────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  28px;
+  --space-8:  30px;   /* Gap estándar entre secciones */
+  --space-10: 40px;   /* Padding interno de tarjetas grandes */
+  --space-12: 48px;
+
+  /* ── Bordes y radios ──────────────────────────────────────── */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  15px;
+  --radius-xl:  20px;
+  --radius-2xl: 25px;
+  --radius-full: 9999px;
+
+  --border-width: 2px;
+  --border-width-thick: 3px;
+
+  /* ── Sombras ──────────────────────────────────────────────── */
+  --shadow-sm:   0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md:   0 5px 15px rgba(0, 0, 0, 0.10);
+  --shadow-lg:   0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-xl:   0 20px 40px rgba(0, 0, 0, 0.10);
+  --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.10);
+
+  --shadow-orange: 0 8px 25px rgba(255, 107, 53, 0.30);
+  --shadow-green:  0 4px 15px rgba(76, 175, 80, 0.30);
+  --shadow-yellow: 0 10px 30px rgba(255, 204, 2,  0.20);
+
+  /* ── Transiciones ─────────────────────────────────────────── */
+  --transition-fast:   all 0.15s ease;
+  --transition-normal: all 0.3s ease;
+  --transition-slow:   all 0.5s ease;
+  --transition-spring: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  --container-max: 1200px;
+  --container-admin: 900px;
+  --container-narrow: 420px;
+
+  /* ── Z-index ──────────────────────────────────────────────── */
+  --z-base:    1;
+  --z-dropdown: 100;
+  --z-sticky:  200;
+  --z-modal:   1000;
+  --z-toast:   10001;
+}
