@@ -1,0 +1,400 @@
+---
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createAdminClient } from '@/lib/supabase-server';
+
+let error = '';
+let success = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  const slug = (form.get('slug') as string).trim().toLowerCase().replace(/\s+/g, '-');
+
+  const page_content = {
+    pageTitle: form.get('pageTitle') as string,
+    pageSubtitle: form.get('pageSubtitle') as string,
+    productUrl: form.get('productUrl') as string,
+    mainMessage: {
+      message: form.get('mainMessage_message') as string,
+      signature: form.get('mainMessage_signature') as string,
+      familyName: form.get('mainMessage_familyName') as string,
+      date: form.get('mainMessage_date') as string,
+    },
+    progressTitle: (form.get('progressTitle') as string) || '🎯 Progreso',
+    contributorsTitle: (form.get('contributorsTitle') as string) || '✨ Contribuidores',
+    photoSectionTitle: (form.get('photoSectionTitle') as string) || '📸 Fotos',
+    cta: {
+      icon: (form.get('cta_icon') as string) || '🎁',
+      title: (form.get('cta_title') as string) || '',
+      text: (form.get('cta_text') as string) || '',
+      stats: [],
+    },
+    bizum_phone: form.get('bizum_phone') as string,
+    bizum_concept: form.get('bizum_concept') as string,
+  };
+
+  const supabase = createAdminClient();
+
+  const { data, error: dbError } = await supabase
+    .from('project_config')
+    .insert([{
+      project_name: form.get('project_name') as string,
+      slug,
+      project_description: form.get('project_description') as string,
+      project_status: form.get('project_status') as string,
+      target_amount: parseFloat(form.get('target_amount') as string) || 0,
+      current_amount: 0,
+      currency: (form.get('currency') as string) || 'EUR',
+      project_image_url: form.get('project_image_url') as string || null,
+      start_date: form.get('start_date') as string || new Date().toISOString(),
+      end_date: form.get('end_date') as string || null,
+      redirect_url: (form.get('redirect_url') as string) || '/',
+      bizum_phone: form.get('bizum_phone') as string || null,
+      bizum_concept: form.get('bizum_concept') as string || null,
+      page_content,
+      emoji_options: [],
+    }])
+    .select('id')
+    .single();
+
+  if (dbError) {
+    error = dbError.message;
+  } else {
+    return Astro.redirect(`/admin/projects/${data.id}/edit?created=1`);
+  }
+}
+---
+
+<AdminLayout title='Nuevo proyecto'>
+  {error && <div class='alert-error'>⚠️ {error}</div>}
+
+  <form method='POST' class='project-form'>
+    <section class='form-section'>
+      <h2 class='section-title'>Información básica</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Nombre del proyecto *</label>
+          <input type='text' name='project_name' required placeholder='Tablet para Ana' />
+        </div>
+
+        <div class='field'>
+          <label>Slug (URL) *</label>
+          <div class='input-prefix'>
+            <span class='prefix'>/projects/</span>
+            <input type='text' name='slug' required placeholder='tablet-ana'
+              pattern='[a-z0-9\-]+'
+              title='Solo letras minúsculas, números y guiones' />
+          </div>
+          <small>Solo minúsculas, números y guiones.</small>
+        </div>
+
+        <div class='field'>
+          <label>Estado</label>
+          <select name='project_status'>
+            <option value='active'>Activo</option>
+            <option value='paused'>Pausado</option>
+            <option value='completed'>Completado</option>
+            <option value='cancelled'>Cancelado</option>
+          </select>
+        </div>
+
+        <div class='field full'>
+          <label>Descripción</label>
+          <textarea name='project_description' rows='3' placeholder='Describe el proyecto...'></textarea>
+        </div>
+
+        <div class='field'>
+          <label>Meta (importe) *</label>
+          <input type='number' name='target_amount' required min='1' step='0.01' placeholder='200.00' />
+        </div>
+
+        <div class='field'>
+          <label>Moneda</label>
+          <input type='text' name='currency' value='EUR' maxlength='5' />
+        </div>
+
+        <div class='field full'>
+          <label>URL de la imagen del producto</label>
+          <input type='url' name='project_image_url' placeholder='https://...' />
+        </div>
+
+        <div class='field'>
+          <label>Fecha de inicio</label>
+          <input type='date' name='start_date' value={new Date().toISOString().split('T')[0]} />
+        </div>
+
+        <div class='field'>
+          <label>Fecha de cierre (opcional)</label>
+          <input type='date' name='end_date' />
+        </div>
+
+        <div class='field full'>
+          <label>URL de redirección al finalizar</label>
+          <input type='text' name='redirect_url' placeholder='/' value='/' />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Pago — Bizum</h2>
+      <div class='form-grid'>
+        <div class='field'>
+          <label>Número de Bizum</label>
+          <input type='text' name='bizum_phone' placeholder='612345678' />
+        </div>
+        <div class='field'>
+          <label>Concepto Bizum</label>
+          <input type='text' name='bizum_concept' placeholder='Regalo Ana cumpleaños' />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Contenido de la página</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Título de la página</label>
+          <input type='text' name='pageTitle' placeholder='🎁 Regalo para Ana' />
+        </div>
+        <div class='field full'>
+          <label>Subtítulo</label>
+          <input type='text' name='pageSubtitle' placeholder='¡Ayúdanos a conseguirlo!' />
+        </div>
+        <div class='field full'>
+          <label>URL del producto</label>
+          <input type='url' name='productUrl' placeholder='https://amazon.es/...' />
+        </div>
+
+        <div class='field'>
+          <label>Título sección progreso</label>
+          <input type='text' name='progressTitle' value='🎯 Progreso' />
+        </div>
+        <div class='field'>
+          <label>Título sección contribuidores</label>
+          <input type='text' name='contributorsTitle' value='✨ Contribuidores' />
+        </div>
+        <div class='field full'>
+          <label>Título sección fotos</label>
+          <input type='text' name='photoSectionTitle' value='📸 Fotos' />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Mensaje principal de la familia</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Mensaje</label>
+          <textarea name='mainMessage_message' rows='5'
+            placeholder='Escribe el mensaje que verán los visitantes...'></textarea>
+        </div>
+        <div class='field'>
+          <label>Firma</label>
+          <input type='text' name='mainMessage_signature' placeholder='La familia Gallardo' />
+        </div>
+        <div class='field'>
+          <label>Nombre de familia</label>
+          <input type='text' name='mainMessage_familyName' placeholder='Los Gallardo' />
+        </div>
+        <div class='field'>
+          <label>Fecha del mensaje</label>
+          <input type='text' name='mainMessage_date' placeholder='Julio 2025' />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Call to Action (CTA)</h2>
+      <div class='form-grid'>
+        <div class='field'>
+          <label>Icono (emoji)</label>
+          <input type='text' name='cta_icon' value='🎁' maxlength='4' />
+        </div>
+        <div class='field'>
+          <label>Título del CTA</label>
+          <input type='text' name='cta_title' placeholder='¿Nos ayudas?' />
+        </div>
+        <div class='field full'>
+          <label>Texto del CTA</label>
+          <textarea name='cta_text' rows='3' placeholder='Cualquier aportación suma...'></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class='form-actions'>
+      <a href='/admin' class='btn-ghost'>Cancelar</a>
+      <button type='submit' class='btn-primary'>Crear proyecto →</button>
+    </div>
+  </form>
+</AdminLayout>
+
+<style>
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: var(--color-error);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+  }
+
+  .project-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+  }
+
+  .form-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-admin-border);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .field.full {
+    grid-column: 1 / -1;
+  }
+
+  label {
+    font-size: 0.845rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+  }
+
+  small {
+    font-size: var(--text-xs);
+    color: var(--color-text-light);
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 9px 13px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--color-admin-text);
+    background: var(--color-surface);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  .input-prefix {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .input-prefix:focus-within {
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+
+  .prefix {
+    padding: 9px 10px;
+    background: var(--color-surface-muted);
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    border-right: 1.5px solid var(--color-admin-border);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .input-prefix input {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .input-prefix input:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-bottom: 40px;
+  }
+
+  .btn-primary {
+    background: var(--color-admin-primary);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-semibold);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-admin-primary-dk);
+  }
+
+  .btn-ghost {
+    color: var(--color-admin-text-muted);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid var(--color-admin-border);
+    transition: var(--transition-fast);
+  }
+
+  .btn-ghost:hover {
+    background: var(--color-admin-bg);
+  }
+
+  @media (max-width: 600px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

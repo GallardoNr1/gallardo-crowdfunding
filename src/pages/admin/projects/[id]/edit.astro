@@ -1,0 +1,700 @@
+---
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createAdminClient } from '@/lib/supabase-server';
+
+const { id } = Astro.params;
+const supabase = createAdminClient();
+
+let error = '';
+let successMsg = '';
+
+// ── Manejar acciones POST ────────────────────────────────────────────────────
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = form.get('_action') as string;
+
+  // Actualizar datos del proyecto
+  if (action === 'update_project') {
+    const slug = (form.get('slug') as string).trim().toLowerCase().replace(/\s+/g, '-');
+
+    const page_content = {
+      pageTitle: form.get('pageTitle') as string,
+      pageSubtitle: form.get('pageSubtitle') as string,
+      productUrl: form.get('productUrl') as string,
+      mainMessage: {
+        message: form.get('mainMessage_message') as string,
+        signature: form.get('mainMessage_signature') as string,
+        familyName: form.get('mainMessage_familyName') as string,
+        date: form.get('mainMessage_date') as string,
+      },
+      progressTitle: (form.get('progressTitle') as string) || '🎯 Progreso',
+      contributorsTitle: (form.get('contributorsTitle') as string) || '✨ Contribuidores',
+      photoSectionTitle: (form.get('photoSectionTitle') as string) || '📸 Fotos',
+      cta: {
+        icon: (form.get('cta_icon') as string) || '🎁',
+        title: (form.get('cta_title') as string) || '',
+        text: (form.get('cta_text') as string) || '',
+        stats: [],
+      },
+      bizum_phone: form.get('bizum_phone') as string,
+      bizum_concept: form.get('bizum_concept') as string,
+    };
+
+    const { error: dbErr } = await supabase
+      .from('project_config')
+      .update({
+        project_name: form.get('project_name') as string,
+        slug,
+        project_description: form.get('project_description') as string,
+        project_status: form.get('project_status') as string,
+        target_amount: parseFloat(form.get('target_amount') as string) || 0,
+        currency: (form.get('currency') as string) || 'EUR',
+        project_image_url: form.get('project_image_url') as string || null,
+        start_date: form.get('start_date') as string || null,
+        end_date: form.get('end_date') as string || null,
+        redirect_url: (form.get('redirect_url') as string) || '/',
+        bizum_phone: form.get('bizum_phone') as string || null,
+        bizum_concept: form.get('bizum_concept') as string || null,
+        page_content,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (dbErr) error = dbErr.message;
+    else successMsg = '✅ Proyecto actualizado correctamente.';
+  }
+
+  // Añadir nivel de contribución
+  if (action === 'add_level') {
+    const { error: dbErr } = await supabase
+      .from('contribution_levels')
+      .insert([{
+        project_id: id,
+        name: form.get('level_name') as string,
+        amount: parseFloat(form.get('level_amount') as string) || 0,
+        emoji: (form.get('level_emoji') as string) || '⭐',
+        description: (form.get('level_description') as string) || '',
+        color: (form.get('level_color') as string) || '#6366f1',
+        rewards: [],
+        is_active: true,
+        sort_order: parseInt(form.get('level_sort_order') as string) || 0,
+      }]);
+
+    if (dbErr) error = dbErr.message;
+    else successMsg = '✅ Nivel añadido.';
+  }
+
+  // Eliminar nivel de contribución
+  if (action === 'delete_level') {
+    const levelId = form.get('level_id') as string;
+    const { error: dbErr } = await supabase
+      .from('contribution_levels')
+      .delete()
+      .eq('id', levelId)
+      .eq('project_id', id);
+
+    if (dbErr) error = dbErr.message;
+    else successMsg = '✅ Nivel eliminado.';
+  }
+}
+
+// ── Cargar datos actuales ─────────────────────────────────────────────────────
+const [{ data: project, error: projectErr }, { data: levels }] = await Promise.all([
+  supabase.from('project_config').select('*').eq('id', id).single(),
+  supabase.from('contribution_levels').select('*').eq('project_id', id).order('sort_order'),
+]);
+
+if (projectErr || !project) {
+  return Astro.redirect('/admin');
+}
+
+// Desempaquetar page_content con defaults
+const pc = (project.page_content ?? {}) as Record<string, any>;
+const mm = pc.mainMessage ?? {};
+const cta = pc.cta ?? {};
+
+const createdParam = Astro.url.searchParams.get('created');
+if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de contribución.';
+---
+
+<AdminLayout title={`Editar: ${project.project_name}`}>
+  {successMsg && <div class='alert-success'>{successMsg}</div>}
+  {error && <div class='alert-error'>⚠️ {error}</div>}
+
+  <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
+  <form method='POST' class='project-form'>
+    <input type='hidden' name='_action' value='update_project' />
+
+    <section class='form-section'>
+      <h2 class='section-title'>Información básica</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Nombre del proyecto *</label>
+          <input type='text' name='project_name' required value={project.project_name} />
+        </div>
+
+        <div class='field'>
+          <label>Slug (URL) *</label>
+          <div class='input-prefix'>
+            <span class='prefix'>/projects/</span>
+            <input type='text' name='slug' required value={project.slug}
+              pattern='[a-z0-9\-]+' title='Solo letras minúsculas, números y guiones' />
+          </div>
+          <small>Solo minúsculas, números y guiones.</small>
+        </div>
+
+        <div class='field'>
+          <label>Estado</label>
+          <select name='project_status'>
+            {['active', 'paused', 'completed', 'cancelled'].map((s) => (
+              <option value={s} selected={project.project_status === s}>
+                {s === 'active' ? 'Activo'
+                  : s === 'paused' ? 'Pausado'
+                  : s === 'completed' ? 'Completado'
+                  : 'Cancelado'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div class='field full'>
+          <label>Descripción</label>
+          <textarea name='project_description' rows='3'>{project.project_description ?? ''}</textarea>
+        </div>
+
+        <div class='field'>
+          <label>Meta (importe) *</label>
+          <input type='number' name='target_amount' required min='1' step='0.01'
+            value={project.target_amount} />
+        </div>
+
+        <div class='field'>
+          <label>Moneda</label>
+          <input type='text' name='currency' value={project.currency ?? 'EUR'} maxlength='5' />
+        </div>
+
+        <div class='field full'>
+          <label>URL de la imagen del producto</label>
+          <input type='url' name='project_image_url' value={project.project_image_url ?? ''} />
+        </div>
+
+        <div class='field'>
+          <label>Fecha de inicio</label>
+          <input type='date' name='start_date'
+            value={project.start_date ? project.start_date.split('T')[0] : ''} />
+        </div>
+
+        <div class='field'>
+          <label>Fecha de cierre (opcional)</label>
+          <input type='date' name='end_date'
+            value={project.end_date ? project.end_date.split('T')[0] : ''} />
+        </div>
+
+        <div class='field full'>
+          <label>URL de redirección al finalizar</label>
+          <input type='text' name='redirect_url' value={project.redirect_url ?? '/'} />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Pago — Bizum</h2>
+      <div class='form-grid'>
+        <div class='field'>
+          <label>Número de Bizum</label>
+          <input type='text' name='bizum_phone' value={project.bizum_phone ?? ''} />
+        </div>
+        <div class='field'>
+          <label>Concepto Bizum</label>
+          <input type='text' name='bizum_concept' value={project.bizum_concept ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Contenido de la página</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Título de la página</label>
+          <input type='text' name='pageTitle' value={pc.pageTitle ?? ''} />
+        </div>
+        <div class='field full'>
+          <label>Subtítulo</label>
+          <input type='text' name='pageSubtitle' value={pc.pageSubtitle ?? ''} />
+        </div>
+        <div class='field full'>
+          <label>URL del producto</label>
+          <input type='url' name='productUrl' value={pc.productUrl ?? ''} />
+        </div>
+
+        <div class='field'>
+          <label>Título sección progreso</label>
+          <input type='text' name='progressTitle' value={pc.progressTitle ?? '🎯 Progreso'} />
+        </div>
+        <div class='field'>
+          <label>Título sección contribuidores</label>
+          <input type='text' name='contributorsTitle' value={pc.contributorsTitle ?? '✨ Contribuidores'} />
+        </div>
+        <div class='field full'>
+          <label>Título sección fotos</label>
+          <input type='text' name='photoSectionTitle' value={pc.photoSectionTitle ?? '📸 Fotos'} />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Mensaje principal de la familia</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label>Mensaje</label>
+          <textarea name='mainMessage_message' rows='5'>{mm.message ?? ''}</textarea>
+        </div>
+        <div class='field'>
+          <label>Firma</label>
+          <input type='text' name='mainMessage_signature' value={mm.signature ?? ''} />
+        </div>
+        <div class='field'>
+          <label>Nombre de familia</label>
+          <input type='text' name='mainMessage_familyName' value={mm.familyName ?? ''} />
+        </div>
+        <div class='field'>
+          <label>Fecha del mensaje</label>
+          <input type='text' name='mainMessage_date' value={mm.date ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Call to Action (CTA)</h2>
+      <div class='form-grid'>
+        <div class='field'>
+          <label>Icono (emoji)</label>
+          <input type='text' name='cta_icon' value={cta.icon ?? '🎁'} maxlength='4' />
+        </div>
+        <div class='field'>
+          <label>Título del CTA</label>
+          <input type='text' name='cta_title' value={cta.title ?? ''} />
+        </div>
+        <div class='field full'>
+          <label>Texto del CTA</label>
+          <textarea name='cta_text' rows='3'>{cta.text ?? ''}</textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class='form-actions'>
+      <a href='/admin' class='btn-ghost'>← Volver</a>
+      <button type='submit' class='btn-primary'>Guardar cambios</button>
+    </div>
+  </form>
+
+  <!-- ── Niveles de contribución ─────────────────────────────────────────── -->
+  <section class='form-section levels-section'>
+    <h2 class='section-title'>Niveles de contribución</h2>
+
+    {levels && levels.length > 0 ? (
+      <div class='levels-list'>
+        {levels.map((level) => (
+          <div class='level-row'>
+            <span class='level-emoji'>{level.emoji}</span>
+            <div class='level-info'>
+              <strong>{level.name}</strong>
+              <span class='level-amount'>{level.amount} {project.currency}</span>
+              {level.description && <span class='level-desc'>{level.description}</span>}
+            </div>
+            <div class='level-meta'>
+              <span class='color-dot' style={`background: ${level.color}`} />
+              <span class='sort-badge'>#{level.sort_order}</span>
+            </div>
+            <form method='POST' class='delete-form'>
+              <input type='hidden' name='_action' value='delete_level' />
+              <input type='hidden' name='level_id' value={level.id} />
+              <button type='submit' class='btn-delete'
+                onclick="return confirm('¿Eliminar este nivel?')">
+                🗑
+              </button>
+            </form>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class='no-levels'>No hay niveles todavía. Añade el primero.</p>
+    )}
+
+    <details class='add-level-details'>
+      <summary class='add-level-summary'>➕ Añadir nivel</summary>
+      <form method='POST' class='add-level-form'>
+        <input type='hidden' name='_action' value='add_level' />
+        <div class='form-grid'>
+          <div class='field'>
+            <label>Nombre *</label>
+            <input type='text' name='level_name' required placeholder='Paladín' />
+          </div>
+          <div class='field'>
+            <label>Importe (€) *</label>
+            <input type='number' name='level_amount' required min='1' step='0.01' placeholder='25' />
+          </div>
+          <div class='field'>
+            <label>Emoji</label>
+            <input type='text' name='level_emoji' value='⭐' maxlength='4' />
+          </div>
+          <div class='field'>
+            <label>Color</label>
+            <input type='color' name='level_color' value='#6366f1' />
+          </div>
+          <div class='field'>
+            <label>Orden</label>
+            <input type='number' name='level_sort_order' value={levels ? levels.length : 0} min='0' />
+          </div>
+          <div class='field full'>
+            <label>Descripción (opcional)</label>
+            <input type='text' name='level_description' placeholder='Para los más generosos...' />
+          </div>
+        </div>
+        <button type='submit' class='btn-primary' style='margin-top: 12px;'>
+          Añadir nivel
+        </button>
+      </form>
+    </details>
+  </section>
+
+  <!-- ── Enlace a la página pública ─────────────────────────────────────── -->
+  <div class='public-link'>
+    <span>Ver página pública:</span>
+    <a href={`/projects/${project.slug}`} target='_blank' class='public-url'>
+      /projects/{project.slug} ↗
+    </a>
+  </div>
+</AdminLayout>
+
+<style>
+  .alert-success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: var(--color-success);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: var(--color-error);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+  }
+
+  .project-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  .form-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-admin-border);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .field.full {
+    grid-column: 1 / -1;
+  }
+
+  label {
+    font-size: 0.845rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+  }
+
+  small {
+    font-size: var(--text-xs);
+    color: var(--color-text-light);
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 9px 13px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--color-admin-text);
+    background: var(--color-surface);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+
+  input[type='color'] {
+    padding: 4px 6px;
+    height: 40px;
+    cursor: pointer;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  .input-prefix {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .input-prefix:focus-within {
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+
+  .prefix {
+    padding: 9px 10px;
+    background: var(--color-surface-muted);
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    border-right: 1.5px solid var(--color-admin-border);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .input-prefix input {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .input-prefix input:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .btn-primary {
+    background: var(--color-admin-primary);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-semibold);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-admin-primary-dk);
+  }
+
+  .btn-ghost {
+    color: var(--color-admin-text-muted);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid var(--color-admin-border);
+    transition: var(--transition-fast);
+  }
+
+  .btn-ghost:hover {
+    background: var(--color-admin-bg);
+  }
+
+  /* ── Niveles ── */
+  .levels-section {
+    margin-bottom: 24px;
+  }
+
+  .levels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .level-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--color-surface-muted);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .level-emoji {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .level-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .level-info strong {
+    font-size: 0.95rem;
+    color: var(--color-admin-text);
+  }
+
+  .level-amount {
+    font-size: 0.85rem;
+    color: var(--color-admin-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .level-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .level-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.1);
+  }
+
+  .sort-badge {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+  }
+
+  .delete-form {
+    flex-shrink: 0;
+  }
+
+  .btn-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 6px;
+    border-radius: 6px;
+    transition: var(--transition-fast);
+    line-height: 1;
+  }
+
+  .btn-delete:hover {
+    background: #fee2e2;
+  }
+
+  .no-levels {
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .add-level-details {
+    border-top: 1px solid var(--color-admin-bg);
+    padding-top: 16px;
+  }
+
+  .add-level-summary {
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-admin-primary);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    margin-bottom: 4px;
+  }
+
+  .add-level-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .add-level-form {
+    padding-top: 16px;
+  }
+
+  /* ── Enlace público ── */
+  .public-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--color-admin-text-muted);
+    margin-bottom: 40px;
+  }
+
+  .public-url {
+    color: var(--color-admin-primary);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+  }
+
+  .public-url:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 600px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

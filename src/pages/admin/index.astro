@@ -1,0 +1,261 @@
+---
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createAdminClient } from '@/lib/supabase-server';
+
+const supabase = createAdminClient();
+
+const { data: projects, error } = await supabase
+  .from('project_config')
+  .select('id, project_name, slug, project_status, current_amount, target_amount, currency, created_at')
+  .order('created_at', { ascending: false });
+
+const statusLabel: Record<string, string> = {
+  active: 'Activo',
+  completed: 'Completado',
+  paused: 'Pausado',
+  cancelled: 'Cancelado',
+};
+
+const statusColor: Record<string, string> = {
+  active: '#16a34a',
+  completed: '#2563eb',
+  paused: '#d97706',
+  cancelled: '#dc2626',
+};
+---
+
+<AdminLayout title='Proyectos'>
+  <div class='toolbar'>
+    <a href='/admin/projects/new' class='btn-primary'>➕ Nuevo proyecto</a>
+  </div>
+
+  {
+    error && (
+      <div class='alert-error'>
+        Error cargando proyectos: {error.message}
+      </div>
+    )
+  }
+
+  {
+    !error && projects?.length === 0 && (
+      <div class='empty-state'>
+        <p>No hay proyectos todavía.</p>
+        <a href='/admin/projects/new' class='btn-primary'>
+          Crear el primero
+        </a>
+      </div>
+    )
+  }
+
+  {
+    !error && projects && projects.length > 0 && (
+      <div class='projects-grid'>
+        {projects.map((p) => {
+          const pct = p.target_amount
+            ? Math.min(100, Math.round((p.current_amount / p.target_amount) * 100))
+            : 0;
+          return (
+            <div class='project-card'>
+              <div class='card-header'>
+                <div>
+                  <h2 class='project-name'>{p.project_name}</h2>
+                  <code class='project-slug'>/{p.slug}</code>
+                </div>
+                <span
+                  class='status-badge'
+                  style={`color: ${statusColor[p.project_status] ?? '#666'}; background: ${statusColor[p.project_status] ?? '#666'}18`}
+                >
+                  {statusLabel[p.project_status] ?? p.project_status}
+                </span>
+              </div>
+
+              <div class='progress-area'>
+                <div class='progress-bar'>
+                  <div class='progress-fill' style={`width: ${pct}%`} />
+                </div>
+                <div class='progress-text'>
+                  <span>
+                    {p.current_amount ?? 0} {p.currency}
+                  </span>
+                  <span>
+                    {pct}% de {p.target_amount} {p.currency}
+                  </span>
+                </div>
+              </div>
+
+              <div class='card-actions'>
+                <a
+                  href={`/projects/${p.slug}`}
+                  target='_blank'
+                  class='btn-ghost'
+                >
+                  👁 Ver
+                </a>
+                <a
+                  href={`/admin/projects/${p.id}/edit`}
+                  class='btn-secondary'
+                >
+                  ✏️ Editar
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )
+  }
+</AdminLayout>
+
+<style>
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+  }
+
+  .projects-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .project-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-admin-border);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+
+  .project-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-admin-text);
+    margin-bottom: 4px;
+  }
+
+  .project-slug {
+    font-size: 0.8rem;
+    color: var(--color-admin-text-muted);
+    background: var(--color-admin-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .status-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .progress-area {
+    margin-bottom: 16px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--color-admin-border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-admin-primary), var(--color-brand-purple));
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+
+  .progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--color-admin-text-muted);
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .btn-primary {
+    background: var(--color-admin-primary);
+    color: #fff;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition-fast);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-admin-primary-dk);
+  }
+
+  .btn-secondary {
+    background: var(--color-admin-bg);
+    color: var(--color-text-secondary);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition-fast);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-admin-border);
+  }
+
+  .btn-ghost {
+    color: var(--color-admin-text-muted);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: var(--transition-fast);
+  }
+
+  .btn-ghost:hover {
+    background: var(--color-admin-bg);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-admin-text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: var(--color-error);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+  }
+</style>

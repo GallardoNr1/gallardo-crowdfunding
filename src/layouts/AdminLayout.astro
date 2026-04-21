@@ -1,0 +1,221 @@
+---
+import '../styles/tokens.css';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const pathname = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang='es'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>{title} — Backoffice</title>
+    <link
+      href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+      rel='stylesheet'
+    />
+  </head>
+  <body>
+    <div class='admin-shell'>
+      <aside class='sidebar'>
+        <div class='sidebar-brand'>
+          <span class='brand-icon'>⚙️</span>
+          <span class='brand-text'>Backoffice</span>
+        </div>
+
+        <nav class='sidebar-nav'>
+          <a
+            href='/admin'
+            class={`nav-item ${pathname === '/admin' ? 'active' : ''}`}
+          >
+            <span>📋</span> Proyectos
+          </a>
+          <a
+            href='/admin/projects/new'
+            class={`nav-item ${pathname === '/admin/projects/new' ? 'active' : ''}`}
+          >
+            <span>➕</span> Nuevo proyecto
+          </a>
+        </nav>
+
+        <div class='sidebar-footer'>
+          <form method='POST' action='/admin/logout'>
+            <button type='submit' class='logout-btn'>
+              <span>🚪</span> Cerrar sesión
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <div class='main-area'>
+        <header class='topbar'>
+          <h1 class='page-title'>{title}</h1>
+        </header>
+        <main class='content'>
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+</style>
+
+<style>
+
+  body {
+    font-family: var(--font-admin);
+    background: var(--color-admin-bg);
+    color: var(--color-admin-text);
+    min-height: 100vh;
+  }
+
+  .admin-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px;
+    background: var(--color-admin-sidebar);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .brand-icon {
+    font-size: 1.4rem;
+  }
+
+  .brand-text {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition-fast);
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .nav-item.active {
+    background: var(--color-admin-primary);
+    color: #fff;
+  }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+    font-family: inherit;
+  }
+
+  .logout-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  /* ── Main area ── */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .topbar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-admin-border);
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-admin-text);
+  }
+
+  .content {
+    padding: 32px;
+    width: 100%;
+    max-width: var(--container-admin);
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      display: none;
+    }
+    .content {
+      padding: 20px;
+    }
+  }
+</style>
