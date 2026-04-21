@@ -98,6 +98,44 @@ if (Astro.request.method === 'POST') {
     if (dbErr) error = dbErr.message;
     else successMsg = '✅ Nivel eliminado.';
   }
+
+  // Añadir emoji option
+  if (action === 'add_emoji') {
+    const emojiValue = (form.get('emoji_value') as string).trim();
+    const emojiLabel = (form.get('emoji_label') as string).trim();
+    if (emojiValue && emojiLabel) {
+      const { data: proj } = await supabase
+        .from('project_config')
+        .select('emoji_options')
+        .eq('id', id)
+        .single();
+      const current = (proj?.emoji_options ?? []) as { value: string; label: string }[];
+      const { error: dbErr } = await supabase
+        .from('project_config')
+        .update({ emoji_options: [...current, { value: emojiValue, label: emojiLabel }] })
+        .eq('id', id);
+      if (dbErr) error = dbErr.message;
+      else successMsg = '✅ Emoji añadido.';
+    }
+  }
+
+  // Eliminar emoji option
+  if (action === 'delete_emoji') {
+    const idx = parseInt(form.get('emoji_index') as string);
+    const { data: proj } = await supabase
+      .from('project_config')
+      .select('emoji_options')
+      .eq('id', id)
+      .single();
+    const current = (proj?.emoji_options ?? []) as { value: string; label: string }[];
+    const updated = current.filter((_, i) => i !== idx);
+    const { error: dbErr } = await supabase
+      .from('project_config')
+      .update({ emoji_options: updated })
+      .eq('id', id);
+    if (dbErr) error = dbErr.message;
+    else successMsg = '✅ Emoji eliminado.';
+  }
 }
 
 // ── Cargar datos actuales ─────────────────────────────────────────────────────
@@ -114,6 +152,8 @@ if (projectErr || !project) {
 const pc = (project.page_content ?? {}) as Record<string, any>;
 const mm = pc.mainMessage ?? {};
 const cta = pc.cta ?? {};
+
+const emojiOptions = (project.emoji_options ?? []) as { value: string; label: string }[];
 
 const createdParam = Astro.url.searchParams.get('created');
 if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de contribución.';
@@ -355,6 +395,60 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
         <button type='submit' class='btn-primary' style='margin-top: 12px;'>
           Añadir nivel
+        </button>
+      </form>
+    </details>
+  </section>
+
+  <!-- ── Emoji options ──────────────────────────────────────────────────── -->
+  <section class='form-section levels-section'>
+    <h2 class='section-title'>Emojis del modal de contribución</h2>
+    <p class='section-hint'>
+      Los contribuidores eligen uno al registrar su aportación.
+      {emojiOptions.length === 0 && ' Sin emojis propios se usará el fallback del sistema.'}
+    </p>
+
+    {emojiOptions.length > 0 ? (
+      <div class='emoji-list'>
+        {emojiOptions.map((opt, i) => (
+          <div class='emoji-row'>
+            <span class='emoji-icon'>{opt.value}</span>
+            <div class='emoji-info'>
+              <strong>{opt.label}</strong>
+            </div>
+            <form method='POST' class='delete-form'>
+              <input type='hidden' name='_action' value='delete_emoji' />
+              <input type='hidden' name='emoji_index' value={i} />
+              <button type='submit' class='btn-delete'
+                onclick="return confirm('¿Eliminar este emoji?')">
+                🗑
+              </button>
+            </form>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class='no-levels'>Sin emojis personalizados todavía.</p>
+    )}
+
+    <details class='add-level-details'>
+      <summary class='add-level-summary'>➕ Añadir emoji</summary>
+      <form method='POST' class='add-level-form'>
+        <input type='hidden' name='_action' value='add_emoji' />
+        <div class='form-grid'>
+          <div class='field'>
+            <label>Emoji *</label>
+            <input type='text' name='emoji_value' required maxlength='4' placeholder='🙂' />
+            <small>Un solo emoji</small>
+          </div>
+          <div class='field'>
+            <label>Etiqueta *</label>
+            <input type='text' name='emoji_label' required placeholder='Amigo de la familia' />
+            <small>Texto que verá el contribuidor</small>
+          </div>
+        </div>
+        <button type='submit' class='btn-primary' style='margin-top: 12px;'>
+          Añadir emoji
         </button>
       </form>
     </details>
@@ -666,6 +760,43 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
 
   .add-level-form {
     padding-top: 16px;
+  }
+
+  /* ── Emoji options ── */
+  .section-hint {
+    font-size: var(--text-sm);
+    color: var(--color-admin-text-muted);
+    margin-bottom: 16px;
+  }
+
+  .emoji-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .emoji-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--color-surface-muted);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .emoji-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    width: 32px;
+    text-align: center;
+  }
+
+  .emoji-info {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--color-admin-text);
   }
 
   /* ── Enlace público ── */

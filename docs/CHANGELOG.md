@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-21] — Gestión de emoji options desde el backoffice
+
+- **Qué cambió:** La página de edición de proyectos (`/admin/projects/[id]/edit`) incluye una nueva sección "Emojis del modal de contribución" que lista los emojis actuales del proyecto y permite añadir o eliminar opciones. Las acciones `add_emoji` y `delete_emoji` actualizan la columna JSONB `emoji_options` de `project_config`.
+- **Por qué:** Los admins necesitaban personalizar qué emojis aparecen en el modal de contribución sin tocar la base de datos directamente.
+- **Archivos tocados:** `src/pages/admin/projects/[id]/edit.astro`
+- **Impacto:** Ningún breaking change. Proyectos sin `emoji_options` siguen usando el fallback del sistema.
+
+---
+
 ## [2026-04-21] — Ocultar proyectos cancelados en parte pública
 
 - **Qué cambió:** `getProjectsConfig()` excluye proyectos con `status = 'cancelled'`. La ruta `/projects/[slug]` redirige a `/` si el proyecto está cancelado, bloqueando el acceso directo por URL.
