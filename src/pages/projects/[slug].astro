@@ -33,8 +33,11 @@ const { slug } = Astro.params;
 
 try {
   projectConfig = await getProjectBySlug(slug || '');
-    if (!projectConfig) {
+  if (!projectConfig) {
     throw new Error('Project not found');
+  }
+  if (projectConfig.project_status === 'cancelled') {
+    return Astro.redirect('/');
   }
   contributionLevels = await getContributionLevels(projectConfig.id);
   contibutionsList = await getPublicContributions(projectConfig.id);

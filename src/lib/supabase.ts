@@ -198,6 +198,7 @@ export async function getProjectsConfig(): Promise<ProjectConfig[] | null> {
     const { data, error } = await supabase
       .from('project_config')
       .select('*')
+      .neq('project_status', 'cancelled')
       .order('created_at', { ascending: false });
 
     if (error) {
