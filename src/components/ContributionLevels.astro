@@ -452,7 +452,7 @@ const {
 
     private handleContribute() {
       if (!this.selectedLevel) {
-        alert('Por favor, selecciona un nivel de contribución primero 😊');
+        (window as any).showToast?.('Selecciona un nivel de contribución primero 😊', 'info');
         return;
       }
       // Disparar evento personalizado para que otros componentes puedan escuchar

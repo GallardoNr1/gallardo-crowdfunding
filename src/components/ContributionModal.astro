@@ -1533,15 +1533,14 @@ const {
         this.hideLoading();
 
         if (result?.success) {
-          // aquí ya harías tu modal de success como antes
-          alert('✅ Contribución registrada');
+          (window as any).showToast?.('¡Contribución registrada! Gracias por participar 🎉', 'success', 6000);
           this.closeModal();
         } else {
-          alert(result?.error || 'Error al procesar la contribución');
+          (window as any).showToast?.(result?.error || 'Error al procesar la contribución', 'error');
         }
       } catch {
         this.hideLoading();
-        alert('Error al enviar la contribución. Inténtalo de nuevo.');
+        (window as any).showToast?.('Error al enviar la contribución. Inténtalo de nuevo.', 'error');
       }
     }
 
@@ -1675,7 +1674,7 @@ const {
               1500
             );
           } catch {
-            alert('No se pudo copiar al portapapeles');
+            (window as any).showToast?.('No se pudo copiar al portapapeles', 'warning');
           }
         }
       });
