@@ -1,8 +1,9 @@
-name: Deploy Gallardo Crowdfunding
+name: Deploy gallardo-crowdfunding
 
 on:
   push:
     branches:
+      - main
       - master
 
 jobs:
@@ -13,40 +14,101 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # --- Crear .env.local desde secret ---
-      - name: Crear .env.local
-        run: |
-          echo "$ENV_LOCAL" > .env.local
-        env:
-          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-      # --- Instalación y build ---
-      - name: Install deps
-        run: npm install
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Build app
+      - name: Create .env from secret
+        run: echo "${{ secrets.ENV_LOCAL }}" > .env
+
+      - name: Build application
         run: npm run build
 
-      # --- Copiar build al servidor ---
-      - name: Copiar build vía SSH
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: '.'
-          target: '/var/www/gallardo-crowdfunding'
+      - name: Verify dist folder
+        run: |
+          if [ \! -d "dist" ]; then
+            echo "Error: dist folder not created"
+            exit 1
+          fi
+          echo "dist folder OK"
+          ls -la dist
 
-      # --- Reiniciar PM2 en el servidor ---
-      - name: Restart PM2
+      - name: Clean old build on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -euo pipefail
+            DEPLOY_DIR="/var/www/gallardo-crowdfunding"
+            if [ \! -d "$DEPLOY_DIR" ]; then
+              sudo mkdir -p "$DEPLOY_DIR"
+              sudo chown -R "${{ secrets.SERVER_USER }}:${{ secrets.SERVER_USER }}" "$DEPLOY_DIR"
+            fi
+            cd "$DEPLOY_DIR"
+            if [ "$(pwd)" \!= "$DEPLOY_DIR" ]; then
+              echo "ERROR: pwd=$(pwd) no coincide. Abortando."
+              exit 1
+            fi
+            find . -maxdepth 1 \! -name '.' \! -name 'node_modules' \! -name '.env' -exec rm -rf {} +
+
+      - name: Deploy dist to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'dist/*'
+          target: '/var/www/gallardo-crowdfunding'
+          strip_components: 1
+
+      - name: Deploy package files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'package.json,package-lock.json'
+          target: '/var/www/gallardo-crowdfunding'
+
+      - name: Create .env on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cat > /var/www/gallardo-crowdfunding/.env << 'ENVEOF'
+            ${{ secrets.ENV_LOCAL }}
+            ENVEOF
+            chmod 600 /var/www/gallardo-crowdfunding/.env
+
+      - name: Post-deployment tasks
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            nvm use 22 || nvm install 22
             cd /var/www/gallardo-crowdfunding
-            /root/.nvm/versions/node/v20.18.2/bin/pm2 stop gallardo-crowdfunding || true
-            /root/.nvm/versions/node/v20.18.2/bin/pm2 delete gallardo-crowdfunding || true
-            /root/.nvm/versions/node/v20.18.2/bin/pm2 start "NODE_ENV=production HOST=127.0.0.1 PORT=5025 node ./dist/server/entry.mjs" --name gallardo-crowdfunding
-            /root/.nvm/versions/node/v20.18.2/bin/pm2 save
+            echo "Instalando dependencias de produccion..."
+            npm ci --omit=dev --legacy-peer-deps 2>/dev/null || npm install --omit=dev --legacy-peer-deps
+            echo "Reiniciando con PM2..."
+            if pm2 describe gallardo-crowdfunding > /dev/null 2>&1; then
+              pm2 restart gallardo-crowdfunding --update-env
+            else
+              PORT=5025 HOST=127.0.0.1 NODE_ENV=production pm2 start ./server/entry.mjs --name gallardo-crowdfunding --cwd /var/www/gallardo-crowdfunding
+            fi
+            pm2 save
+            echo "Deploy completado"
+            echo "URL: https://gc.gallardcode.com"
