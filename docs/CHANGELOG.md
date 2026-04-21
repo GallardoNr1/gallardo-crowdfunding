@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-04-21] — Ocultar proyectos cancelados en parte pública
+
+- **Qué cambió:** `getProjectsConfig()` excluye proyectos con `status = 'cancelled'`. La ruta `/projects/[slug]` redirige a `/` si el proyecto está cancelado, bloqueando el acceso directo por URL.
+- **Por qué:** Proyectos cancelados no deben ser visibles públicamente pero sí gestionables desde el backoffice.
+- **Archivos tocados:** `src/lib/supabase.ts`, `src/pages/projects/[slug].astro`
+- **Impacto:** Ningún breaking change. Los proyectos cancelados siguen existiendo en BD y aparecen en `/admin`.
+
+---
+
+## [2026-04-21] — Design system aplicado a todos los componentes
+
+- **Qué cambió:** Sustituidos todos los colores, tipografías, radios, sombras y transiciones hardcodeados por variables CSS del design system (`tokens.css`) en Header, Footer, ProductCard, ProgressSection, ContributionLevels, BaseLayout y todas las páginas del backoffice. Fix de layout: `box-sizing: border-box` global en AdminLayout con `is:global`; `min-width: 0` y `width: 100%` en formularios admin para evitar overflow de grid.
+- **Por qué:** Consistencia visual y facilidad de cambio de tema desde un único fichero.
+- **Archivos tocados:** `src/layouts/BaseLayout.astro`, `Header.astro`, `Footer.astro`, `AdminLayout.astro`, `src/components/ContributionLevels.astro`, `ProductCard.astro`, `ProgressSection.astro`, `src/pages/admin/**`
+- **Impacto:** Ningún breaking change visual. Los valores son equivalentes a los anteriores.
+
+---
+
+## [2026-04-21] — Design system: tokens CSS y página showcase
+
+- **Qué cambió:** Creado `src/styles/tokens.css` con todas las variables CSS del proyecto (colores de marca, UI, admin, tipografía, espaciado, bordes, sombras, transiciones, z-index, layout). Creada página `/design-system` con showcase visual completo.
+- **Por qué:** Centralizar magic numbers dispersos en componentes.
+- **Archivos tocados:** `src/styles/tokens.css` (nuevo), `src/pages/design-system.astro` (nuevo)
+- **Impacto:** Ninguno en producción. La página `/design-system` es pública pero solo para uso interno de desarrollo.
+
+---
+
 ## [2026-04-21] — Backoffice de administración
 
 - **Qué cambió:** Implementación de panel de administración protegido con Supabase Auth.
