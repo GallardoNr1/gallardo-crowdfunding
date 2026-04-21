@@ -13,14 +13,22 @@ const {
 <dic class='header-bg'>
   <div class='header'>
     <div class='left'>
-      <a
-        class='home-link'
-        href='/'
-        title='Ir a la página principal'
-      >
-        <span class='logo'>
-          <span class='logo-inner'>GC</span>
-        </span>
+      <a class='home-link' href='/' title='Ir a la página principal'>
+        <svg class='logo-svg' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'>
+          <defs>
+            <linearGradient id='gc-header-grad' x1='0' y1='0' x2='64' y2='64' gradientUnits='userSpaceOnUse'>
+              <stop stop-color='#ff6b35'/>
+              <stop offset='1' stop-color='#c62828'/>
+            </linearGradient>
+          </defs>
+          <rect width='64' height='64' rx='15' fill='url(#gc-header-grad)'/>
+          <rect x='29' y='0' width='6' height='64' fill='white' opacity='0.10' rx='3'/>
+          <rect x='0' y='29' width='64' height='6' fill='white' opacity='0.10' rx='3'/>
+          <ellipse cx='25' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(-20 25 12)'/>
+          <ellipse cx='39' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(20 39 12)'/>
+          <circle cx='32' cy='12' r='3' fill='white' opacity='0.30'/>
+          <text x='32' y='47' font-family="'Arial Black',sans-serif" font-size='26' font-weight='900' fill='white' text-anchor='middle' letter-spacing='-0.5'>GC</text>
+        </svg>
       </a>
     </div>
 
@@ -60,35 +68,17 @@ const {
     text-align: center;
   }
 
-  /* === LOGO PRO === */
-  .logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #4b5563, var(--color-header-bg));
-    border: 3px solid #6b7280;
-    box-shadow:
-      0 0 10px rgba(255, 255, 255, 0.05),
-      inset 0 0 10px rgba(0, 0, 0, 0.4);
+  .logo-svg {
+    width: 68px;
+    height: 68px;
+    display: block;
     transition: var(--transition-normal);
+    filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.35));
   }
 
-  .logo-inner {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #f9fafb;
-    letter-spacing: -1px;
-  }
-
-  .home-link:hover .logo {
-    border-color: #9ca3af;
-    transform: scale(1.06) rotate(-2deg);
-    box-shadow:
-      0 0 16px rgba(255, 255, 255, 0.12),
-      inset 0 0 14px rgba(0, 0, 0, 0.5);
+  .home-link:hover .logo-svg {
+    transform: scale(1.07) rotate(-3deg);
+    filter: drop-shadow(0 6px 18px rgba(255, 107, 53, 0.55));
   }
 
   .title {
@@ -115,9 +105,9 @@ const {
       text-align: center;
     }
 
-    .logo {
-      width: 60px;
-      height: 60px;
+    .logo-svg {
+      width: 56px;
+      height: 56px;
     }
   }
 </style>

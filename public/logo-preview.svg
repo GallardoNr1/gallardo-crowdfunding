@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 72" fill="none">
+  <defs>
+    <linearGradient id="badge-grad" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff6b35"/>
+      <stop offset="1" stop-color="#c62828"/>
+    </linearGradient>
+
+    <!-- Sombra del badge -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#ff6b35" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- ── Badge ───────────────────────────────────────────────────── -->
+  <rect width="72" height="72" rx="18" fill="url(#badge-grad)" filter="url(#shadow)"/>
+
+  <!-- Detalle: cintas de regalo (mismo lenguaje visual que favicon) -->
+  <rect x="31" y="0" width="10" height="72" fill="white" opacity="0.10" rx="5"/>
+  <rect x="0"  y="31" width="72" height="10" fill="white" opacity="0.10" rx="5"/>
+
+  <!-- Lazo superior (bow pequeño) -->
+  <ellipse cx="28" cy="14" rx="7" ry="4" fill="white" opacity="0.22" transform="rotate(-20 28 14)"/>
+  <ellipse cx="44" cy="14" rx="7" ry="4" fill="white" opacity="0.22" transform="rotate(20 44 14)"/>
+  <circle cx="36" cy="14" r="3.5" fill="white" opacity="0.28"/>
+
+  <!-- Letras GC -->
+  <text
+    x="36" y="55"
+    font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+    font-size="30"
+    font-weight="900"
+    fill="white"
+    text-anchor="middle"
+    letter-spacing="-1">GC</text>
+
+  <!-- ── Divisor ─────────────────────────────────────────────────── -->
+  <line x1="88" y1="14" x2="88" y2="58" stroke="#e5e7eb" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- ── Logotipo ────────────────────────────────────────────────── -->
+  <text
+    x="100" y="34"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="19"
+    font-weight="700"
+    fill="#111827"
+    letter-spacing="0.3">Gallardo</text>
+
+  <text
+    x="101" y="52"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="10.5"
+    font-weight="600"
+    fill="#ff6b35"
+    letter-spacing="2.8">CROWDFUNDING</text>
+</svg>
