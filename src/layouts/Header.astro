@@ -33,7 +33,7 @@ const {
 
 <style>
   .header-bg {
-    background: #1f2937;
+    background: var(--color-header-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -68,12 +68,12 @@ const {
     width: 70px;
     height: 70px;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
+    background: radial-gradient(circle at 30% 30%, #4b5563, var(--color-header-bg));
     border: 3px solid #6b7280;
     box-shadow:
       0 0 10px rgba(255, 255, 255, 0.05),
       inset 0 0 10px rgba(0, 0, 0, 0.4);
-    transition: all 0.25s ease;
+    transition: var(--transition-normal);
   }
 
   .logo-inner {
@@ -92,16 +92,16 @@ const {
   }
 
   .title {
-    font-family: 'Poppins', sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #f3f4f6;
+    font-family: var(--font-body);
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-header-text);
     margin: 0;
   }
 
   .subtitle {
-    font-size: 1.1rem;
-    color: #d1d5db;
+    font-size: var(--text-md);
+    color: var(--color-header-subtitle);
     margin-top: 6px;
   }
 

@@ -46,11 +46,11 @@ const { year = currentYear } = Astro.props;
 
 <style>
   .footer {
-    background: #1f2937; /* gris oscuro elegante */
+    background: var(--color-header-bg);
     color: #e5e7eb;
     padding: 40px 20px;
     text-align: center;
-    border-radius: 20px 20px 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     margin-top: 40px;
   }
 
@@ -86,7 +86,7 @@ const { year = currentYear } = Astro.props;
     color: #e5e7eb;
     text-decoration: none;
     font-size: 0.95rem;
-    transition: opacity 0.3s ease;
+    transition: var(--transition-normal);
   }
 
   .footer-link:hover {

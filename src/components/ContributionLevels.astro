@@ -70,10 +70,10 @@ const {
 
 <style>
   .contributors-section {
-    background: linear-gradient(145deg, #e8f5e8, #c8e6c8);
-    border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 30px;
+    background: linear-gradient(145deg, var(--color-section-levels-from), var(--color-section-levels-to));
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    margin-bottom: var(--space-8);
     position: relative;
     overflow: hidden;
   }
@@ -89,9 +89,9 @@ const {
   }
 
   .contributors-title {
-    font-family: 'Fredoka One', cursive;
-    font-size: 1.8rem;
-    color: #2e7d32;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    color: var(--color-brand-green-dark);
     text-align: center;
     margin-bottom: 25px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
@@ -105,14 +105,14 @@ const {
   }
 
   .level-card {
-    background: white;
-    border-radius: 15px;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
     padding: 25px 20px;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-spring);
     cursor: pointer;
-    border: 3px solid transparent;
+    border: var(--border-width-thick) solid transparent;
     position: relative;
     overflow: hidden;
     user-select: none;
@@ -161,8 +161,8 @@ const {
   }
 
   .level-name {
-    font-weight: 700;
-    color: #333;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
     margin-bottom: 8px;
     font-size: 1.2rem;
     position: relative;
@@ -181,19 +181,19 @@ const {
 
   .level-description {
     font-size: 0.95rem;
-    color: #666;
-    line-height: 1.4;
+    color: var(--color-text-muted);
+    line-height: var(--leading-normal);
     position: relative;
     z-index: 1;
   }
 
   .selected-level-info {
-    background: linear-gradient(145deg, #fff3e0, #ffcc02);
-    border-radius: 15px;
+    background: linear-gradient(145deg, var(--color-section-progress-from), var(--color-section-progress-to));
+    border-radius: var(--radius-lg);
     padding: 20px;
     margin-bottom: 25px;
     text-align: center;
-    border: 2px solid #ff9800;
+    border: var(--border-width) solid var(--color-warning);
     animation: slideDown 0.4s ease-out;
   }
 
@@ -214,8 +214,8 @@ const {
     justify-content: center;
     gap: 12px;
     font-size: 1.1rem;
-    color: #e65100;
-    font-weight: 600;
+    color: var(--color-section-orange-accent);
+    font-weight: var(--font-weight-semibold);
   }
 
   .selection-emoji {
@@ -224,16 +224,16 @@ const {
   }
 
   .contribute-button {
-    background: linear-gradient(145deg, #ff6b35, #f7931e);
+    background: linear-gradient(145deg, var(--color-brand-orange), var(--color-brand-orange-alt));
     color: white;
     border: none;
     padding: 18px 45px;
-    border-radius: 25px;
+    border-radius: var(--radius-2xl);
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+    transition: var(--transition-spring);
+    box-shadow: var(--shadow-orange);
     display: flex;
     align-items: center;
     justify-content: center;

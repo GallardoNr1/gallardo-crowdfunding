@@ -47,10 +47,10 @@ const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
 <style>
   .main-card {
     background: linear-gradient(145deg, #ffffffcc, #f0f0f0);
-    border-radius: 25px;
-    padding: 40px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    margin-bottom: 30px;
+    border-radius: var(--radius-2xl);
+    padding: var(--space-10);
+    box-shadow: var(--shadow-card);
+    margin-bottom: var(--space-8);
     position: relative;
     overflow: hidden;
   }
@@ -70,11 +70,11 @@ const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
     max-width: 500px;
     height: 300px;
     object-fit: cover;
-    border-radius: 15px;
+    border-radius: var(--radius-lg);
     margin: 0 auto 30px;
     display: block;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition-normal);
   }
 
   .lego-image:hover {
@@ -82,25 +82,25 @@ const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
   }
 
   .product-title {
-    font-family: 'Fredoka One', cursive;
-    font-size: 2.5rem;
-    color: #d32f2f;
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    color: var(--color-brand-primary);
     margin-bottom: 15px;
     text-align: center;
   }
 
   .product-description {
-    font-size: 1.1rem;
-    color: #555;
-    line-height: 1.6;
+    font-size: var(--text-md);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
     margin-bottom: 20px;
     text-align: center;
   }
 
   .price {
     font-size: 2rem;
-    font-weight: 700;
-    color: #2e7d32;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-brand-green-dark);
     display: flex;
     align-items: center;
     justify-content: center;
