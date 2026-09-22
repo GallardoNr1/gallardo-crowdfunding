@@ -4,13 +4,16 @@ import type { ContributionLevel } from '../lib/supabase';
 export interface Props {
   levels?: ContributionLevel[];
   currency?: string;
-  onLevelSelected?: string; // nombre de la función callback
+  /** Muestra la tarjeta "Otra cantidad" (campañas con cantidad libre). */
+  allowCustomAmount?: boolean;
+  minCustomAmount?: number;
 }
 
 const {
   levels = [],
   currency = '€',
-  onLevelSelected = 'handleLevelSelection',
+  allowCustomAmount = false,
+  minCustomAmount = 5,
 } = Astro.props;
 ---
 
@@ -37,6 +40,35 @@ const {
           <div class='level-glow' />
         </button>
       ))
+    }
+    {
+      allowCustomAmount && (
+        <div
+          class='level-card level-card--custom'
+          data-custom='true'
+          data-min={minCustomAmount}
+          style='--level-color: #16a34a'
+          role='group'
+          aria-label='Otra cantidad'
+        >
+          <div class='level-emoji'>💚</div>
+          <div class='level-name'>Otra cantidad</div>
+          <label class='custom-amount'>
+            <span class='sr-only'>Importe</span>
+            <input
+              type='number'
+              id='customAmountInput'
+              inputmode='decimal'
+              min={minCustomAmount}
+              step='0.01'
+              placeholder={`mín. ${minCustomAmount}`}
+            />
+            <span class='custom-amount__currency'>{currency}</span>
+          </label>
+          <div class='level-description'>Tú decides cuánto (mínimo {minCustomAmount} {currency})</div>
+          <div class='level-glow' />
+        </div>
+      )
     }
   </div>
 
@@ -124,6 +156,38 @@ const {
     font: inherit;
     color: inherit;
     width: 100%;
+  }
+
+  .level-card--custom .custom-amount {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .level-card--custom input {
+    width: 110px;
+    padding: 8px 10px;
+    border: 2px solid var(--color-border, #ddd);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 1.1rem;
+    text-align: right;
+  }
+  .level-card--custom input:focus {
+    outline: none;
+    border-color: var(--level-color);
+  }
+  .custom-amount__currency {
+    font-weight: 700;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .level-card:hover {
@@ -403,17 +467,35 @@ const {
       this.contributeButton.addEventListener('click', () =>
         this.handleContribute()
       );
+
+      // Cantidad libre: refresca importe y botón mientras se escribe
+      this.customInput()?.addEventListener('input', () => {
+        if (!this.selectedLevel?.custom) return;
+        this.selectedLevel.amount = Number(this.customInput()?.value || 0);
+        this.updateSelectedLevelInfo();
+        this.updateContributeButton();
+      });
+    }
+
+    private customInput(): HTMLInputElement | null {
+      return document.getElementById('customAmountInput') as HTMLInputElement | null;
     }
 
     private handleLevelClick(event: Event) {
       const card = event.currentTarget as HTMLElement;
-      const levelId = card.dataset.levelId;
-      const amount = Number(card.dataset.amount || 0);
+      const isCustom = card.dataset.custom === 'true';
+      const clickedInput = !!(event.target as HTMLElement | null)?.closest('input');
+      const levelId = card.dataset.levelId ?? null;
+      const amount = isCustom
+        ? Number(this.customInput()?.value || 0)
+        : Number(card.dataset.amount || 0);
 
-      if (card.classList.contains('selected')) {
+      // Volver a pulsar la tarjeta la deselecciona, salvo que se esté escribiendo en el campo.
+      if (card.classList.contains('selected') && !clickedInput) {
         this.resetSelection();
         return;
       }
+      if (card.classList.contains('selected') && clickedInput) return;
       // Remover selección anterior
       document.querySelectorAll('.level-card').forEach((c) => {
         c.classList.remove('selected');
@@ -427,6 +509,8 @@ const {
       // Guardar datos del nivel seleccionado
       this.selectedLevel = {
         id: levelId,
+        custom: isCustom,
+        min: isCustom ? Number(card.dataset.min || 1) : 0,
         amount: amount,
         name: card.querySelector('.level-name')?.textContent,
         emoji: card.querySelector('.level-emoji')?.textContent,
@@ -435,6 +519,14 @@ const {
       // Actualizar UI
       this.updateSelectedLevelInfo();
       this.updateContributeButton();
+      if (isCustom && !clickedInput) this.customInput()?.focus();
+    }
+
+    private customAmountValid(): boolean {
+      return (
+        !!this.selectedLevel &&
+        (!this.selectedLevel.custom || Number(this.selectedLevel.amount) >= this.selectedLevel.min)
+      );
     }
 
     private updateSelectedLevelInfo() {
@@ -455,9 +547,12 @@ const {
     private updateContributeButton() {
       const buttonText = this.contributeButton.querySelector('.button-text')!;
 
-      if (this.selectedLevel) {
+      if (this.selectedLevel && this.customAmountValid()) {
         this.contributeButton.removeAttribute('disabled');
         buttonText.textContent = `¡Contribuir ${this.selectedLevel.amount} ${this.currency}!`;
+      } else if (this.selectedLevel?.custom) {
+        this.contributeButton.setAttribute('disabled', 'true');
+        buttonText.textContent = `Indica una cantidad (mín. ${this.selectedLevel.min} ${this.currency})`;
       } else {
         this.contributeButton.setAttribute('disabled', 'true');
         buttonText.textContent = 'Selecciona un nivel primero';
@@ -467,6 +562,10 @@ const {
     private handleContribute() {
       if (!this.selectedLevel) {
         (window as any).showToast?.('Selecciona un nivel de contribución primero 😊', 'info');
+        return;
+      }
+      if (!this.customAmountValid()) {
+        (window as any).showToast?.(`La aportación mínima es de ${this.selectedLevel.min} ${this.currency} 😊`, 'info');
         return;
       }
       // El modal se abre al recibir el evento (ContributionModal.handleLevelSelected).

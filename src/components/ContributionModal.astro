@@ -133,7 +133,11 @@ const {
             type='hidden'
             id='selectedLevelId'
             name='levelId'
-            required
+          />
+          <input
+            type='hidden'
+            id='selectedCustomAmount'
+            name='customAmount'
           />
           <input
             type='hidden'
@@ -1498,7 +1502,11 @@ const {
       const submitButton = document.getElementById(
         'finalContributeButton'
       ) as HTMLButtonElement | null;
-      const isValid = this.form.checkValidity() && this.selectedLevel;
+      const hasAmount =
+        !!this.selectedLevel &&
+        (!!this.selectedLevel.id ||
+          (this.selectedLevel.custom && Number(this.selectedLevel.amount) > 0));
+      const isValid = this.form.checkValidity() && hasAmount;
 
       if (submitButton) {
         submitButton.disabled = !isValid;
@@ -1517,6 +1525,7 @@ const {
         const formData = new FormData(this.form);
         const contributionData: any = {
           levelId: String(formData.get('levelId') || ''),
+          customAmount: String(formData.get('customAmount') || ''),
           amount: Number(formData.get('amount')),
           contributorName: String(formData.get('contributorName') || ''),
           contributorEmail: String(formData.get('contributorEmail') || ''),
@@ -1553,7 +1562,8 @@ const {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             projectId: data.projectId,
-            levelId: data.levelId,
+            levelId: data.levelId || undefined,
+            customAmount: data.customAmount ? Number(data.customAmount) : undefined,
             contributorName: data.contributorName,
             contributorEmail: data.contributorEmail,
             contributorEmoji: data.contributorEmoji,
@@ -1634,8 +1644,9 @@ const {
       ) as HTMLElement | null)!.textContent = this.selectedLevel.name;
       (document.getElementById(
         'levelDescription'
-      ) as HTMLElement | null)!.textContent =
-        `Nivel ${this.selectedLevel.name} - ¡Gracias por tu apoyo!`;
+      ) as HTMLElement | null)!.textContent = this.selectedLevel.custom
+        ? 'Cantidad libre - ¡Gracias por tu apoyo!'
+        : `Nivel ${this.selectedLevel.name} - ¡Gracias por tu apoyo!`;
       (document.getElementById(
         'levelAmount'
       ) as HTMLElement | null)!.textContent =
@@ -1647,7 +1658,12 @@ const {
 
       (document.getElementById(
         'selectedLevelId'
-      ) as HTMLInputElement | null)!.value = this.selectedLevel.id;
+      ) as HTMLInputElement | null)!.value = this.selectedLevel.id ?? '';
+      (document.getElementById(
+        'selectedCustomAmount'
+      ) as HTMLInputElement | null)!.value = this.selectedLevel.custom
+        ? String(this.selectedLevel.amount)
+        : '';
       (document.getElementById(
         'selectedAmount'
       ) as HTMLInputElement | null)!.value = String(this.selectedLevel.amount);

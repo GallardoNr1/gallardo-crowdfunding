@@ -1,0 +1,169 @@
+---
+// Sección de progreso para campañas "por tiempo" (campaign_mode = 'open'):
+// sin porcentaje ni objetivo; muestra lo recaudado, la aportación base y la cuenta atrás.
+export interface Props {
+  title?: string;
+  raised: number;
+  base: number;
+  baseLabel?: string | null;
+  total: number;
+  currency?: string;
+  daysLeft: number | null;
+  endDateLabel: string;
+  closed: boolean;
+}
+
+const {
+  title = '🎯 Progreso',
+  raised,
+  base,
+  baseLabel,
+  total,
+  currency = '€',
+  daysLeft,
+  endDateLabel,
+  closed,
+} = Astro.props;
+
+const countdown = closed
+  ? 'Campaña cerrada'
+  : daysLeft === null
+    ? 'Sin fecha de cierre'
+    : daysLeft === 0
+      ? '¡Último día!'
+      : daysLeft === 1
+        ? 'Queda 1 día'
+        : `Quedan ${daysLeft} días`;
+---
+
+<div class='progress-section open-campaign'>
+  <h3 class='progress-title'>{title}</h3>
+
+  <div class='totals'>
+    <div class='total-item'>
+      <span class='total-label'>Familia y amigos</span>
+      <span class='total-value'>{raised.toFixed(2)} {currency}</span>
+    </div>
+    {
+      base > 0 && (
+        <>
+          <span class='total-plus' aria-hidden='true'>+</span>
+          <div class='total-item'>
+            <span class='total-label'>{baseLabel || 'Aportación base'}</span>
+            <span class='total-value'>{base.toFixed(2)} {currency}</span>
+          </div>
+        </>
+      )
+    }
+    <span class='total-plus' aria-hidden='true'>=</span>
+    <div class='total-item total-item--sum'>
+      <span class='total-label'>Total conseguido</span>
+      <span class='total-value'>{total.toFixed(2)} {currency}</span>
+    </div>
+  </div>
+
+  <div class={`countdown ${closed ? 'countdown--closed' : ''}`}>
+    <span class='countdown-main'>{closed ? '🏁' : '⏳'} {countdown}</span>
+    {endDateLabel && !closed && <span class='countdown-sub'>cierra el {endDateLabel}</span>}
+    {endDateLabel && closed && <span class='countdown-sub'>cerró el {endDateLabel}</span>}
+  </div>
+
+  {
+    !closed && (
+      <p class='open-hint'>
+        No hay objetivo: todo lo que consigamos entre todos va íntegro al regalo. 💛
+      </p>
+    )
+  }
+</div>
+
+<style>
+  .open-campaign {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 30px 25px;
+    box-shadow: var(--shadow-md);
+    margin: 30px 0;
+    text-align: center;
+  }
+  .progress-title {
+    font-size: 1.6rem;
+    margin: 0 0 22px;
+    color: var(--color-text);
+  }
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 12px;
+  }
+  .total-item {
+    flex: 1 1 160px;
+    max-width: 240px;
+    background: var(--color-surface-alt, #fafafa);
+    border-radius: var(--radius-md);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .total-item--sum {
+    background: linear-gradient(135deg, var(--color-primary, #ff6b35), var(--color-primary-dark, #c62828));
+    color: #fff;
+  }
+  .total-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+  }
+  .total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .total-plus {
+    align-self: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text-muted, #888);
+  }
+  .countdown {
+    margin-top: 22px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: #fff7ed;
+    border: 2px solid #fdba74;
+    color: #9a3412;
+  }
+  .countdown--closed {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+  .countdown-main {
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .countdown-sub {
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+  .open-hint {
+    margin: 18px 0 0;
+    color: var(--color-text-muted, #666);
+    font-size: 0.95rem;
+  }
+  @media (max-width: 600px) {
+    .total-plus {
+      flex-basis: 100%;
+      font-size: 1.2rem;
+    }
+    .total-item {
+      max-width: none;
+    }
+  }
+</style>

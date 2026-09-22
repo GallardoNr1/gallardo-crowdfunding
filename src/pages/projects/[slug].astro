@@ -4,9 +4,11 @@ import ContributorsListReact from '@/components/ContributorsListReact.astro';
 import FamilyPhotos from '@/components/FamilyPhotos.astro';
 import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
+import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
+import { campaignTotals, daysLeft, formatEndDate, isCampaignOpen } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
 import {
   getContributionLevels,
@@ -41,6 +43,14 @@ const [contributionLevels, contributions, familyMembers, photos, paymentMethods]
   ]);
 
 const completed = projectConfig.project_status === 'completed';
+const mode = projectConfig.campaign_mode === 'open' ? 'open' : 'target';
+const open = isCampaignOpen(projectConfig);
+// Cerrada por fecha: sigue "activa" en BD pero ya no admite aportaciones.
+const closedByDate = !open && projectConfig.project_status === 'active';
+const finished = completed || closedByDate;
+const totals = campaignTotals(projectConfig);
+const remainingDays = daysLeft(projectConfig.end_date);
+const endDateLabel = formatEndDate(projectConfig.end_date);
 const currency = currencySymbol(projectConfig.currency);
 // Fuente de verdad del progreso: project_config.current_amount (lo mantiene el trigger / el servidor).
 const currentAmount = Number(projectConfig.current_amount) || 0;
@@ -62,7 +72,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     <ProductCard
       title={projectConfig.project_name}
       description={projectConfig.project_description ?? ''}
-      price={targetAmount}
+      price={mode === 'open' ? undefined : targetAmount}
       href={content.productUrl}
       imageUrl={projectConfig.project_image_url ?? ''}
       imageAlt={projectConfig.project_name}
@@ -71,16 +81,32 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       currency={currency}
     />
 
-    <ProgressSection
-      currentAmount={currentAmount}
-      targetAmount={targetAmount}
-      currency={currency}
-      title={content.progressTitle}
-      minLevelAmount={minLevelAmount}
-    />
+    {
+      mode === 'open' ? (
+        <OpenCampaignSection
+          title={content.progressTitle}
+          raised={totals.raised}
+          base={totals.base}
+          baseLabel={projectConfig.base_label}
+          total={totals.total}
+          currency={currency}
+          daysLeft={remainingDays}
+          endDateLabel={endDateLabel}
+          closed={!open}
+        />
+      ) : (
+        <ProgressSection
+          currentAmount={currentAmount}
+          targetAmount={targetAmount}
+          currency={currency}
+          title={content.progressTitle}
+          minLevelAmount={minLevelAmount}
+        />
+      )
+    }
 
     {
-      completed && (
+      finished && (
         <section class='completed-hero'>
           <div class='completed-particles' aria-hidden='true'>
             <span style='left:4%;animation-delay:0s;animation-duration:4.2s'>🎉</span>
@@ -91,14 +117,16 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
             <span style='left:72%;animation-delay:0.9s;animation-duration:4.4s'>⭐</span>
             <span style='left:86%;animation-delay:0.4s;animation-duration:5.3s'>🎉</span>
           </div>
-          <div class='completed-check'>🏆</div>
-          <h2 class='completed-title'>¡Lo conseguimos!</h2>
+          <div class='completed-check'>{completed ? '🏆' : '🏁'}</div>
+          <h2 class='completed-title'>{completed ? '¡Lo conseguimos!' : '¡Campaña cerrada!'}</h2>
           <div class='completed-amount-block'>
             <span class='completed-total'>
-              {currentAmount.toFixed(2)} {currency}
+              {(mode === 'open' ? totals.total : currentAmount).toFixed(2)} {currency}
             </span>
             <span class='completed-label'>
-              recaudados de {targetAmount.toFixed(2)} {currency}
+              {mode === 'open'
+                ? 'conseguidos entre todos'
+                : `recaudados de ${targetAmount.toFixed(2)} ${currency}`}
             </span>
           </div>
           <p class='completed-msg'>
@@ -120,16 +148,24 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     }
 
     {
+      open && (
+        <ContributionLevels
+          levels={contributionLevels}
+          currency={currency}
+          allowCustomAmount={!!projectConfig.allow_custom_amount}
+          minCustomAmount={Number(projectConfig.min_custom_amount) || 5}
+        />
+      )
+    }
+
+    {
       !completed && (
-        <>
-          <ContributionLevels levels={contributionLevels} currency={currency} />
-          <ContributorsListReact
-            contributors={contributions}
-            contributorsTitle={content.contributorsTitle}
-            projectId={projectConfig.id}
-            currency={currency}
-          />
-        </>
+        <ContributorsListReact
+          contributors={contributions}
+          contributorsTitle={content.contributorsTitle}
+          projectId={projectConfig.id}
+          currency={currency}
+        />
       )
     }
 

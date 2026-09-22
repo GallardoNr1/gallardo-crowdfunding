@@ -7,6 +7,15 @@ import FloatingEleents from '../components/FloatingEleents.astro';
 import { getProjectsConfig, type ProjectConfig } from '../lib/supabase';
 import CompletedBage from '@/components/UI/CompletedBage.astro';
 import { currencySymbol } from '@/lib/format';
+import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
+
+const countdownLabel = (p: ProjectConfig) => {
+  if (!isCampaignOpen(p)) return '🏁 Cerrada';
+  const d = daysLeft(p.end_date);
+  if (d === null) return '⏳ Abierta';
+  if (d === 0) return '⏳ ¡Último día!';
+  return `⏳ Quedan ${d} días`;
+};
 
 const statusLabel: Record<string, string> = {
   active: 'Activo',
@@ -78,38 +87,55 @@ try {
                       </p>
                     )}
 
-                    <p class='project-amount'>
-                      Objetivo:{' '}
-                      <strong>
-                        {Number(project.target_amount).toFixed(2)}{' '}
-                        {currencySymbol(project.currency)}
-                      </strong>
-                    </p>
+                    {
+                      project.campaign_mode === 'open' ? (
+                        <div class='progress-wrapper'>
+                          <div class='progress-info'>
+                            <span>Conseguido entre todos:</span>
+                            <strong>
+                              {campaignTotals(project).total.toFixed(2)}{' '}
+                              {currencySymbol(project.currency)}
+                            </strong>
+                          </div>
+                          <div class='progress-percent'>{countdownLabel(project)}</div>
+                        </div>
+                      ) : (
+                        <>
+                        <p class='project-amount'>
+                          Objetivo:{' '}
+                          <strong>
+                            {Number(project.target_amount).toFixed(2)}{' '}
+                            {currencySymbol(project.currency)}
+                          </strong>
+                        </p>
 
-                    <div class='progress-wrapper'>
-                      <div class='progress-info'>
-                        <span>Recaudado:</span>
-                        <strong>
-                          {Number(project.current_amount ?? 0).toFixed(2)}{' '}
-                          {currencySymbol(project.currency)}
-                        </strong>
-                      </div>
+                        <div class='progress-wrapper'>
+                          <div class='progress-info'>
+                            <span>Recaudado:</span>
+                            <strong>
+                              {Number(project.current_amount ?? 0).toFixed(2)}{' '}
+                              {currencySymbol(project.currency)}
+                            </strong>
+                          </div>
 
-                      <div
-                        class='progress-bar'
-                        role='progressbar'
-                        aria-valuemin='0'
-                        aria-valuemax='100'
-                        aria-valuenow={progressPct(project)}
-                      >
-                        <div
-                          class='progress-fill'
-                          style={`width: ${progressPct(project)}%`}
-                        />
-                      </div>
+                          <div
+                            class='progress-bar'
+                            role='progressbar'
+                            aria-valuemin='0'
+                            aria-valuemax='100'
+                            aria-valuenow={progressPct(project)}
+                          >
+                            <div
+                              class='progress-fill'
+                              style={`width: ${progressPct(project)}%`}
+                            />
+                          </div>
 
-                      <div class='progress-percent'>{progressPct(project)}%</div>
-                    </div>
+                          <div class='progress-percent'>{progressPct(project)}%</div>
+                        </div>
+                        </>
+                      )
+                    }
 
                     <p class={`project-status status-${project.project_status}`}>
                       Estado: {statusLabel[project.project_status] ?? project.project_status}
