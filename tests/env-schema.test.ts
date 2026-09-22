@@ -25,6 +25,23 @@ describe('parseEnv', () => {
     expect(env.adminEmails).toEqual([]);
   });
 
+  it('leaves the Anthropic key null when missing or blank', () => {
+    expect(parseEnv(valid).anthropicApiKey).toBeNull();
+    expect(
+      parseEnv({ ...valid, ANTHROPIC_API_KEY: '  ' }).anthropicApiKey
+    ).toBeNull();
+  });
+
+  it('keeps the Anthropic key when present and rejects an obviously short one', () => {
+    expect(
+      parseEnv({ ...valid, ANTHROPIC_API_KEY: 'sk-ant-' + 'k'.repeat(30) })
+        .anthropicApiKey
+    ).toBe('sk-ant-' + 'k'.repeat(30));
+    expect(() => parseEnv({ ...valid, ANTHROPIC_API_KEY: 'short' })).toThrow(
+      /ANTHROPIC_API_KEY/
+    );
+  });
+
   it('splits, trims and lowercases ADMIN_EMAILS', () => {
     const env = parseEnv({ ...valid, ADMIN_EMAILS: 'a@x.com, B@X.com ,, ' });
     expect(env.adminEmails).toEqual(['a@x.com', 'b@x.com']);

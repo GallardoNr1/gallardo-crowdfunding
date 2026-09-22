@@ -178,6 +178,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
           minCustomAmount={Number(projectConfig.min_custom_amount) || 5}
           titleEmoji={theme.emojis.levels}
           spark={theme.emojis.spark}
+          title={theme.texts.levelsTitle}
         />
       )
     }
@@ -189,6 +190,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
           contributorsTitle={content.contributorsTitle}
           projectId={projectConfig.id}
           currency={currency}
+          contributorsStat={theme.texts.contributorsStat}
         />
       )
     }
@@ -196,13 +198,16 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     <MessageSection
       familyMembers={familyMembers}
       mainMessage={content.mainMessage}
-      memberTitle={`${theme.emojis.family} La Tribu Que Le Da Alas`}
+      memberTitle={`${theme.emojis.family} ${theme.texts.familyTitle}`}
       callToAction={content.cta}
       project_id={projectConfig.id}
       sectionEmoji={theme.emojis.message}
       iconEmoji={theme.emojis.messageIcon}
       supportEmoji={theme.emojis.support}
       emptyEmoji={theme.emojis.empty}
+      sectionTitle={theme.texts.messageTitle}
+      supportTitle={theme.texts.supportTitle}
+      supportEmpty={theme.texts.emptySupport}
     />
   </div>
   <Footer slot='footer' />

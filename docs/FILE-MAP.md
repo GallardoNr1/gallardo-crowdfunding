@@ -37,12 +37,19 @@ gallardo-crowdfunding/
 │   │   ├── supabase-server.ts        # Cliente service_role (solo servidor)
 │   │   ├── contributions-server.ts   # Crear pendiente, cambiar estado, recalcular importe, listar
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
-│   │   ├── themes.ts                 # Temas: colores (tokens) + emojis decorativos; getTheme, themeCss
+│   │   ├── themes.ts                 # Temas: colores (tokens) + emojis + textos de sección; getTheme, themeCss
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
 │   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
+│   │   ├── client/level-rows.ts      # Backoffice (alta): filas de niveles clonando un <template>
+│   │   ├── client/ai-draft.ts        # Backoffice (alta): panel "Rellenar con IA" → vuelca el borrador
+│   │   ├── client/form-restore.ts    # Backoffice (alta): recupera lo escrito tras un error del servidor
+│   │   ├── project-draft.ts          # Borrador IA: esquemas Zod, normalizeDraft, prompt de sistema (puro)
+│   │   ├── project-draft-form.ts     # Borrador IA → valores de los campos del formulario (sin Zod)
+│   │   ├── project-draft-route.ts    # Lógica de POST /admin/api/draft-project (inyectable, testeable)
+│   │   ├── project-draft-server.ts   # Llamada a Claude con salida estructurada (solo servidor)
 │   │   ├── schemas.ts                # Zod: ContributionInput, SupportMessageInput, ProjectFormInput
-│   │   ├── project-form.ts           # FormData del backoffice → fila de project_config
+│   │   ├── project-form.ts           # FormData del backoffice → fila de project_config; parseLevelRows
 │   │   ├── env-schema.ts, env.ts     # Validación de variables de entorno al arrancar
 │   │   ├── authz.ts                  # isAdminUser
 │   │   ├── session-cookies.ts        # Cookies HttpOnly de la sesión admin
@@ -61,6 +68,7 @@ gallardo-crowdfunding/
 │   │   │   └── support-messages.ts   # POST
 │   │   └── admin/
 │   │       ├── login.astro, logout.astro, index.astro
+│   │       ├── api/draft-project.ts  # POST: borrador de proyecto con IA (requiere sesión admin)
 │   │       └── projects/
 │   │           ├── new.astro
 │   │           └── [id]/edit.astro, contributions.astro, messages.astro
@@ -69,7 +77,7 @@ gallardo-crowdfunding/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, rate-limit, api, authz, format, html
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), rate-limit, api, authz, format, html, themes
 ├── .env.example
 ├── astro.config.mjs
 ├── ecosystem.config.cjs       # PM2 en producción (cwd = current/, modo cluster)

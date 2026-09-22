@@ -2,7 +2,8 @@
 export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { parseProjectForm } from '@/lib/project-form';
+import { isDraftConfigured } from '@/lib/project-draft-server';
+import { parseLevelRows, parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
 import { DEFAULT_THEME_ID, THEMES, THEME_IDS } from '@/lib/themes';
@@ -13,10 +14,13 @@ let fieldErrors: Record<string, string> = {};
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const parsed = parseProjectForm(form);
+  const levelRows = parseLevelRows(form);
 
   if (!parsed.ok) {
     fieldErrors = parsed.fields;
     error = 'Revisa los campos marcados.';
+  } else if (!levelRows.ok) {
+    error = levelRows.error;
   } else {
     const supabase = createAdminClient();
     const { data: clash } = await supabase
@@ -33,7 +37,8 @@ if (Astro.request.method === 'POST') {
         .insert([
           {
             ...parsed.data,
-            start_date: parsed.data.start_date ?? new Date().toISOString().slice(0, 10),
+            start_date:
+              parsed.data.start_date ?? new Date().toISOString().slice(0, 10),
             current_amount: 0,
             emoji_options: [],
           },
@@ -45,46 +50,146 @@ if (Astro.request.method === 'POST') {
         error = dbError?.message ?? 'No se pudo crear el proyecto.';
       } else {
         // La imagen se sube una vez existe el id del proyecto (ruta projects/<id>/cover-*).
-        const upload = await uploadProjectImage(supabase, data.id, form.get('project_image'));
-        const suffix = upload.ok ? '' : `&image_error=${encodeURIComponent(upload.error)}`;
-        return Astro.redirect(`/admin/projects/${data.id}/edit?created=1${suffix}`);
+        const upload = await uploadProjectImage(
+          supabase,
+          data.id,
+          form.get('project_image')
+        );
+        let suffix = upload.ok
+          ? ''
+          : `&image_error=${encodeURIComponent(upload.error)}`;
+
+        // Niveles del alta (opcionales): se crean después del proyecto porque llevan su id.
+        if (levelRows.levels.length > 0) {
+          const { error: levelsError } = await supabase
+            .from('contribution_levels')
+            .insert(
+              levelRows.levels.map((level) => ({
+                ...level,
+                project_id: data.id,
+                rewards: [],
+                is_active: true,
+              }))
+            );
+          suffix += levelsError
+            ? `&levels_error=${encodeURIComponent(levelsError.message)}`
+            : `&levels=${levelRows.levels.length}`;
+        }
+        return Astro.redirect(
+          `/admin/projects/${data.id}/edit?created=1${suffix}`
+        );
       }
     }
   }
 }
 const currentTheme = DEFAULT_THEME_ID;
+const aiConfigured = isDraftConfigured();
 ---
 
 <AdminLayout title='Nuevo proyecto'>
   {error && <div class='alert-error'>⚠️ {error}</div>}
-  {
-    Object.keys(fieldErrors).length > 0 && (
-      <ul class='alert-error field-errors'>
-        {Object.entries(fieldErrors).map(([field, message]) => (
-          <li>
-            <code>{field}</code>: {message}
-          </li>
-        ))}
-      </ul>
-    )
-  }
+  {Object.keys(fieldErrors).length > 0 && (
+    <ul class='alert-error field-errors'>
+      {Object.entries(fieldErrors).map(([field, message]) => (
+        <li>
+          <code>{field}</code>: {message}
+        </li>
+      ))}
+    </ul>
+  )}
 
-  <form method='POST' class='project-form' enctype='multipart/form-data'>
+  <section
+    class='ai-panel'
+    id='aiDraftPanel'
+  >
+    <h2 class='section-title'>✨ Rellenar con IA</h2>
+    <p class='section-hint'>
+      Cuéntame a grandes rasgos de qué va el crowdfunding (para quién, qué se
+      quiere comprar, precio o fecha límite, si la familia pone una base, el
+      tono...) y preparo un borrador de todos los campos de abajo. No se guarda
+      nada: revisas, corriges lo que quieras y pulsas "Crear proyecto".
+    </p>
+    {aiConfigured ? (
+      <>
+        <textarea
+          data-ai-brief
+          rows='4'
+          maxlength='4000'
+          aria-label='Descripción del crowdfunding para la IA'
+          placeholder='Ej.: Una bici para mi hijo Máximo por su cumple, el 5 de noviembre. Mi mujer y yo ponemos 100 € de base y queremos recaudar todo lo posible hasta una semana antes. Tono divertido, rollo aventura.'
+        ></textarea>
+        <div class='ai-panel__actions'>
+          <button
+            type='button'
+            class='btn-ai'
+            data-ai-generate
+          >
+            ✨ Rellenar con IA
+          </button>
+          <span
+            class='ai-status'
+            data-ai-status
+            aria-live='polite'
+          />
+        </div>
+        <div
+          class='ai-notes'
+          data-ai-notes
+          hidden
+        >
+          <strong>Lo que la IA ha supuesto o no ha podido rellenar:</strong>
+          <ul />
+        </div>
+      </>
+    ) : (
+      <p class='ai-panel__off'>
+        La IA no está configurada en este servidor: añade{' '}
+        <code>ANTHROPIC_API_KEY</code> al <code>.env</code> (y al secret{' '}
+        <code>ENV_LOCAL</code> del despliegue) para activarla.
+      </p>
+    )}
+  </section>
+
+  <form
+    method='POST'
+    class='project-form'
+    enctype='multipart/form-data'
+    data-has-error={error ? 'true' : 'false'}
+  >
     <section class='form-section'>
       <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
       <div class='mode-options'>
         <label class='mode-option'>
-          <input type='radio' name='campaign_mode' value='target' checked={true} />
+          <input
+            type='radio'
+            name='campaign_mode'
+            value='target'
+            checked={true}
+          />
           <span class='mode-option__body'>
             <strong>🎯 Al alcanzar un objetivo de dinero</strong>
-            <small>Hay un producto concreto con precio. Barra de progreso y porcentaje. La fecha de cierre es opcional.</small>
+            <small>
+              Hay un producto concreto con precio. Barra de progreso y
+              porcentaje. La fecha de cierre es opcional.
+            </small>
           </span>
         </label>
         <label class='mode-option'>
-          <input type='radio' name='campaign_mode' value='open' checked={false} />
+          <input
+            type='radio'
+            name='campaign_mode'
+            value='open'
+            checked={false}
+          />
           <span class='mode-option__body'>
-            <strong>⏳ En una fecha de cierre (recaudar lo máximo posible)</strong>
-            <small>Sin objetivo ni producto fijo: lo que se compre depende de lo recaudado. Se muestra lo conseguido, la aportación base y una cuenta atrás.</small>
+            <strong>
+              ⏳ En una fecha de cierre (recaudar lo máximo posible)
+            </strong>
+            <small>
+              Sin objetivo ni producto fijo: lo que se compre depende de lo
+              recaudado. Se muestra lo conseguido, la aportación base y una
+              cuenta atrás.
+            </small>
           </span>
         </label>
       </div>
@@ -95,23 +200,38 @@ const currentTheme = DEFAULT_THEME_ID;
       <div class='form-grid'>
         <div class='field full'>
           <label for='project_name'>Nombre del proyecto *</label>
-          <input type='text' name='project_name' id='project_name' required placeholder='Tablet para Ana' />
+          <input
+            type='text'
+            name='project_name'
+            id='project_name'
+            required
+            placeholder='Tablet para Ana'
+          />
         </div>
 
         <div class='field'>
           <label for='slug'>Slug (URL) *</label>
           <div class='input-prefix'>
             <span class='prefix'>/projects/</span>
-            <input type='text' name='slug' id='slug' required placeholder='tablet-ana'
+            <input
+              type='text'
+              name='slug'
+              id='slug'
+              required
+              placeholder='tablet-ana'
               pattern='[a-z0-9\-]+'
-              title='Solo letras minúsculas, números y guiones' />
+              title='Solo letras minúsculas, números y guiones'
+            />
           </div>
           <small>Solo minúsculas, números y guiones.</small>
         </div>
 
         <div class='field'>
           <label for='project_status'>Estado</label>
-          <select name='project_status' id='project_status'>
+          <select
+            name='project_status'
+            id='project_status'
+          >
             <option value='active'>Activo</option>
             <option value='paused'>Pausado</option>
             <option value='completed'>Completado</option>
@@ -121,97 +241,280 @@ const currentTheme = DEFAULT_THEME_ID;
 
         <div class='field full'>
           <label for='project_description'>Descripción</label>
-          <textarea name='project_description' id='project_description' rows='3' placeholder='Describe el proyecto...'></textarea>
+          <textarea
+            name='project_description'
+            id='project_description'
+            rows='3'
+            placeholder='Describe el proyecto...'
+          ></textarea>
         </div>
 
-        <div class='field' data-mode='target'>
+        <div
+          class='field'
+          data-mode='target'
+        >
           <label for='target_amount'>Meta (importe) *</label>
-          <input type='number' name='target_amount' id='target_amount' min='1' step='0.01' placeholder='200.00' data-required-in='target' />
+          <input
+            type='number'
+            name='target_amount'
+            id='target_amount'
+            min='1'
+            step='0.01'
+            placeholder='200.00'
+            data-required-in='target'
+          />
         </div>
 
         <div class='field'>
           <label for='currency'>Moneda</label>
-          <input type='text' name='currency' id='currency' value='EUR' maxlength='5' />
+          <input
+            type='text'
+            name='currency'
+            id='currency'
+            value='EUR'
+            maxlength='5'
+          />
         </div>
 
         <div class='field full'>
           <label for='project_image'>Imagen (subir desde el dispositivo)</label>
-          <input type='file' name='project_image' id='project_image' accept='image/jpeg,image/png,image/webp,image/gif' />
-          <small>JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, manda sobre la URL de abajo.</small>
+          <input
+            type='file'
+            name='project_image'
+            id='project_image'
+            accept='image/jpeg,image/png,image/webp,image/gif'
+          />
+          <small>
+            JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, manda sobre
+            la URL de abajo.
+          </small>
         </div>
 
         <div class='field full'>
           <label for='project_image_url'>… o URL de la imagen</label>
-          <input type='url' name='project_image_url' id='project_image_url' placeholder='https://...' />
-          <small data-mode='open'>En campañas por tiempo es solo ilustrativa (no enlaza a ningún producto).</small>
+          <input
+            type='url'
+            name='project_image_url'
+            id='project_image_url'
+            placeholder='https://...'
+          />
+          <small data-mode='open'>
+            En campañas por tiempo es solo ilustrativa (no enlaza a ningún
+            producto).
+          </small>
         </div>
 
         <div class='field'>
           <label for='start_date'>Fecha de inicio</label>
-          <input type='date' name='start_date' id='start_date' value={new Date().toISOString().split('T')[0]} />
+          <input
+            type='date'
+            name='start_date'
+            id='start_date'
+            value={new Date().toISOString().split('T')[0]}
+          />
         </div>
 
         <div class='field'>
           <label for='end_date'>Fecha de cierre</label>
-          <input type='date' name='end_date' id='end_date' data-required-in='open' />
-          <small data-mode='open'>Obligatoria: la campaña se cierra sola al terminar ese día.</small>
-          <small data-mode='target'>Opcional: si se indica, la campaña se cierra sola al terminar ese día.</small>
+          <input
+            type='date'
+            name='end_date'
+            id='end_date'
+            data-required-in='open'
+          />
+          <small data-mode='open'>
+            Obligatoria: la campaña se cierra sola al terminar ese día.
+          </small>
+          <small data-mode='target'>
+            Opcional: si se indica, la campaña se cierra sola al terminar ese
+            día.
+          </small>
         </div>
 
         <div class='field full'>
           <label for='redirect_url'>URL de redirección al finalizar</label>
-          <input type='text' name='redirect_url' id='redirect_url' placeholder='/' value='/' />
+          <input
+            type='text'
+            name='redirect_url'
+            id='redirect_url'
+            placeholder='/'
+            value='/'
+          />
         </div>
       </div>
     </section>
 
     <section class='form-section'>
       <h2 class='section-title'>Aspecto</h2>
-      <p class='section-hint'>Colores y emojis decorativos de la página del proyecto (no cambia los emojis que escribes tú).</p>
+      <p class='section-hint'>
+        Colores y emojis decorativos de la página del proyecto (no cambia los
+        emojis que escribes tú).
+      </p>
       <div class='theme-options'>
-        {
-          THEME_IDS.map((id) => {
-            const t = THEMES[id];
-            return (
-              <label class='theme-option'>
-                <input type='radio' name='theme' value={id} checked={currentTheme === id} />
-                <span class='theme-option__body'>
-                  <span class='theme-swatch' aria-hidden='true'>
-                    {t.swatch.map((c) => <i style={`background:${c}`} />)}
-                  </span>
-                  <strong>{t.name}</strong>
-                  <small>{t.description}</small>
-                  <span class='theme-emojis' aria-hidden='true'>
-                    {t.emojis.levels} {t.emojis.message} {t.emojis.support} {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
-                  </span>
+        {THEME_IDS.map((id) => {
+          const t = THEMES[id];
+          return (
+            <label class='theme-option'>
+              <input
+                type='radio'
+                name='theme'
+                value={id}
+                checked={currentTheme === id}
+              />
+              <span class='theme-option__body'>
+                <span
+                  class='theme-swatch'
+                  aria-hidden='true'
+                >
+                  {t.swatch.map((c) => (
+                    <i style={`background:${c}`} />
+                  ))}
                 </span>
-              </label>
-            );
-          })
-        }
+                <strong>{t.name}</strong>
+                <small>{t.description}</small>
+                <span
+                  class='theme-emojis'
+                  aria-hidden='true'
+                >
+                  {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
+                  {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
+                </span>
+              </span>
+            </label>
+          );
+        })}
       </div>
     </section>
 
     <section class='form-section'>
       <h2 class='section-title'>Aportaciones</h2>
       <div class='form-grid'>
-        <div class='field' data-mode='open'>
+        <div
+          class='field'
+          data-mode='open'
+        >
           <label for='base_amount'>Aportación base (la pone la familia)</label>
-          <input type='number' name='base_amount' id='base_amount' min='0' step='0.01' value='0' />
+          <input
+            type='number'
+            name='base_amount'
+            id='base_amount'
+            min='0'
+            step='0.01'
+            value='0'
+          />
         </div>
-        <div class='field' data-mode='open'>
+        <div
+          class='field'
+          data-mode='open'
+        >
           <label for='base_label'>Etiqueta de la aportación base</label>
-          <input type='text' name='base_label' id='base_label' placeholder='Papá y mamá' maxlength='60' />
+          <input
+            type='text'
+            name='base_label'
+            id='base_label'
+            placeholder='Papá y mamá'
+            maxlength='60'
+          />
         </div>
         <div class='field'>
           <label for='allow_custom_amount'>Permitir "otra cantidad"</label>
-          <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' />
+          <input
+            type='checkbox'
+            name='allow_custom_amount'
+            id='allow_custom_amount'
+          />
         </div>
         <div class='field'>
           <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
-          <input type='number' name='min_custom_amount' id='min_custom_amount' min='1' step='0.01' value='5' />
+          <input
+            type='number'
+            name='min_custom_amount'
+            id='min_custom_amount'
+            min='1'
+            step='0.01'
+            value='5'
+          />
         </div>
       </div>
+    </section>
+
+    <section
+      class='form-section'
+      id='levelsSection'
+    >
+      <h2 class='section-title'>Niveles de contribución</h2>
+      <p class='section-hint'>
+        Opcional: puedes añadirlos ahora o más tarde en la pantalla de edición.
+        Se ordenan por importe.
+      </p>
+      <div
+        class='levels-list'
+        data-level-list
+      ></div>
+      <p
+        class='levels-empty'
+        data-level-empty
+      >
+        Todavía no hay niveles.
+      </p>
+      <button
+        type='button'
+        class='btn-ghost'
+        data-add-level
+      >
+        + Añadir nivel
+      </button>
+      <template data-level-row>
+        <div class='level-row'>
+          <input
+            type='text'
+            name='level_emoji'
+            maxlength='8'
+            placeholder='⭐'
+            aria-label='Emoji'
+            class='level-emoji'
+          />
+          <input
+            type='text'
+            name='level_name'
+            maxlength='60'
+            placeholder='Nombre'
+            aria-label='Nombre del nivel'
+          />
+          <input
+            type='number'
+            name='level_amount'
+            min='0.01'
+            step='0.01'
+            placeholder='€'
+            aria-label='Importe'
+            class='level-amount'
+          />
+          <input
+            type='text'
+            name='level_description'
+            maxlength='200'
+            placeholder='Descripción corta'
+            aria-label='Descripción'
+            class='level-desc'
+          />
+          <input
+            type='color'
+            name='level_color'
+            value='#6366f1'
+            aria-label='Color'
+            class='level-color'
+          />
+          <button
+            type='button'
+            class='level-remove'
+            data-remove-level
+            aria-label='Quitar nivel'
+          >
+            ✕
+          </button>
+        </div>
+      </template>
     </section>
 
     <section class='form-section'>
@@ -219,11 +522,21 @@ const currentTheme = DEFAULT_THEME_ID;
       <div class='form-grid'>
         <div class='field'>
           <label for='bizum_phone'>Número de Bizum</label>
-          <input type='text' name='bizum_phone' id='bizum_phone' placeholder='612345678' />
+          <input
+            type='text'
+            name='bizum_phone'
+            id='bizum_phone'
+            placeholder='612345678'
+          />
         </div>
         <div class='field'>
           <label for='bizum_concept'>Concepto Bizum</label>
-          <input type='text' name='bizum_concept' id='bizum_concept' placeholder='Regalo Ana cumpleaños' />
+          <input
+            type='text'
+            name='bizum_concept'
+            id='bizum_concept'
+            placeholder='Regalo Ana cumpleaños'
+          />
         </div>
       </div>
     </section>
@@ -233,28 +546,61 @@ const currentTheme = DEFAULT_THEME_ID;
       <div class='form-grid'>
         <div class='field full'>
           <label for='pageTitle'>Título de la página</label>
-          <input type='text' name='pageTitle' id='pageTitle' placeholder='🎁 Regalo para Ana' />
+          <input
+            type='text'
+            name='pageTitle'
+            id='pageTitle'
+            placeholder='🎁 Regalo para Ana'
+          />
         </div>
         <div class='field full'>
           <label for='pageSubtitle'>Subtítulo</label>
-          <input type='text' name='pageSubtitle' id='pageSubtitle' placeholder='¡Ayúdanos a conseguirlo!' />
+          <input
+            type='text'
+            name='pageSubtitle'
+            id='pageSubtitle'
+            placeholder='¡Ayúdanos a conseguirlo!'
+          />
         </div>
-        <div class='field full' data-mode='target'>
+        <div
+          class='field full'
+          data-mode='target'
+        >
           <label for='productUrl'>URL del producto</label>
-          <input type='url' name='productUrl' id='productUrl' placeholder='https://amazon.es/...' />
+          <input
+            type='url'
+            name='productUrl'
+            id='productUrl'
+            placeholder='https://amazon.es/...'
+          />
         </div>
 
         <div class='field'>
           <label for='progressTitle'>Título sección progreso</label>
-          <input type='text' name='progressTitle' id='progressTitle' value='🎯 Progreso' />
+          <input
+            type='text'
+            name='progressTitle'
+            id='progressTitle'
+            value='🎯 Progreso'
+          />
         </div>
         <div class='field'>
           <label for='contributorsTitle'>Título sección contribuidores</label>
-          <input type='text' name='contributorsTitle' id='contributorsTitle' value='✨ Contribuidores' />
+          <input
+            type='text'
+            name='contributorsTitle'
+            id='contributorsTitle'
+            value='✨ Contribuidores'
+          />
         </div>
         <div class='field full'>
           <label for='photoSectionTitle'>Título sección fotos</label>
-          <input type='text' name='photoSectionTitle' id='photoSectionTitle' value='📸 Fotos' />
+          <input
+            type='text'
+            name='photoSectionTitle'
+            id='photoSectionTitle'
+            value='📸 Fotos'
+          />
         </div>
       </div>
     </section>
@@ -264,20 +610,39 @@ const currentTheme = DEFAULT_THEME_ID;
       <div class='form-grid'>
         <div class='field full'>
           <label for='mainMessage_message'>Mensaje</label>
-          <textarea name='mainMessage_message' id='mainMessage_message' rows='5'
-            placeholder='Escribe el mensaje que verán los visitantes...'></textarea>
+          <textarea
+            name='mainMessage_message'
+            id='mainMessage_message'
+            rows='5'
+            placeholder='Escribe el mensaje que verán los visitantes...'
+          ></textarea>
         </div>
         <div class='field'>
           <label for='mainMessage_signature'>Firma</label>
-          <input type='text' name='mainMessage_signature' id='mainMessage_signature' placeholder='La familia Gallardo' />
+          <input
+            type='text'
+            name='mainMessage_signature'
+            id='mainMessage_signature'
+            placeholder='La familia Gallardo'
+          />
         </div>
         <div class='field'>
           <label for='mainMessage_familyName'>Nombre de familia</label>
-          <input type='text' name='mainMessage_familyName' id='mainMessage_familyName' placeholder='Los Gallardo' />
+          <input
+            type='text'
+            name='mainMessage_familyName'
+            id='mainMessage_familyName'
+            placeholder='Los Gallardo'
+          />
         </div>
         <div class='field'>
           <label for='mainMessage_date'>Fecha del mensaje</label>
-          <input type='text' name='mainMessage_date' id='mainMessage_date' placeholder='Julio 2025' />
+          <input
+            type='text'
+            name='mainMessage_date'
+            id='mainMessage_date'
+            placeholder='Julio 2025'
+          />
         </div>
       </div>
     </section>
@@ -287,22 +652,48 @@ const currentTheme = DEFAULT_THEME_ID;
       <div class='form-grid'>
         <div class='field'>
           <label for='cta_icon'>Icono (emoji)</label>
-          <input type='text' name='cta_icon' id='cta_icon' value='🎁' maxlength='4' />
+          <input
+            type='text'
+            name='cta_icon'
+            id='cta_icon'
+            value='🎁'
+            maxlength='4'
+          />
         </div>
         <div class='field'>
           <label for='cta_title'>Título del CTA</label>
-          <input type='text' name='cta_title' id='cta_title' placeholder='¿Nos ayudas?' />
+          <input
+            type='text'
+            name='cta_title'
+            id='cta_title'
+            placeholder='¿Nos ayudas?'
+          />
         </div>
         <div class='field full'>
           <label for='cta_text'>Texto del CTA</label>
-          <textarea name='cta_text' id='cta_text' rows='3' placeholder='Cualquier aportación suma...'></textarea>
+          <textarea
+            name='cta_text'
+            id='cta_text'
+            rows='3'
+            placeholder='Cualquier aportación suma...'
+          ></textarea>
         </div>
       </div>
     </section>
 
     <div class='form-actions'>
-      <a href='/admin' class='btn-ghost'>Cancelar</a>
-      <button type='submit' class='btn-primary'>Crear proyecto →</button>
+      <a
+        href='/admin'
+        class='btn-ghost'
+      >
+        Cancelar
+      </a>
+      <button
+        type='submit'
+        class='btn-primary'
+      >
+        Crear proyecto →
+      </button>
     </div>
   </form>
 </AdminLayout>
@@ -579,9 +970,181 @@ const currentTheme = DEFAULT_THEME_ID;
     outline: 2px solid var(--color-admin-primary);
     outline-offset: 2px;
   }
+
+  /* ── Panel "Rellenar con IA" ── */
+  .ai-panel {
+    background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+    border: 1px solid #c7d2fe;
+    border-radius: var(--radius-md);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .ai-panel .section-title {
+    border-bottom-color: #c7d2fe;
+    color: #4338ca;
+  }
+  .ai-panel textarea {
+    background: #fff;
+    border-color: #c7d2fe;
+    min-height: 110px;
+  }
+  .ai-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .btn-ai {
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+    transition: var(--transition-fast);
+  }
+  .btn-ai:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.38);
+  }
+  .btn-ai:disabled {
+    opacity: 0.7;
+    cursor: progress;
+  }
+  .ai-status {
+    font-size: 0.88rem;
+    color: #4338ca;
+  }
+  .ai-status[data-kind='busy']::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    border-radius: 50%;
+    border: 2px solid #c7d2fe;
+    border-top-color: #4f46e5;
+    vertical-align: -2px;
+    animation: aiSpin 0.8s linear infinite;
+  }
+  .ai-status[data-kind='error'] {
+    color: var(--color-error);
+  }
+  .ai-status[data-kind='ok'] {
+    color: #15803d;
+  }
+  @keyframes aiSpin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .ai-notes {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px dashed #a5b4fc;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    color: var(--color-admin-text);
+  }
+  .ai-notes ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+  .ai-panel__off {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  .ai-panel__off code {
+    background: #fff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #c7d2fe;
+  }
+  /* Campos rellenados por la IA: resaltados hasta que se revisan. */
+  .ai-filled {
+    border-color: #8b5cf6 !important;
+    background: #faf5ff !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16) !important;
+  }
+  label.ai-filled {
+    border-color: #8b5cf6 !important;
+    background: #faf5ff !important;
+  }
+
+  /* ── Niveles en el alta ── */
+  .levels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .level-row {
+    display: grid;
+    grid-template-columns: 64px minmax(120px, 1.2fr) 110px minmax(
+        140px,
+        2fr
+      ) 48px 36px;
+    gap: 8px;
+    align-items: center;
+  }
+  .level-row .level-color {
+    padding: 2px;
+    height: 38px;
+    cursor: pointer;
+  }
+  .level-remove {
+    border: 1px solid var(--color-admin-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    height: 38px;
+    cursor: pointer;
+    color: var(--color-admin-text-muted);
+    font-family: inherit;
+  }
+  .level-remove:hover {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+  .levels-empty {
+    margin: 0 0 12px;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  @media (max-width: 700px) {
+    .level-row {
+      grid-template-columns: 64px 1fr 110px 36px;
+    }
+    .level-row .level-desc {
+      grid-column: 1 / -2;
+    }
+    .level-row .level-color {
+      grid-column: -2 / -1;
+    }
+  }
 </style>
 
 <script>
+  import { initAiDraftPanel } from '@/lib/client/ai-draft';
   import { initCampaignForm } from '@/lib/client/campaign-form';
-  initCampaignForm(document.querySelector('form.project-form'));
+  import {
+    restoreFormAfterError,
+    saveFormOnSubmit,
+  } from '@/lib/client/form-restore';
+  import { initLevelRows } from '@/lib/client/level-rows';
+
+  const form = document.querySelector<HTMLFormElement>('form.project-form');
+  initCampaignForm(form);
+  const levels = initLevelRows(document.getElementById('levelsSection'));
+  if (form) {
+    // Tras un error del servidor se recupera lo escrito (incluidos los niveles).
+    restoreFormAfterError(form, levels);
+    saveFormOnSubmit(form);
+    initAiDraftPanel(document.getElementById('aiDraftPanel'), { form, levels });
+  }
 </script>

@@ -79,6 +79,28 @@ Crea un mensaje de apoyo **pendiente de aprobación**. Si `authorEmail` coincide
 
 **Archivo:** `src/pages/api/support-messages.ts` → `src/lib/support-messages-server.ts`
 
+### `POST /admin/api/draft-project` (backoffice)
+
+Genera con IA un **borrador** del formulario de alta de proyecto. Vive bajo `/admin/` para que el middleware exija sesión de administrador (sin sesión redirige a `/admin/login`). No escribe en la base de datos: el navegador vuelca la respuesta en el formulario y la persona lo revisa y lo envía. Límite: 20 peticiones por usuario cada 10 minutos.
+
+**Body:**
+```json
+{ "brief": "Descripción libre del crowdfunding (10–4000 caracteres)" }
+```
+
+**Respuestas:**
+
+| Código | Cuándo |
+|--------|--------|
+| `200` | `{ "draft": { …campos de ProjectFormInput…, "levels": [{ name, amount, emoji, description, color }], "notes": ["…"] } }` |
+| `400` | `brief` ausente o fuera de longitud (`fields`) |
+| `401` | Sin sesión de administrador (en la práctica el middleware redirige antes) |
+| `429` | Demasiados borradores |
+| `502` | La IA falló o devolvió algo inválido (`error` legible) |
+| `503` | Falta `ANTHROPIC_API_KEY` en el servidor |
+
+**Archivo:** `src/pages/admin/api/draft-project.ts` → `src/lib/project-draft-route.ts` → `src/lib/project-draft-server.ts` (Claude, `claude-opus-5`, salida estructurada validada con `ProjectDraft` de `src/lib/project-draft.ts`).
+
 ## Realtime (Broadcast)
 
 Los eventos los emiten triggers de Postgres (`supabase/migrations/20260922100100_realtime_broadcast.sql`) en el topic `project:<project_id>`. El cliente se suscribe con `subscribeToProjectEvents(projectId, handlers)` (`src/lib/supabase.ts`).

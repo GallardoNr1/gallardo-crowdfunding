@@ -22,6 +22,7 @@ de GitHub Actions al hacer `npm run build`.
 | `PUBLIC_SUPABASE_ANON_KEY` | Clave anon (se expone al navegador; solo lecturas gracias a RLS) | Sí |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio: endpoints `/api/*` y backoffice. Nunca con prefijo `PUBLIC_` | Sí |
 | `ADMIN_EMAILS` | Emails (coma) con acceso al backoffice además de los usuarios con `app_metadata.role = 'admin'` | No |
+| `ANTHROPIC_API_KEY` | Clave de la API de Anthropic para el panel "Rellenar con IA" del alta de proyectos. Sin ella el panel muestra un aviso y el resto funciona igual. Solo servidor | No |
 
 ## Producción
 
@@ -96,12 +97,16 @@ Las acciones de GitHub están fijadas por SHA (`actions/checkout`, `actions/setu
 
 | Secret | Descripción |
 |--------|-------------|
-| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS` si se usa) |
+| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS` y `ANTHROPIC_API_KEY` si se usan) |
 | `SERVER_HOST` | IP o hostname del VPS |
 | `SERVER_USER` | Usuario SSH |
 | `SERVER_SSH_KEY` | Clave privada SSH |
 
 El job `deploy` usa el environment `production` de GitHub; se le puede exigir aprobación manual desde Settings → Environments.
+
+### Borrador con IA y tiempos de espera
+
+`POST /admin/api/draft-project` llama a la API de Anthropic y puede tardar entre 20 y 60 segundos (a veces algo más). El `proxy_read_timeout` por defecto de nginx es 60 s: si el backoffice muestra un error 504 al pedir un borrador, subirlo en el `location` del proxy, por ejemplo `proxy_read_timeout 180s;`. El cliente Node espera hasta 120 s y reintenta una vez.
 
 ## Cabeceras de seguridad
 

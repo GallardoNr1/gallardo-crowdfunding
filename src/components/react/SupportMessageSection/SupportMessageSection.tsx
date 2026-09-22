@@ -11,6 +11,9 @@ interface Props {
   project_id: string;
   titleEmoji?: string;
   emptyEmoji?: string;
+  /** Textos del tema del proyecto. */
+  title?: string;
+  emptyText?: string;
 }
 
 const byNewest = (a: SupportMessage, b: SupportMessage) =>
@@ -21,6 +24,8 @@ const SupportMessageSection: React.FC<Props> = ({
   project_id = '',
   titleEmoji = '💬',
   emptyEmoji = '👋',
+  title = 'Mensajes de Apoyo',
+  emptyText = '¡Sé el primero en dejar un mensaje de apoyo!',
 }) => {
   const [comments, setComments] = useState<SupportMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +89,7 @@ const SupportMessageSection: React.FC<Props> = ({
     <div className='message-section'>
       <div className='comments-section'>
         <div className='comments-header'>
-          <h4 className='comments-title'>{titleEmoji} Mensajes de Apoyo</h4>
+          <h4 className='comments-title'>{titleEmoji} {title}</h4>
         </div>
 
         {error && (
@@ -98,7 +103,7 @@ const SupportMessageSection: React.FC<Props> = ({
 
           {!isLoading && comments.length === 0 ? (
             <div className='no-comments'>
-              <p>{emptyEmoji} ¡Sé el primero en dejar un mensaje de apoyo!</p>
+              <p>{emptyEmoji} {emptyText}</p>
             </div>
           ) : (
             comments.map((comment, index) => (

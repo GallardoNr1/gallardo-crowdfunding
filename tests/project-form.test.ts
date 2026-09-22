@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseProjectForm } from '../src/lib/project-form';
+import { parseLevelRows, parseProjectForm } from '../src/lib/project-form';
 
 function formWith(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -29,7 +29,12 @@ describe('parseProjectForm', () => {
     expect(r.data.allow_custom_amount).toBe(false);
     expect(r.data.min_custom_amount).toBe(5);
     expect(r.data.page_content.progressTitle).toBe('🎯 Progreso');
-    expect(r.data.page_content.cta).toEqual({ icon: '🎁', title: '', text: '', stats: [] });
+    expect(r.data.page_content.cta).toEqual({
+      icon: '🎁',
+      title: '',
+      text: '',
+      stats: [],
+    });
     expect(r.data.page_content.theme).toBe('fiesta');
     expect(r.data.page_content.mainMessage).toEqual({
       message: '',
@@ -86,11 +91,83 @@ describe('parseProjectForm', () => {
   });
 
   it('reports field errors instead of a row when the form is invalid', () => {
-    const r = parseProjectForm(formWith({ ...minimal, project_name: '', target_amount: '0' }));
+    const r = parseProjectForm(
+      formWith({ ...minimal, project_name: '', target_amount: '0' })
+    );
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(Object.keys(r.fields)).toEqual(
       expect.arrayContaining(['project_name', 'target_amount'])
     );
+  });
+});
+
+describe('parseLevelRows', () => {
+  function rows(list: Record<string, string>[]): FormData {
+    const fd = new FormData();
+    for (const row of list)
+      for (const [k, v] of Object.entries(row)) fd.append(k, v);
+    return fd;
+  }
+
+  it('returns no levels when the form has no rows', () => {
+    expect(parseLevelRows(new FormData())).toEqual({ ok: true, levels: [] });
+  });
+
+  it('builds ordered levels with defaults and skips fully empty rows', () => {
+    const r = parseLevelRows(
+      rows([
+        {
+          level_name: 'Timbre',
+          level_amount: '10',
+          level_emoji: '',
+          level_description: '',
+          level_color: '',
+        },
+        {
+          level_name: '',
+          level_amount: '',
+          level_emoji: '',
+          level_description: '',
+          level_color: '',
+        },
+        {
+          level_name: 'Rueda',
+          level_amount: '50.5',
+          level_emoji: '🛞',
+          level_description: 'Una rueda',
+          level_color: '#ff0000',
+        },
+      ])
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.levels).toEqual([
+      {
+        name: 'Timbre',
+        amount: 10,
+        emoji: '⭐',
+        description: '',
+        color: '#6366f1',
+        sort_order: 0,
+      },
+      {
+        name: 'Rueda',
+        amount: 50.5,
+        emoji: '🛞',
+        description: 'Una rueda',
+        color: '#ff0000',
+        sort_order: 1,
+      },
+    ]);
+  });
+
+  it('rejects a row with a name but no valid amount', () => {
+    const r = parseLevelRows(
+      rows([{ level_name: 'Timbre', level_amount: '0' }])
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toMatch(/Timbre/);
   });
 });

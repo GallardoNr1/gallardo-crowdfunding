@@ -1,7 +1,14 @@
 // Temas visuales por proyecto: colores (sobrescriben los tokens de src/styles/tokens.css)
 // y emojis decorativos. Se guarda el id en page_content.theme. Puro: se usa en SSR y en tests.
 
-export const THEME_IDS = ['fiesta', 'aventura', 'navidad', 'fantasia', 'viaje', 'tecnologia'] as const;
+export const THEME_IDS = [
+  'fiesta',
+  'aventura',
+  'navidad',
+  'fantasia',
+  'viaje',
+  'tecnologia',
+] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 export const DEFAULT_THEME_ID: ThemeId = 'fiesta';
 
@@ -30,6 +37,21 @@ export interface ThemeEmojis {
   confetti: string[];
 }
 
+export interface ThemeTexts {
+  /** Título de la sección de miembros de la familia ("La Tribu Que Le Da Alas"). */
+  familyTitle: string;
+  /** Etiqueta del contador de contribuidores ("Héroes"). */
+  contributorsStat: string;
+  /** Título de la sección de niveles ("Niveles de Contribución"). */
+  levelsTitle: string;
+  /** Título del mensaje de la familia ("Mensaje de Nuestra Familia"). */
+  messageTitle: string;
+  /** Título del muro de mensajes de apoyo ("Mensajes de Apoyo"). */
+  supportTitle: string;
+  /** Texto del muro de apoyo vacío. */
+  emptySupport: string;
+}
+
 export interface Theme {
   id: ThemeId;
   name: string;
@@ -38,15 +60,35 @@ export interface Theme {
   swatch: [string, string, string];
   colors: Record<string, string>;
   emojis: ThemeEmojis;
+  /** Textos fijos de la página que cambian con el tema (los del formulario no). */
+  texts: ThemeTexts;
 }
 
 const colors = (c: {
-  primary: string; action: string; actionAlt: string; yellow: string;
-  green: string; greenDark: string; greenLight: string; purple: string; purpleDark: string;
-  headerBg: string; headerText: string; headerSubtitle: string;
-  bodyFrom: string; bodyMid: string; bodyTo: string;
-  progressFrom: string; progressTo: string; levelsFrom: string; levelsTo: string; sectionAccent: string;
-  accent: string; accentDark: string; accentLight: string; accentBg: string;
+  primary: string;
+  action: string;
+  actionAlt: string;
+  yellow: string;
+  green: string;
+  greenDark: string;
+  greenLight: string;
+  purple: string;
+  purpleDark: string;
+  headerBg: string;
+  headerText: string;
+  headerSubtitle: string;
+  bodyFrom: string;
+  bodyMid: string;
+  bodyTo: string;
+  progressFrom: string;
+  progressTo: string;
+  levelsFrom: string;
+  levelsTo: string;
+  sectionAccent: string;
+  accent: string;
+  accentDark: string;
+  accentLight: string;
+  accentBg: string;
 }): Record<string, string> => ({
   '--color-brand-primary': c.primary,
   '--color-brand-orange': c.action,
@@ -81,18 +123,51 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Naranja, rojo y amarillo. El look de siempre.',
     swatch: ['#d32f2f', '#ff6b35', '#ffcc02'],
     colors: colors({
-      primary: '#d32f2f', action: '#ff6b35', actionAlt: '#f7931e', yellow: '#ffcc02',
-      green: '#4caf50', greenDark: '#2e7d32', greenLight: '#8bc34a', purple: '#667eea', purpleDark: '#764ba2',
-      headerBg: '#1f2937', headerText: '#f3f4f6', headerSubtitle: '#d1d5db',
-      bodyFrom: '#bcbec0', bodyMid: '#e6e7e8', bodyTo: '#a7a8aa',
-      progressFrom: '#fff3e0', progressTo: '#ffcc02', levelsFrom: '#e8f5e8', levelsTo: '#c8e6c8', sectionAccent: '#e65100',
-      accent: '#e91e63', accentDark: '#c2185b', accentLight: '#f8bbd9', accentBg: '#fce4ec',
+      primary: '#d32f2f',
+      action: '#ff6b35',
+      actionAlt: '#f7931e',
+      yellow: '#ffcc02',
+      green: '#4caf50',
+      greenDark: '#2e7d32',
+      greenLight: '#8bc34a',
+      purple: '#667eea',
+      purpleDark: '#764ba2',
+      headerBg: '#1f2937',
+      headerText: '#f3f4f6',
+      headerSubtitle: '#d1d5db',
+      bodyFrom: '#bcbec0',
+      bodyMid: '#e6e7e8',
+      bodyTo: '#a7a8aa',
+      progressFrom: '#fff3e0',
+      progressTo: '#ffcc02',
+      levelsFrom: '#e8f5e8',
+      levelsTo: '#c8e6c8',
+      sectionAccent: '#e65100',
+      accent: '#e91e63',
+      accentDark: '#c2185b',
+      accentLight: '#f8bbd9',
+      accentBg: '#fce4ec',
     }),
     emojis: {
-      levels: '🏰', message: '💝', messageIcon: '🏰', support: '💬', family: '🌸', modal: '🧡',
-      spark: '✨', contributor: '⭐', empty: '👋',
+      levels: '🏰',
+      message: '💝',
+      messageIcon: '🏰',
+      support: '💬',
+      family: '🌸',
+      modal: '🧡',
+      spark: '✨',
+      contributor: '⭐',
+      empty: '👋',
       hero: ['🎉', '✨', '🎊', '💛', '🎁', '⭐', '🎉'],
       confetti: ['🎉', '✨', '🌟', '💫', '🎊', '🎁', '💝', '💛', '⭐'],
+    },
+    texts: {
+      familyTitle: 'La Tribu Que Le Da Alas',
+      contributorsStat: 'Héroes',
+      levelsTitle: 'Niveles de Contribución',
+      messageTitle: 'Mensaje de Nuestra Familia',
+      supportTitle: 'Mensajes de Apoyo',
+      emptySupport: '¡Sé el primero en dejar un mensaje de apoyo!',
     },
   },
   aventura: {
@@ -101,18 +176,51 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Verde bosque, tierra y cielo. Bicis, montaña y aire libre.',
     swatch: ['#1b5e20', '#388e3c', '#ffd54f'],
     colors: colors({
-      primary: '#1b5e20', action: '#388e3c', actionAlt: '#66bb6a', yellow: '#ffd54f',
-      green: '#43a047', greenDark: '#1b5e20', greenLight: '#a5d6a7', purple: '#0277bd', purpleDark: '#01579b',
-      headerBg: '#1b3a2a', headerText: '#f1f8e9', headerSubtitle: '#c5e1a5',
-      bodyFrom: '#dcedc8', bodyMid: '#f1f8e9', bodyTo: '#c5e1a5',
-      progressFrom: '#fff8e1', progressTo: '#ffe082', levelsFrom: '#e8f5e9', levelsTo: '#c8e6c9', sectionAccent: '#ef6c00',
-      accent: '#2e7d32', accentDark: '#1b5e20', accentLight: '#a5d6a7', accentBg: '#e8f5e9',
+      primary: '#1b5e20',
+      action: '#388e3c',
+      actionAlt: '#66bb6a',
+      yellow: '#ffd54f',
+      green: '#43a047',
+      greenDark: '#1b5e20',
+      greenLight: '#a5d6a7',
+      purple: '#0277bd',
+      purpleDark: '#01579b',
+      headerBg: '#1b3a2a',
+      headerText: '#f1f8e9',
+      headerSubtitle: '#c5e1a5',
+      bodyFrom: '#dcedc8',
+      bodyMid: '#f1f8e9',
+      bodyTo: '#c5e1a5',
+      progressFrom: '#fff8e1',
+      progressTo: '#ffe082',
+      levelsFrom: '#e8f5e9',
+      levelsTo: '#c8e6c9',
+      sectionAccent: '#ef6c00',
+      accent: '#2e7d32',
+      accentDark: '#1b5e20',
+      accentLight: '#a5d6a7',
+      accentBg: '#e8f5e9',
     }),
     emojis: {
-      levels: '🧭', message: '🏕️', messageIcon: '🏔️', support: '🌲', family: '🌞', modal: '🚴',
-      spark: '🌿', contributor: '⛰️', empty: '🥾',
+      levels: '🧭',
+      message: '🏕️',
+      messageIcon: '🏔️',
+      support: '🌲',
+      family: '🌞',
+      modal: '🚴',
+      spark: '🌿',
+      contributor: '⛰️',
+      empty: '🥾',
       hero: ['🚴', '🏔️', '🌲', '🌞', '🧭', '🌿', '🚵'],
       confetti: ['🚴', '🌲', '🍃', '🌞', '⛰️', '🧭', '💚', '⭐', '🌿'],
+    },
+    texts: {
+      familyTitle: 'El Pelotón Que Empuja',
+      contributorsStat: 'Exploradores',
+      levelsTitle: 'Etapas de la Ruta',
+      messageTitle: 'Mensaje desde el Campamento Base',
+      supportTitle: 'Ánimos desde la Cuneta',
+      emptySupport: '¡Sé el primero en animar desde la cuneta!',
     },
   },
   navidad: {
@@ -121,18 +229,51 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Rojo, verde y dorado sobre blanco nieve.',
     swatch: ['#b71c1c', '#c62828', '#ffd700'],
     colors: colors({
-      primary: '#b71c1c', action: '#c62828', actionAlt: '#e53935', yellow: '#ffd700',
-      green: '#2e7d32', greenDark: '#1b5e20', greenLight: '#81c784', purple: '#1565c0', purpleDark: '#0d47a1',
-      headerBg: '#14532d', headerText: '#fff8e1', headerSubtitle: '#ffe082',
-      bodyFrom: '#dbe9f6', bodyMid: '#ffffff', bodyTo: '#c9dcec',
-      progressFrom: '#fff8e1', progressTo: '#ffd700', levelsFrom: '#e8f5e9', levelsTo: '#c8e6c9', sectionAccent: '#b71c1c',
-      accent: '#c62828', accentDark: '#8e0000', accentLight: '#ef9a9a', accentBg: '#ffebee',
+      primary: '#b71c1c',
+      action: '#c62828',
+      actionAlt: '#e53935',
+      yellow: '#ffd700',
+      green: '#2e7d32',
+      greenDark: '#1b5e20',
+      greenLight: '#81c784',
+      purple: '#1565c0',
+      purpleDark: '#0d47a1',
+      headerBg: '#14532d',
+      headerText: '#fff8e1',
+      headerSubtitle: '#ffe082',
+      bodyFrom: '#dbe9f6',
+      bodyMid: '#ffffff',
+      bodyTo: '#c9dcec',
+      progressFrom: '#fff8e1',
+      progressTo: '#ffd700',
+      levelsFrom: '#e8f5e9',
+      levelsTo: '#c8e6c9',
+      sectionAccent: '#b71c1c',
+      accent: '#c62828',
+      accentDark: '#8e0000',
+      accentLight: '#ef9a9a',
+      accentBg: '#ffebee',
     }),
     emojis: {
-      levels: '🎄', message: '🎁', messageIcon: '🔔', support: '❄️', family: '🦌', modal: '🎅',
-      spark: '⭐', contributor: '🎁', empty: '🕯️',
+      levels: '🎄',
+      message: '🎁',
+      messageIcon: '🔔',
+      support: '❄️',
+      family: '🦌',
+      modal: '🎅',
+      spark: '⭐',
+      contributor: '🎁',
+      empty: '🕯️',
       hero: ['🎄', '🎁', '⭐', '❄️', '🔔', '🎉', '✨'],
       confetti: ['❄️', '🎄', '⭐', '🎁', '🔔', '✨', '❤️', '💚', '🌟'],
+    },
+    texts: {
+      familyTitle: 'Los Duendes de Este Regalo',
+      contributorsStat: 'Ayudantes',
+      levelsTitle: 'Regalos bajo el Árbol',
+      messageTitle: 'Carta de Nuestra Familia',
+      supportTitle: 'Felicitaciones',
+      emptySupport: '¡Sé el primero en dejar una felicitación!',
     },
   },
   fantasia: {
@@ -141,18 +282,51 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Morado, oro y azul noche. Dragones y castillos.',
     swatch: ['#4a148c', '#6a1b9a', '#ffca28'],
     colors: colors({
-      primary: '#4a148c', action: '#6a1b9a', actionAlt: '#8e24aa', yellow: '#ffca28',
-      green: '#00897b', greenDark: '#00695c', greenLight: '#4db6ac', purple: '#5e35b1', purpleDark: '#311b92',
-      headerBg: '#1a1040', headerText: '#ede7f6', headerSubtitle: '#b39ddb',
-      bodyFrom: '#d1c4e9', bodyMid: '#f3e5f5', bodyTo: '#b39ddb',
-      progressFrom: '#fff8e1', progressTo: '#ffd54f', levelsFrom: '#ede7f6', levelsTo: '#d1c4e9', sectionAccent: '#ff8f00',
-      accent: '#8e24aa', accentDark: '#6a1b9a', accentLight: '#ce93d8', accentBg: '#f3e5f5',
+      primary: '#4a148c',
+      action: '#6a1b9a',
+      actionAlt: '#8e24aa',
+      yellow: '#ffca28',
+      green: '#00897b',
+      greenDark: '#00695c',
+      greenLight: '#4db6ac',
+      purple: '#5e35b1',
+      purpleDark: '#311b92',
+      headerBg: '#1a1040',
+      headerText: '#ede7f6',
+      headerSubtitle: '#b39ddb',
+      bodyFrom: '#d1c4e9',
+      bodyMid: '#f3e5f5',
+      bodyTo: '#b39ddb',
+      progressFrom: '#fff8e1',
+      progressTo: '#ffd54f',
+      levelsFrom: '#ede7f6',
+      levelsTo: '#d1c4e9',
+      sectionAccent: '#ff8f00',
+      accent: '#8e24aa',
+      accentDark: '#6a1b9a',
+      accentLight: '#ce93d8',
+      accentBg: '#f3e5f5',
     }),
     emojis: {
-      levels: '🏰', message: '📜', messageIcon: '🐉', support: '🔮', family: '🛡️', modal: '🐉',
-      spark: '✨', contributor: '⚔️', empty: '🧙',
+      levels: '🏰',
+      message: '📜',
+      messageIcon: '🐉',
+      support: '🔮',
+      family: '🛡️',
+      modal: '🐉',
+      spark: '✨',
+      contributor: '⚔️',
+      empty: '🧙',
       hero: ['🐉', '🏰', '⚔️', '✨', '🛡️', '🔥', '🌟'],
       confetti: ['🐉', '✨', '⚔️', '🏰', '🔥', '💜', '⭐', '🌟', '🛡️'],
+    },
+    texts: {
+      familyTitle: 'La Cofradía del Castillo',
+      contributorsStat: 'Valientes',
+      levelsTitle: 'Tesoros del Reino',
+      messageTitle: 'Pergamino de Nuestra Familia',
+      supportTitle: 'Mensajes del Reino',
+      emptySupport: '¡Sé el primero en escribir en el pergamino!',
     },
   },
   viaje: {
@@ -161,18 +335,51 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Turquesa, arena y coral. Maletas y mapas.',
     swatch: ['#00838f', '#ff7043', '#ffe082'],
     colors: colors({
-      primary: '#00838f', action: '#ff7043', actionAlt: '#ffab91', yellow: '#ffe082',
-      green: '#26a69a', greenDark: '#00695c', greenLight: '#80cbc4', purple: '#0288d1', purpleDark: '#01579b',
-      headerBg: '#004d5a', headerText: '#e0f7fa', headerSubtitle: '#80deea',
-      bodyFrom: '#b2ebf2', bodyMid: '#fffde7', bodyTo: '#80deea',
-      progressFrom: '#fff8e1', progressTo: '#ffe082', levelsFrom: '#e0f2f1', levelsTo: '#b2dfdb', sectionAccent: '#ff7043',
-      accent: '#ff7043', accentDark: '#e64a19', accentLight: '#ffab91', accentBg: '#fbe9e7',
+      primary: '#00838f',
+      action: '#ff7043',
+      actionAlt: '#ffab91',
+      yellow: '#ffe082',
+      green: '#26a69a',
+      greenDark: '#00695c',
+      greenLight: '#80cbc4',
+      purple: '#0288d1',
+      purpleDark: '#01579b',
+      headerBg: '#004d5a',
+      headerText: '#e0f7fa',
+      headerSubtitle: '#80deea',
+      bodyFrom: '#b2ebf2',
+      bodyMid: '#fffde7',
+      bodyTo: '#80deea',
+      progressFrom: '#fff8e1',
+      progressTo: '#ffe082',
+      levelsFrom: '#e0f2f1',
+      levelsTo: '#b2dfdb',
+      sectionAccent: '#ff7043',
+      accent: '#ff7043',
+      accentDark: '#e64a19',
+      accentLight: '#ffab91',
+      accentBg: '#fbe9e7',
     }),
     emojis: {
-      levels: '🧳', message: '🗺️', messageIcon: '✈️', support: '🌍', family: '☀️', modal: '✈️',
-      spark: '🌴', contributor: '🌍', empty: '📸',
+      levels: '🧳',
+      message: '🗺️',
+      messageIcon: '✈️',
+      support: '🌍',
+      family: '☀️',
+      modal: '✈️',
+      spark: '🌴',
+      contributor: '🌍',
+      empty: '📸',
       hero: ['✈️', '🌍', '🧳', '☀️', '🗺️', '🎉', '🌴'],
       confetti: ['✈️', '🌍', '☀️', '🌴', '🧳', '💙', '⭐', '🎉', '🗺️'],
+    },
+    texts: {
+      familyTitle: 'La Tripulación de Este Viaje',
+      contributorsStat: 'Viajeros',
+      levelsTitle: 'Billetes de Embarque',
+      messageTitle: 'Postal de Nuestra Familia',
+      supportTitle: 'Postales de Ánimo',
+      emptySupport: '¡Sé el primero en enviar una postal!',
     },
   },
   tecnologia: {
@@ -181,24 +388,60 @@ export const THEMES: Record<ThemeId, Theme> = {
     description: 'Índigo y cian. Pantallas, cohetes y rayos.',
     swatch: ['#283593', '#3949ab', '#00acc1'],
     colors: colors({
-      primary: '#283593', action: '#3949ab', actionAlt: '#5c6bc0', yellow: '#b2ebf2',
-      green: '#00acc1', greenDark: '#006064', greenLight: '#4dd0e1', purple: '#3f51b5', purpleDark: '#1a237e',
-      headerBg: '#0d1b3e', headerText: '#e8eaf6', headerSubtitle: '#9fa8da',
-      bodyFrom: '#c5cae9', bodyMid: '#f5f7fb', bodyTo: '#9fa8da',
-      progressFrom: '#e0f7fa', progressTo: '#80deea', levelsFrom: '#e8eaf6', levelsTo: '#c5cae9', sectionAccent: '#00acc1',
-      accent: '#3949ab', accentDark: '#283593', accentLight: '#9fa8da', accentBg: '#e8eaf6',
+      primary: '#283593',
+      action: '#3949ab',
+      actionAlt: '#5c6bc0',
+      yellow: '#b2ebf2',
+      green: '#00acc1',
+      greenDark: '#006064',
+      greenLight: '#4dd0e1',
+      purple: '#3f51b5',
+      purpleDark: '#1a237e',
+      headerBg: '#0d1b3e',
+      headerText: '#e8eaf6',
+      headerSubtitle: '#9fa8da',
+      bodyFrom: '#c5cae9',
+      bodyMid: '#f5f7fb',
+      bodyTo: '#9fa8da',
+      progressFrom: '#e0f7fa',
+      progressTo: '#80deea',
+      levelsFrom: '#e8eaf6',
+      levelsTo: '#c5cae9',
+      sectionAccent: '#00acc1',
+      accent: '#3949ab',
+      accentDark: '#283593',
+      accentLight: '#9fa8da',
+      accentBg: '#e8eaf6',
     }),
     emojis: {
-      levels: '💻', message: '💌', messageIcon: '📱', support: '💬', family: '⚡', modal: '🚀',
-      spark: '⚡', contributor: '🚀', empty: '🤖',
+      levels: '💻',
+      message: '💌',
+      messageIcon: '📱',
+      support: '💬',
+      family: '⚡',
+      modal: '🚀',
+      spark: '⚡',
+      contributor: '🚀',
+      empty: '🤖',
       hero: ['🚀', '💻', '📱', '⚡', '✨', '🎉', '🛰️'],
       confetti: ['🚀', '⚡', '💻', '📱', '✨', '💙', '⭐', '🛰️', '🎉'],
+    },
+    texts: {
+      familyTitle: 'El Equipo de Lanzamiento',
+      contributorsStat: 'Astronautas',
+      levelsTitle: 'Niveles de Energía',
+      messageTitle: 'Transmisión de Nuestra Familia',
+      supportTitle: 'Mensajes Recibidos',
+      emptySupport: '¡Sé el primero en enviar un mensaje a la nave!',
     },
   },
 };
 
 export function isThemeId(value: unknown): value is ThemeId {
-  return typeof value === 'string' && (THEME_IDS as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' &&
+    (THEME_IDS as readonly string[]).includes(value)
+  );
 }
 
 /** Tema por id; cualquier valor desconocido devuelve el tema por defecto. */

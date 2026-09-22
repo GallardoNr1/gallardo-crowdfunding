@@ -1,4 +1,9 @@
-import { ProjectFormInput, fieldErrors, type CampaignMode, type ProjectStatus } from './schemas';
+import {
+  ProjectFormInput,
+  fieldErrors,
+  type CampaignMode,
+  type ProjectStatus,
+} from './schemas';
 import type { ThemeId } from './themes';
 
 // Convierte el formulario del backoffice (new/edit) en la fila de project_config.
@@ -8,11 +13,21 @@ export interface ProjectPageContentRow {
   pageTitle: string;
   pageSubtitle: string;
   productUrl: string;
-  mainMessage: { message: string; signature: string; familyName: string; date: string };
+  mainMessage: {
+    message: string;
+    signature: string;
+    familyName: string;
+    date: string;
+  };
   progressTitle: string;
   contributorsTitle: string;
   photoSectionTitle: string;
-  cta: { icon: string; title: string; text: string; stats: { number: string; label: string }[] };
+  cta: {
+    icon: string;
+    title: string;
+    text: string;
+    stats: { number: string; label: string }[];
+  };
   bizum_phone: string;
   bizum_concept: string;
   theme: ThemeId;
@@ -46,7 +61,8 @@ export type ParseProjectFormResult =
 export function parseProjectForm(
   form: FormData | Record<string, unknown>
 ): ParseProjectFormResult {
-  const raw = form instanceof FormData ? Object.fromEntries(form.entries()) : form;
+  const raw =
+    form instanceof FormData ? Object.fromEntries(form.entries()) : form;
   const parsed = ProjectFormInput.safeParse(raw);
   if (!parsed.success) return { ok: false, fields: fieldErrors(parsed.error) };
 
@@ -96,4 +112,62 @@ export function parseProjectForm(
       },
     },
   };
+}
+
+// ── Niveles de contribución en el alta ──────────────────────────────────────
+// El formulario de alta puede traer varias filas de nivel (inputs repetidos
+// level_name/level_amount/level_emoji/level_description/level_color, en el mismo orden).
+
+export interface LevelRowInput {
+  name: string;
+  amount: number;
+  emoji: string;
+  description: string;
+  color: string;
+  sort_order: number;
+}
+
+export type ParseLevelRowsResult =
+  { ok: true; levels: LevelRowInput[] } | { ok: false; error: string };
+
+const DEFAULT_LEVEL_EMOJI = '⭐';
+const DEFAULT_LEVEL_COLOR = '#6366f1';
+
+/** Lee las filas de nivel; las filas totalmente vacías se ignoran. */
+export function parseLevelRows(form: FormData): ParseLevelRowsResult {
+  const column = (name: string) =>
+    form.getAll(name).map((v) => (typeof v === 'string' ? v : ''));
+  const names = column('level_name');
+  const amounts = column('level_amount');
+  const emojis = column('level_emoji');
+  const descriptions = column('level_description');
+  const colors = column('level_color');
+
+  const levels: LevelRowInput[] = [];
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i].trim().slice(0, 60);
+    const rawAmount = (amounts[i] ?? '').trim();
+    if (!name && !rawAmount) continue;
+    if (!name)
+      return { ok: false, error: `El nivel ${i + 1} necesita un nombre.` };
+    const amount = Number(rawAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        ok: false,
+        error: `El nivel "${name}" necesita un importe mayor que 0.`,
+      };
+    }
+    const color = (colors[i] ?? '').trim();
+    levels.push({
+      name,
+      amount: Math.round(amount * 100) / 100,
+      emoji: (emojis[i] ?? '').trim().slice(0, 8) || DEFAULT_LEVEL_EMOJI,
+      description: (descriptions[i] ?? '').trim().slice(0, 200),
+      color: /^#[0-9a-f]{6}$/i.test(color)
+        ? color.toLowerCase()
+        : DEFAULT_LEVEL_COLOR,
+      sort_order: levels.length,
+    });
+  }
+  return { ok: true, levels };
 }

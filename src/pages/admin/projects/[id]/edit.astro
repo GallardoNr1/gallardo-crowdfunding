@@ -162,9 +162,17 @@ const cta = pc.cta ?? {};
 const emojiOptions = (project.emoji_options ?? []) as { value: string; label: string }[];
 
 const createdParam = Astro.url.searchParams.get('created');
-if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de contribución.';
+const createdLevels = Number(Astro.url.searchParams.get('levels')) || 0;
+if (createdParam) {
+  successMsg =
+    createdLevels > 0
+      ? `✅ Proyecto creado con ${createdLevels} ${createdLevels === 1 ? 'nivel' : 'niveles'} de contribución. Revísalo todo antes de compartirlo.`
+      : '✅ Proyecto creado. Ahora añade los niveles de contribución.';
+}
 const imageErrorParam = Astro.url.searchParams.get('image_error');
 if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
+const levelsErrorParam = Astro.url.searchParams.get('levels_error');
+if (levelsErrorParam) error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos abajo.`;
 const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
 ---
 

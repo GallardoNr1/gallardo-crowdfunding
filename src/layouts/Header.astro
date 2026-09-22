@@ -13,21 +13,94 @@ const {
 <div class='header-bg'>
   <div class='header'>
     <div class='left'>
-      <a class='home-link' href='/' title='Ir a la página principal'>
-        <svg class='logo-svg' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <a
+        class='home-link'
+        href='/'
+        title='Ir a la página principal'
+      >
+        <svg
+          class='logo-svg'
+          viewBox='0 0 64 64'
+          fill='none'
+          xmlns='http://www.w3.org/2000/svg'
+        >
           <defs>
-            <linearGradient id='gc-header-grad' x1='0' y1='0' x2='64' y2='64' gradientUnits='userSpaceOnUse'>
-              <stop stop-color='#ff6b35'/>
-              <stop offset='1' stop-color='#c62828'/>
+            <linearGradient
+              id='gc-header-grad'
+              x1='0'
+              y1='0'
+              x2='64'
+              y2='64'
+              gradientUnits='userSpaceOnUse'
+            >
+              <stop stop-color='#ff6b35' />
+              <stop
+                offset='1'
+                stop-color='#c62828'
+              />
             </linearGradient>
           </defs>
-          <rect width='64' height='64' rx='15' fill='url(#gc-header-grad)'/>
-          <rect x='29' y='0' width='6' height='64' fill='white' opacity='0.10' rx='3'/>
-          <rect x='0' y='29' width='64' height='6' fill='white' opacity='0.10' rx='3'/>
-          <ellipse cx='25' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(-20 25 12)'/>
-          <ellipse cx='39' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(20 39 12)'/>
-          <circle cx='32' cy='12' r='3' fill='white' opacity='0.30'/>
-          <text x='32' y='47' font-family="'Arial Black',sans-serif" font-size='26' font-weight='900' fill='white' text-anchor='middle' letter-spacing='-0.5'>GC</text>
+          <rect
+            width='64'
+            height='64'
+            rx='15'
+            fill='url(#gc-header-grad)'
+          />
+          <rect
+            x='29'
+            y='0'
+            width='6'
+            height='64'
+            fill='white'
+            opacity='0.10'
+            rx='3'
+          />
+          <rect
+            x='0'
+            y='29'
+            width='64'
+            height='6'
+            fill='white'
+            opacity='0.10'
+            rx='3'
+          />
+          <ellipse
+            cx='25'
+            cy='12'
+            rx='7'
+            ry='3.5'
+            fill='white'
+            opacity='0.22'
+            transform='rotate(-20 25 12)'
+          />
+          <ellipse
+            cx='39'
+            cy='12'
+            rx='7'
+            ry='3.5'
+            fill='white'
+            opacity='0.22'
+            transform='rotate(20 39 12)'
+          />
+          <circle
+            cx='32'
+            cy='12'
+            r='3'
+            fill='white'
+            opacity='0.30'
+          />
+          <text
+            x='32'
+            y='47'
+            font-family="'Arial Black',sans-serif"
+            font-size='26'
+            font-weight='900'
+            fill='white'
+            text-anchor='middle'
+            letter-spacing='-0.5'
+          >
+            GC
+          </text>
         </svg>
       </a>
     </div>
@@ -56,8 +129,10 @@ const {
       1;
   }
   .header {
+    position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
     padding: 35px 20px;
     margin-bottom: 40px;
     gap: 20px;
@@ -65,7 +140,12 @@ const {
     max-width: 1200px;
   }
 
+  /* El logo va en absoluto: así el título se centra respecto a la página, no al hueco restante. */
   .left {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,6 +154,8 @@ const {
   .center {
     flex: 1;
     text-align: center;
+    /* Que el título no se meta debajo del logo en anchos intermedios. */
+    padding: 0 88px;
   }
 
   .logo-svg {
@@ -112,8 +194,15 @@ const {
       padding: 25px 20px;
     }
 
+    /* En móvil el logo vuelve al flujo, encima del título. */
+    .left {
+      position: static;
+      transform: none;
+    }
+
     .center {
       text-align: center;
+      padding: 0;
     }
 
     .logo-svg {

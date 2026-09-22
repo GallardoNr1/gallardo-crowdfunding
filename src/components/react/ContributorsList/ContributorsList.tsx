@@ -25,6 +25,8 @@ export interface ContributorsListProps {
   contributorsTitle?: string;
   /** Necesario para recibir en tiempo real las contribuciones confirmadas de este proyecto. */
   projectId?: string;
+  /** Etiqueta del contador de personas ("Héroes"), según el tema. */
+  contributorsStat?: string;
 }
 
 function fromEvent(ev: ProjectContributionEvent): PublicContribution {
@@ -48,6 +50,7 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
   maxDisplay = 20,
   contributorsTitle = '',
   projectId,
+  contributorsStat = 'Héroes',
 }) => {
   const [items, setItems] = useState<PublicContribution[]>(contributors);
   const [showAll, setShowAll] = useState(false);
@@ -92,7 +95,7 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
         <div className='section-stats'>
           <div className='stat-badge'>
             <span className='stat-number'>{totalContributors}</span>
-            <span className='stat-label'>Héroes</span>
+            <span className='stat-label'>{contributorsStat}</span>
           </div>
 
           {showTotal && (

@@ -10,4 +10,5 @@ export const env = parseEnv({
   PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY: import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
   ADMIN_EMAILS: import.meta.env.ADMIN_EMAILS,
+  ANTHROPIC_API_KEY: import.meta.env.ANTHROPIC_API_KEY,
 });

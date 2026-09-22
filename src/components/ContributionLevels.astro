@@ -10,6 +10,8 @@ export interface Props {
   /** Emojis del tema del proyecto. */
   titleEmoji?: string;
   spark?: string;
+  /** Título de la sección (texto del tema). */
+  title?: string;
 }
 
 const {
@@ -19,11 +21,12 @@ const {
   minCustomAmount = 5,
   titleEmoji = '🏰',
   spark = '✨',
+  title = 'Niveles de Contribución',
 } = Astro.props;
 ---
 
 <div class='contributors-section' id='contribuir' data-currency={currency}>
-  <h3 class='contributors-title'>{titleEmoji} Niveles de Contribución</h3>
+  <h3 class='contributors-title'>{titleEmoji} {title}</h3>
 
   <div class='contribution-levels'>
     {

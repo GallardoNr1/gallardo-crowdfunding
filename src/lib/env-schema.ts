@@ -5,6 +5,11 @@ const EnvSchema = z.object({
   PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
   ADMIN_EMAILS: z.string().optional().default(''),
+  /** Clave de Anthropic para el borrador de proyecto con IA del backoffice. Opcional. */
+  ANTHROPIC_API_KEY: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().min(20).optional()
+  ),
 });
 
 export interface AppEnv {
@@ -13,6 +18,8 @@ export interface AppEnv {
   supabaseServiceRoleKey: string;
   /** Emails (en minúsculas) con acceso al backoffice, además de app_metadata.role = 'admin'. */
   adminEmails: string[];
+  /** Clave de la API de Anthropic; null desactiva el panel "Rellenar con IA" del alta. */
+  anthropicApiKey: string | null;
 }
 
 /**
@@ -35,5 +42,6 @@ export function parseEnv(raw: Record<string, unknown>): AppEnv {
     adminEmails: env.ADMIN_EMAILS.split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
+    anthropicApiKey: env.ANTHROPIC_API_KEY ?? null,
   };
 }

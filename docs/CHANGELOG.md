@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-22] — Borrador de proyecto con IA, niveles en el alta y textos por tema
+
+- **Qué cambió:** Panel "✨ Rellenar con IA" en `/admin/projects/new`: se describe el crowdfunding a grandes rasgos y `POST /admin/api/draft-project` pide a Claude (`claude-opus-5`, salida estructurada validada con Zod) un borrador de todos los campos del formulario, incluidos niveles de contribución y una lista de suposiciones/datos que faltan; el navegador rellena los campos (resaltados) y **no guarda nada** hasta pulsar "Crear proyecto". Nuevo `ANTHROPIC_API_KEY` opcional: sin clave el panel muestra un aviso. El alta admite ahora filas de niveles (se insertan tras crear el proyecto) y recupera lo escrito si el servidor devuelve un error (sessionStorage). Los temas llevan textos propios (`texts` en `themes.ts`): título de la familia ("La Tribu Que Le Da Alas"), etiqueta del contador ("Héroes"), títulos de niveles, mensaje familiar y muro de apoyo. Cabecera: el logo va en `position: absolute` para que el título quede centrado en la página.
+- **Por qué:** Dar de alta un proyecto exigía redactar más de veinte campos a mano; con el borrador solo hay que revisar. Los textos fijos "de fiesta" desentonaban en los demás temas y el logo desplazaba el título.
+- **Archivos tocados:** `src/lib/project-draft.ts`, `src/lib/project-draft-form.ts`, `src/lib/project-draft-route.ts`, `src/lib/project-draft-server.ts`, `src/pages/admin/api/draft-project.ts`, `src/lib/client/{ai-draft,level-rows,form-restore}.ts`, `src/lib/project-form.ts`, `src/lib/env-schema.ts`, `src/lib/env.ts`, `src/lib/themes.ts`, `src/pages/admin/projects/new.astro`, `src/pages/admin/projects/[id]/edit.astro`, `src/pages/projects/[slug].astro`, `src/components/**`, `src/layouts/Header.astro`, `tests/*`, `docs/*`, `.env.example`, `package.json` (`@anthropic-ai/sdk`, `happy-dom` en dev).
+- **Impacto:** Sin cambios de esquema. Cada borrador es una llamada de pago a la API de Anthropic (límite: 20 por usuario y 10 minutos). Para activarlo en producción hay que añadir `ANTHROPIC_API_KEY` al secret `ENV_LOCAL` y, si nginx corta a los 60 s, subir `proxy_read_timeout` (ver INFRA).
+
+---
+
 ## [2026-09-22] — Formularios detrás de nginx
 
 - **Qué cambió:** `security.checkOrigin: false` en `astro.config.mjs`.
