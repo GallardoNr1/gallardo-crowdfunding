@@ -184,8 +184,9 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
   }
 
   <nav class='subnav'>
-    <a href={`/admin/projects/${id}/contributions`} class='btn-secondary'>💳 Contribuciones</a>
-    <a href={`/admin/projects/${id}/messages`} class='btn-secondary'>💬 Mensajes de apoyo</a>
+    <a href={`/admin/projects/${id}/contributions`} class='subnav-link'>💳 Contribuciones</a>
+    <a href={`/admin/projects/${id}/messages`} class='subnav-link'>💬 Mensajes de apoyo</a>
+    <a href={`/projects/${project.slug}`} target='_blank' class='subnav-link'>👁 Ver página</a>
   </nav>
 
   <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
@@ -943,6 +944,23 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 20px;
+  }
+  /* Mismo aspecto que los botones superiores de /contributions y /messages */
+  .subnav-link {
+    display: inline-block;
+    background: transparent;
+    color: var(--color-admin-primary);
+    padding: 8px 12px;
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: var(--transition-fast);
+  }
+  .subnav-link:hover {
+    background: var(--color-admin-bg);
   }
   .mode-options {
     display: grid;
