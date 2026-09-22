@@ -283,7 +283,7 @@ export function normalizeProjectPageContent(raw: unknown): Required<ProjectPageC
   return {
     pageTitle: c.pageTitle ?? '',
     pageSubtitle: c.pageSubtitle ?? '',
-    productUrl: c.productUrl ?? '#',
+    productUrl: c.productUrl ?? '',
     mainMessage: c.mainMessage ?? { message: '', signature: '', familyName: '', date: '' },
     progressTitle: c.progressTitle ?? '🎯 Progreso',
     contributorsTitle: c.contributorsTitle ?? '✨ Contribuidores',

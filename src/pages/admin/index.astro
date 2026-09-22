@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: projects, error } = await supabase
   .from('project_config')
-  .select('id, project_name, slug, project_status, current_amount, target_amount, currency, created_at, campaign_mode, base_amount, end_date')
+  .select('*')
   .order('created_at', { ascending: false });
 
 // Pendientes por proyecto (confirmar pagos / aprobar mensajes)

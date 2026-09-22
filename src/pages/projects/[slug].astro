@@ -73,7 +73,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       title={projectConfig.project_name}
       description={projectConfig.project_description ?? ''}
       price={mode === 'open' ? undefined : targetAmount}
-      href={content.productUrl}
+      href={mode === 'open' || !content.productUrl || content.productUrl === '#' ? undefined : content.productUrl}
       imageUrl={projectConfig.project_image_url ?? ''}
       imageAlt={projectConfig.project_name}
       completed={completed}

@@ -182,7 +182,27 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
     <input type='hidden' name='_action' value='update_project' />
 
     <section class='form-section'>
-      <h2 class='section-title'>Información básica</h2>
+      <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
+      <div class='mode-options'>
+        <label class='mode-option'>
+          <input type='radio' name='campaign_mode' value='target' checked={project.campaign_mode !== 'open'} />
+          <span class='mode-option__body'>
+            <strong>🎯 Al alcanzar un objetivo de dinero</strong>
+            <small>Hay un producto concreto con precio. Barra de progreso y porcentaje. La fecha de cierre es opcional.</small>
+          </span>
+        </label>
+        <label class='mode-option'>
+          <input type='radio' name='campaign_mode' value='open' checked={project.campaign_mode === 'open'} />
+          <span class='mode-option__body'>
+            <strong>⏳ En una fecha de cierre (recaudar lo máximo posible)</strong>
+            <small>Sin objetivo ni producto fijo: lo que se compre depende de lo recaudado. Se muestra lo conseguido, la aportación base y una cuenta atrás.</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>2. Información básica</h2>
       <div class='form-grid'>
         <div class='field full'>
           <label for='project_name'>Nombre del proyecto *</label>
@@ -218,11 +238,10 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
           <textarea name='project_description' id='project_description' rows='3'>{project.project_description ?? ''}</textarea>
         </div>
 
-        <div class='field'>
-          <label for='target_amount'>Meta (importe)</label>
-          <input type='number' name='target_amount' id='target_amount' min='0' step='0.01'
-            value={project.target_amount} />
-          <small>Obligatoria en modo "con objetivo"; en modo "por tiempo" puede quedar en 0.</small>
+        <div class='field' data-mode='target'>
+          <label for='target_amount'>Meta (importe) *</label>
+          <input type='number' name='target_amount' id='target_amount' min='1' step='0.01'
+            value={project.target_amount || ''} data-required-in='target' />
         </div>
 
         <div class='field'>
@@ -231,8 +250,9 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
 
         <div class='field full'>
-          <label for='project_image_url'>URL de la imagen del producto</label>
+          <label for='project_image_url'>URL de la imagen</label>
           <input type='url' name='project_image_url' id='project_image_url' value={project.project_image_url ?? ''} />
+          <small data-mode='open'>En campañas por tiempo es solo ilustrativa (no enlaza a ningún producto).</small>
         </div>
 
         <div class='field'>
@@ -242,9 +262,11 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
 
         <div class='field'>
-          <label for='end_date'>Fecha de cierre (opcional)</label>
+          <label for='end_date'>Fecha de cierre</label>
           <input type='date' name='end_date' id='end_date'
-            value={project.end_date ? project.end_date.split('T')[0] : ''} />
+            value={project.end_date ? project.end_date.split('T')[0] : ''} data-required-in='open' />
+          <small data-mode='open'>Obligatoria: la campaña se cierra sola al terminar ese día.</small>
+          <small data-mode='target'>Opcional: si se indica, la campaña se cierra sola al terminar ese día.</small>
         </div>
 
         <div class='field full'>
@@ -255,21 +277,13 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
     </section>
 
     <section class='form-section'>
-      <h2 class='section-title'>Tipo de campaña</h2>
+      <h2 class='section-title'>Aportaciones</h2>
       <div class='form-grid'>
-        <div class='field full'>
-          <label for='campaign_mode'>Modo</label>
-          <select name='campaign_mode' id='campaign_mode'>
-            <option value='target' selected={project.campaign_mode !== 'open'}>Con objetivo (barra de progreso)</option>
-            <option value='open' selected={project.campaign_mode === 'open'}>Por tiempo (sin objetivo, hasta la fecha de cierre)</option>
-          </select>
-          <small>En modo "por tiempo" la meta puede quedar en 0 y la fecha de cierre es obligatoria. La campaña se cierra sola al pasar esa fecha.</small>
-        </div>
-        <div class='field'>
+        <div class='field' data-mode='open'>
           <label for='base_amount'>Aportación base (la pone la familia)</label>
           <input type='number' name='base_amount' id='base_amount' min='0' step='0.01' value={project.base_amount ?? 0} />
         </div>
-        <div class='field'>
+        <div class='field' data-mode='open'>
           <label for='base_label'>Etiqueta de la aportación base</label>
           <input type='text' name='base_label' id='base_label' placeholder='Papá y mamá' maxlength='60' value={project.base_label ?? ''} />
         </div>
@@ -309,7 +323,7 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
           <label for='pageSubtitle'>Subtítulo</label>
           <input type='text' name='pageSubtitle' id='pageSubtitle' value={pc.pageSubtitle ?? ''} />
         </div>
-        <div class='field full'>
+        <div class='field full' data-mode='target'>
           <label for='productUrl'>URL del producto</label>
           <input type='url' name='productUrl' id='productUrl' value={pc.productUrl ?? ''} />
         </div>
@@ -883,4 +897,42 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
     flex-wrap: wrap;
     margin-bottom: 20px;
   }
+  .mode-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .mode-option {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    background: var(--color-surface);
+  }
+  .mode-option:has(input:checked) {
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+  .mode-option input {
+    margin-top: 4px;
+  }
+  .mode-option__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mode-option small {
+    color: #64748b;
+  }
+  [hidden] {
+    display: none !important;
+  }
 </style>
+
+<script>
+  import { initCampaignForm } from '@/lib/client/campaign-form';
+  initCampaignForm(document.querySelector('form.project-form'));
+</script>

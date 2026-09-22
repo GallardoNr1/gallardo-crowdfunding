@@ -33,20 +33,35 @@ const {
 >
   {completed && <CompletedBage size='lg' />}
 
-  <a
-    class='product-title'
-    href={href || '#'}
-    target='_blank'
-    title='Ver set'
-  >
-    {imageUrl && (
-      <img
-        src={imageUrl}
-        alt={imageAlt}
-        class='lego-image'
-      />
-    )}
-  </a>
+  {
+    href ? (
+      <a
+        class='product-title'
+        href={href}
+        target='_blank'
+        rel='noopener'
+        title='Ver producto'
+      >
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={imageAlt}
+            class='lego-image'
+          />
+        )}
+      </a>
+    ) : (
+      imageUrl && (
+        <div class='product-title'>
+          <img
+            src={imageUrl}
+            alt={imageAlt}
+            class='lego-image'
+          />
+        </div>
+      )
+    )
+  }
 
   <h2 class='product-title'>{title}</h2>
   <p class='product-description'>{description}</p>
