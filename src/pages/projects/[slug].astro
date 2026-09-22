@@ -8,7 +8,13 @@ import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
-import { campaignTotals, daysLeft, formatEndDate, isCampaignOpen } from '@/lib/campaign';
+import {
+  campaignTimeline,
+  campaignTotals,
+  daysLeft,
+  formatEndDate,
+  isCampaignOpen,
+} from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
 import { getTheme } from '@/lib/themes';
 import {
@@ -52,6 +58,8 @@ const finished = completed || closedByDate;
 const totals = campaignTotals(projectConfig);
 const remainingDays = daysLeft(projectConfig.end_date);
 const endDateLabel = formatEndDate(projectConfig.end_date);
+const startDateLabel = formatEndDate(projectConfig.start_date);
+const timeline = campaignTimeline(projectConfig.start_date, projectConfig.end_date);
 const currency = currencySymbol(projectConfig.currency);
 // Fuente de verdad del progreso: project_config.current_amount (lo mantiene el trigger / el servidor).
 const currentAmount = Number(projectConfig.current_amount) || 0;
@@ -104,6 +112,8 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
           currency={currency}
           daysLeft={remainingDays}
           endDateLabel={endDateLabel}
+          startDateLabel={startDateLabel}
+          timeline={timeline}
           closed={!open}
         />
       ) : (

@@ -36,6 +36,39 @@ export function daysLeft(endDate: string | null | undefined, now: Date = new Dat
   return Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / DAY_MS));
 }
 
+export interface CampaignTimeline {
+  /** Días de campaña, inicio y cierre incluidos. */
+  totalDays: number;
+  /** Día en curso (1..totalDays). */
+  dayNumber: number;
+  /** Porcentaje de tiempo transcurrido (0..100). */
+  percent: number;
+}
+
+/** Progreso temporal entre start_date y end_date (ambos incluidos). null sin fechas válidas. */
+export function campaignTimeline(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  now: Date = new Date()
+): CampaignTimeline | null {
+  if (!startDate) return null;
+  const parsedStart = new Date(startDate);
+  const deadline = campaignDeadline(endDate);
+  if (Number.isNaN(parsedStart.getTime()) || !deadline) return null;
+  const start = Date.UTC(
+    parsedStart.getUTCFullYear(),
+    parsedStart.getUTCMonth(),
+    parsedStart.getUTCDate()
+  );
+  const span = deadline.getTime() - start;
+  if (span <= 0) return null;
+
+  const totalDays = Math.round(span / DAY_MS);
+  const elapsed = Math.min(Math.max(now.getTime() - start, 0), span);
+  const dayNumber = Math.min(Math.max(Math.floor(elapsed / DAY_MS) + 1, 1), totalDays);
+  return { totalDays, dayNumber, percent: (elapsed / span) * 100 };
+}
+
 export function campaignTotals(campaign: Pick<CampaignLike, 'current_amount' | 'base_amount'>) {
   const raised = Number(campaign.current_amount) || 0;
   const base = Number(campaign.base_amount) || 0;

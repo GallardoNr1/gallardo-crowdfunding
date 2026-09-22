@@ -1,6 +1,9 @@
 ---
 // Sección de progreso para campañas "por tiempo" (campaign_mode = 'open'):
-// sin porcentaje ni objetivo; muestra lo recaudado, la aportación base y la cuenta atrás.
+// sin objetivo de dinero; la barra mide el tiempo (inicio → cierre) y se muestran
+// lo recaudado, la aportación base y la cuenta atrás.
+import type { CampaignTimeline } from '@/lib/campaign';
+
 export interface Props {
   title?: string;
   raised: number;
@@ -10,6 +13,8 @@ export interface Props {
   currency?: string;
   daysLeft: number | null;
   endDateLabel: string;
+  startDateLabel?: string;
+  timeline?: CampaignTimeline | null;
   closed: boolean;
 }
 
@@ -22,8 +27,12 @@ const {
   currency = '€',
   daysLeft,
   endDateLabel,
+  startDateLabel = '',
+  timeline = null,
   closed,
 } = Astro.props;
+
+const timePercent = timeline ? Math.round(timeline.percent) : 0;
 
 const countdown = closed
   ? 'Campaña cerrada'
@@ -61,6 +70,34 @@ const countdown = closed
       <span class='total-value'>{total.toFixed(2)} {currency}</span>
     </div>
   </div>
+
+  {
+    timeline && (
+      <div class='time-progress'>
+        <div class='time-labels'>
+          <span>🚦 {startDateLabel || 'Inicio'}</span>
+          <span>🏁 {endDateLabel || 'Cierre'}</span>
+        </div>
+        <div
+          class='time-bar'
+          role='progressbar'
+          aria-label='Tiempo de campaña transcurrido'
+          aria-valuemin='0'
+          aria-valuemax='100'
+          aria-valuenow={timePercent}
+        >
+          <div class='time-fill' style={`width: ${timePercent}%`}>
+            <div class='time-shine' />
+          </div>
+        </div>
+        <div class='time-caption'>
+          {closed
+            ? `Campaña de ${timeline.totalDays} días`
+            : `Día ${timeline.dayNumber} de ${timeline.totalDays}`}
+        </div>
+      </div>
+    )
+  }
 
   <div class={`countdown ${closed ? 'countdown--closed' : ''}`}>
     <span class='countdown-main'>{closed ? '🏁' : '⏳'} {countdown}</span>
@@ -127,6 +164,50 @@ const countdown = closed
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--color-text-muted, #888);
+  }
+  .time-progress {
+    margin: 26px auto 0;
+    max-width: 640px;
+    text-align: left;
+  }
+  .time-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+  }
+  .time-bar {
+    height: 22px;
+    border-radius: 999px;
+    background: linear-gradient(145deg, var(--color-section-progress-from), var(--color-section-progress-to));
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+  }
+  .time-fill {
+    height: 100%;
+    min-width: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-brand-orange), var(--color-brand-primary));
+    position: relative;
+    transition: width 1.2s ease-out;
+  }
+  .time-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    animation: timeShine 2.6s ease-in-out infinite;
+  }
+  @keyframes timeShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .time-caption {
+    margin-top: 8px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--color-text-primary);
   }
   .countdown {
     margin-top: 22px;

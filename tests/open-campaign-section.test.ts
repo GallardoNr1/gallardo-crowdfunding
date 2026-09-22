@@ -40,6 +40,22 @@ describe('OpenCampaignSection', () => {
     expect(closed).not.toContain('No hay objetivo');
   });
 
+  it('renders the time bar with the current day when a timeline is given', async () => {
+    const container = await AstroContainer.create();
+    const html = await container.renderToString(OpenCampaignSection, {
+      props: {
+        ...base,
+        daysLeft: 37,
+        closed: false,
+        startDateLabel: '22 de septiembre',
+        timeline: { totalDays: 38, dayNumber: 1, percent: 1.1 },
+      },
+    });
+    expect(html).toContain('Día 1 de 38');
+    expect(html).toContain('22 de septiembre');
+    expect(html).toContain('aria-valuenow="1"');
+  });
+
   it('omits the base block when there is no base amount', async () => {
     const container = await AstroContainer.create();
     const html = await container.renderToString(OpenCampaignSection, {

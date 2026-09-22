@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  campaignTimeline,
   campaignTotals,
   daysLeft,
   formatEndDate,
@@ -64,5 +65,40 @@ describe('formatEndDate', () => {
 
   it('returns an empty string without end date', () => {
     expect(formatEndDate(null)).toBe('');
+  });
+});
+
+describe('campaignTimeline', () => {
+  const start = '2026-09-22';
+  const end = '2026-10-29';
+
+  it('counts the campaign days inclusively and starts at day 1', () => {
+    const t = campaignTimeline(start, end, new Date('2026-09-22T10:00:00Z'));
+    expect(t).not.toBeNull();
+    expect(t!.totalDays).toBe(38);
+    expect(t!.dayNumber).toBe(1);
+    expect(Math.round(t!.percent)).toBe(1);
+  });
+
+  it('reaches the last day and 100% after the deadline, never beyond', () => {
+    const lastDay = campaignTimeline(start, end, new Date('2026-10-29T10:00:00Z'));
+    expect(lastDay!.dayNumber).toBe(38);
+    expect(lastDay!.percent).toBeGreaterThan(95);
+    expect(lastDay!.percent).toBeLessThan(100);
+    const after = campaignTimeline(start, end, new Date('2026-11-05T00:00:00Z'));
+    expect(after!.dayNumber).toBe(38);
+    expect(after!.percent).toBe(100);
+  });
+
+  it('clamps to day 1 and 0% before the start date', () => {
+    const before = campaignTimeline(start, end, new Date('2026-09-20T00:00:00Z'));
+    expect(before!.dayNumber).toBe(1);
+    expect(before!.percent).toBe(0);
+  });
+
+  it('returns null without dates or with an end before the start', () => {
+    expect(campaignTimeline(null, end, new Date())).toBeNull();
+    expect(campaignTimeline(start, null, new Date())).toBeNull();
+    expect(campaignTimeline('2026-11-01', end, new Date())).toBeNull();
   });
 });
