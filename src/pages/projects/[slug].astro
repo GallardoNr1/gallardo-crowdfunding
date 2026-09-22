@@ -542,14 +542,12 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     ).filter((el) => el.parentElement?.tagName !== 'ASTRO-ISLAND');
 
     targets.forEach((section, i) => {
+      // Lo que ya está en pantalla al cargar no se anima: evita el "doble salto" visible.
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) return;
       section.classList.add('reveal');
       section.style.transitionDelay = `${Math.min(i, 4) * 70}ms`;
-      const rect = section.getBoundingClientRect();
-      if (rect.top < window.innerHeight && rect.bottom > 0) {
-        section.classList.add('visible');
-      } else {
-        observer.observe(section);
-      }
+      observer.observe(section);
     });
 
     // Red de seguridad: si el observer no llegara a disparar, nada queda oculto.
