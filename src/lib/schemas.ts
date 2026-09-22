@@ -24,16 +24,23 @@ const emptyToNull = (v: unknown) =>
   v === undefined || v === null || (typeof v === 'string' && v.trim() === '') ? null : v;
 
 /** Alta de contribución desde el modal público. El importe NO viene del cliente: lo fija el nivel. */
-export const ContributionInput = z.strictObject({
-  projectId: z.uuid(),
-  levelId: z.uuid(),
-  contributorName: z.string().trim().min(2).max(80),
-  contributorEmail: z.email().trim().toLowerCase(),
-  contributorEmoji: z.string().trim().min(1).max(8),
-  message: z.preprocess(emptyToUndefined, z.string().trim().max(150).optional()),
-  paymentMethod: PaymentMethod,
-  isAnonymous: z.boolean().default(false),
-});
+export const ContributionInput = z
+  .strictObject({
+    projectId: z.uuid(),
+    /** Nivel elegido. Alternativa: customAmount (campañas con cantidad libre). */
+    levelId: z.uuid().optional(),
+    customAmount: z.number().positive().max(100000).optional(),
+    contributorName: z.string().trim().min(2).max(80),
+    contributorEmail: z.email().trim().toLowerCase(),
+    contributorEmoji: z.string().trim().min(1).max(8),
+    message: z.preprocess(emptyToUndefined, z.string().trim().max(150).optional()),
+    paymentMethod: PaymentMethod,
+    isAnonymous: z.boolean().default(false),
+  })
+  .refine((d) => (d.levelId ? 1 : 0) + (d.customAmount !== undefined ? 1 : 0) === 1, {
+    message: 'Indica un nivel o una cantidad, pero no ambos',
+    path: ['levelId'],
+  });
 export type ContributionInput = z.infer<typeof ContributionInput>;
 
 /** Mensaje de apoyo desde el formulario público. */
@@ -51,7 +58,13 @@ const optionalDate = () =>
   z.preprocess(emptyToNull, z.iso.date().nullable().default(null));
 
 /** Formulario de proyecto del backoffice (new/edit). Las claves coinciden con los `name` de los inputs. */
-export const ProjectFormInput = z.object({
+export const CampaignMode = z.enum(['target', 'open']);
+export type CampaignMode = z.infer<typeof CampaignMode>;
+
+const checkbox = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());
+
+export const ProjectFormInput = z
+  .object({
   project_name: z.string().trim().min(1).max(120),
   slug: z
     .string()
@@ -61,7 +74,13 @@ export const ProjectFormInput = z.object({
     .pipe(z.string().min(1).max(80).regex(/^[a-z0-9-]+$/)),
   project_status: ProjectStatus,
   project_description: optionalText(2000),
-  target_amount: z.coerce.number().positive(),
+  /** Obligatorio (> 0) en modo target; en modo open puede quedar en 0. */
+  target_amount: z.preprocess(emptyToUndefined, z.coerce.number().min(0).default(0)),
+  campaign_mode: z.preprocess(emptyToUndefined, CampaignMode.default('target')),
+  base_amount: z.preprocess(emptyToUndefined, z.coerce.number().min(0).default(0)),
+  base_label: optionalText(60),
+  allow_custom_amount: checkbox,
+  min_custom_amount: z.preprocess(emptyToUndefined, z.coerce.number().min(1).default(5)),
   currency: z.preprocess(emptyToUndefined, z.string().trim().min(1).max(5).default('EUR')),
   project_image_url: z.preprocess(emptyToNull, z.url().nullable().default(null)),
   start_date: optionalDate(),
@@ -82,7 +101,23 @@ export const ProjectFormInput = z.object({
   cta_icon: optionalText(8),
   cta_title: optionalText(120),
   cta_text: optionalText(1000),
-});
+  })
+  .superRefine((d, ctx) => {
+    if (d.campaign_mode === 'target' && d.target_amount <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['target_amount'],
+        message: 'El objetivo debe ser mayor que 0 en una campaña con objetivo',
+      });
+    }
+    if (d.campaign_mode === 'open' && !d.end_date) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['end_date'],
+        message: 'Una campaña por tiempo necesita fecha de cierre',
+      });
+    }
+  });
 export type ProjectFormInput = z.infer<typeof ProjectFormInput>;
 
 /** Convierte los issues de Zod en `{ campo: mensaje }` para respuestas 400 y formularios. */

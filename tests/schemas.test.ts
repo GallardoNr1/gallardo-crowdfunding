@@ -41,6 +41,23 @@ describe('ContributionInput', () => {
   it('rejects a message longer than 150 characters', () => {
     expect(ContributionInput.safeParse({ ...valid, message: 'x'.repeat(151) }).success).toBe(false);
   });
+
+  it('accepts a custom amount instead of a level', () => {
+    const { levelId: _omit, ...rest } = valid;
+    const r = ContributionInput.safeParse({ ...rest, customAmount: 12.5 });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.customAmount).toBe(12.5);
+      expect(r.data.levelId).toBeUndefined();
+    }
+  });
+
+  it('requires exactly one of levelId or customAmount', () => {
+    const { levelId: _omit, ...rest } = valid;
+    expect(ContributionInput.safeParse(rest).success).toBe(false);
+    expect(ContributionInput.safeParse({ ...valid, customAmount: 10 }).success).toBe(false);
+    expect(ContributionInput.safeParse({ ...rest, customAmount: 0 }).success).toBe(false);
+  });
 });
 
 describe('SupportMessageInput', () => {
@@ -99,5 +116,44 @@ describe('ProjectFormInput', () => {
       expect(r.data.end_date).toBeNull();
       expect(r.data.project_image_url).toBeNull();
     }
+  });
+
+  it('defaults to a target campaign without base or custom amounts', () => {
+    const r = ProjectFormInput.safeParse(valid);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.campaign_mode).toBe('target');
+      expect(r.data.base_amount).toBe(0);
+      expect(r.data.allow_custom_amount).toBe(false);
+      expect(r.data.min_custom_amount).toBe(5);
+    }
+  });
+
+  it('accepts an open campaign with no target, a base amount and custom amounts', () => {
+    const r = ProjectFormInput.safeParse({
+      ...valid,
+      campaign_mode: 'open',
+      target_amount: '',
+      end_date: '2026-10-29',
+      base_amount: '150',
+      base_label: 'Papá y mamá',
+      allow_custom_amount: 'on',
+      min_custom_amount: '5',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.target_amount).toBe(0);
+      expect(r.data.base_amount).toBe(150);
+      expect(r.data.base_label).toBe('Papá y mamá');
+      expect(r.data.allow_custom_amount).toBe(true);
+      expect(r.data.end_date).toBe('2026-10-29');
+    }
+  });
+
+  it('requires an end date for open campaigns and a positive target for target campaigns', () => {
+    expect(
+      ProjectFormInput.safeParse({ ...valid, campaign_mode: 'open', target_amount: '' }).success
+    ).toBe(false);
+    expect(ProjectFormInput.safeParse({ ...valid, target_amount: '' }).success).toBe(false);
   });
 });

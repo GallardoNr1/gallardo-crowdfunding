@@ -15,6 +15,7 @@ En orden, una a una. Cada archivo lleva su bloque `-- down` comentado.
 | 4 | `20260922100200_support_messages_moderation.sql` | `is_approved` por defecto `false` | Cualquier momento |
 | 5 | `20260922100300_project_config_slug_unique.sql` | Índice único en `slug` | Cualquier momento |
 | 6 | `20260922100400_rls_lockdown.sql` | RLS: anon solo lee; sin acceso a `contributor_email` | **Después** de desplegar el código nuevo |
+| 7 | `20260922110000_open_campaigns.sql` | Campañas por tiempo: `campaign_mode`, aportación base, cantidad libre; recrea `public_contributions` con LEFT JOIN | Antes de crear el proyecto de la bici |
 
 **Opción A — SQL Editor:** pegar y ejecutar cada archivo en el dashboard (Database → SQL Editor).
 

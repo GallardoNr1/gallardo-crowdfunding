@@ -23,6 +23,11 @@ describe('parseProjectForm', () => {
     expect(r.data.target_amount).toBe(160);
     expect(r.data.currency).toBe('EUR');
     expect(r.data.project_image_url).toBeNull();
+    expect(r.data.campaign_mode).toBe('target');
+    expect(r.data.base_amount).toBe(0);
+    expect(r.data.base_label).toBeNull();
+    expect(r.data.allow_custom_amount).toBe(false);
+    expect(r.data.min_custom_amount).toBe(5);
     expect(r.data.page_content.progressTitle).toBe('🎯 Progreso');
     expect(r.data.page_content.cta).toEqual({ icon: '🎁', title: '', text: '', stats: [] });
     expect(r.data.page_content.mainMessage).toEqual({
@@ -50,6 +55,30 @@ describe('parseProjectForm', () => {
     expect(r.data.page_content.cta.icon).toBe('🚀');
     expect(r.data.bizum_phone).toBe('612345678');
     expect(r.data.page_content.bizum_phone).toBe('612345678');
+  });
+
+  it('maps an open campaign form', () => {
+    const r = parseProjectForm(
+      formWith({
+        ...minimal,
+        campaign_mode: 'open',
+        target_amount: '',
+        end_date: '2026-10-29',
+        base_amount: '150',
+        base_label: 'Papá y mamá',
+        allow_custom_amount: 'on',
+        min_custom_amount: '10',
+      })
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.campaign_mode).toBe('open');
+    expect(r.data.target_amount).toBe(0);
+    expect(r.data.end_date).toBe('2026-10-29');
+    expect(r.data.base_amount).toBe(150);
+    expect(r.data.base_label).toBe('Papá y mamá');
+    expect(r.data.allow_custom_amount).toBe(true);
+    expect(r.data.min_custom_amount).toBe(10);
   });
 
   it('reports field errors instead of a row when the form is invalid', () => {

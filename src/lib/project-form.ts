@@ -1,4 +1,4 @@
-import { ProjectFormInput, fieldErrors, type ProjectStatus } from './schemas';
+import { ProjectFormInput, fieldErrors, type CampaignMode, type ProjectStatus } from './schemas';
 
 // Convierte el formulario del backoffice (new/edit) en la fila de project_config.
 // Único punto de validación para ambos formularios (MEJORAS N-14).
@@ -29,6 +29,11 @@ export interface ProjectRowInput {
   redirect_url: string;
   bizum_phone: string | null;
   bizum_concept: string | null;
+  campaign_mode: CampaignMode;
+  base_amount: number;
+  base_label: string | null;
+  allow_custom_amount: boolean;
+  min_custom_amount: number;
   page_content: ProjectPageContentRow;
 }
 
@@ -59,6 +64,11 @@ export function parseProjectForm(
       redirect_url: d.redirect_url,
       bizum_phone: d.bizum_phone,
       bizum_concept: d.bizum_concept,
+      campaign_mode: d.campaign_mode,
+      base_amount: d.base_amount,
+      base_label: d.base_label,
+      allow_custom_amount: d.allow_custom_amount,
+      min_custom_amount: d.min_custom_amount,
       page_content: {
         pageTitle: d.pageTitle ?? '',
         pageSubtitle: d.pageSubtitle ?? '',

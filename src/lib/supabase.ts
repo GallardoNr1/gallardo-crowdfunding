@@ -39,6 +39,12 @@ export interface ProjectConfig {
   bizum_phone?: string;
   bizum_concept?: string;
   emoji_options?: EmojiOption[];
+  /** 'target' (objetivo fijo) u 'open' (por tiempo, sin objetivo). */
+  campaign_mode?: 'target' | 'open';
+  base_amount?: number;
+  base_label?: string | null;
+  allow_custom_amount?: boolean;
+  min_custom_amount?: number;
 }
 
 export type mainMessageType = {
