@@ -9,7 +9,7 @@ gallardo-crowdfunding/
 │   ├── dependabot.yml         # Actualizaciones semanales de npm y GitHub Actions
 │   └── workflows/
 │       ├── ci.yml             # PR: check + lint + test + build + audit
-│       └── deploy.yml         # push main: verify → build → release en el VPS + pm2 reload
+│       └── deploy.yml         # push master: verify → build → release en el VPS + pm2 reload
 ├── .rtk/filters.toml          # Filtros locales de RTK (compresión de salida de comandos)
 ├── docs/                      # Documentación del proyecto (este directorio)
 ├── graphify-out/              # Grafo de conocimiento (regenerable con /graphify; ignorado en git)
