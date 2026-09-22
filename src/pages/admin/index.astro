@@ -2,13 +2,14 @@
 export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { createAdminClient } from '@/lib/supabase-server';
 
 const supabase = createAdminClient();
 
 const { data: projects, error } = await supabase
   .from('project_config')
-  .select('id, project_name, slug, project_status, current_amount, target_amount, currency, created_at')
+  .select('id, project_name, slug, project_status, current_amount, target_amount, currency, created_at, campaign_mode, base_amount, end_date')
   .order('created_at', { ascending: false });
 
 // Pendientes por proyecto (confirmar pagos / aprobar mensajes)
@@ -85,19 +86,34 @@ const statusColor: Record<string, string> = {
                 </span>
               </div>
 
-              <div class='progress-area'>
-                <div class='progress-bar'>
-                  <div class='progress-fill' style={`width: ${pct}%`} />
+              {p.campaign_mode === 'open' ? (
+                <div class='progress-area'>
+                  <div class='progress-text'>
+                    <span>
+                      Conseguido: {campaignTotals(p).total.toFixed(2)} {p.currency}
+                    </span>
+                    <span>
+                      {isCampaignOpen(p)
+                        ? `⏳ ${daysLeft(p.end_date) ?? '∞'} días`
+                        : '🏁 Cerrada'}
+                    </span>
+                  </div>
                 </div>
-                <div class='progress-text'>
-                  <span>
-                    {p.current_amount ?? 0} {p.currency}
-                  </span>
-                  <span>
-                    {pct}% de {p.target_amount} {p.currency}
-                  </span>
+              ) : (
+                <div class='progress-area'>
+                  <div class='progress-bar'>
+                    <div class='progress-fill' style={`width: ${pct}%`} />
+                  </div>
+                  <div class='progress-text'>
+                    <span>
+                      {p.current_amount ?? 0} {p.currency}
+                    </span>
+                    <span>
+                      {pct}% de {p.target_amount} {p.currency}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div class='card-actions'>
                 <a

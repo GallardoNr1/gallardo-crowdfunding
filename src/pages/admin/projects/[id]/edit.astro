@@ -219,9 +219,10 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
 
         <div class='field'>
-          <label for='target_amount'>Meta (importe) *</label>
-          <input type='number' name='target_amount' id='target_amount' required min='1' step='0.01'
+          <label for='target_amount'>Meta (importe)</label>
+          <input type='number' name='target_amount' id='target_amount' min='0' step='0.01'
             value={project.target_amount} />
+          <small>Obligatoria en modo "con objetivo"; en modo "por tiempo" puede quedar en 0.</small>
         </div>
 
         <div class='field'>
@@ -249,6 +250,36 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         <div class='field full'>
           <label for='redirect_url'>URL de redirección al finalizar</label>
           <input type='text' name='redirect_url' id='redirect_url' value={project.redirect_url ?? '/'} />
+        </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Tipo de campaña</h2>
+      <div class='form-grid'>
+        <div class='field full'>
+          <label for='campaign_mode'>Modo</label>
+          <select name='campaign_mode' id='campaign_mode'>
+            <option value='target' selected={project.campaign_mode !== 'open'}>Con objetivo (barra de progreso)</option>
+            <option value='open' selected={project.campaign_mode === 'open'}>Por tiempo (sin objetivo, hasta la fecha de cierre)</option>
+          </select>
+          <small>En modo "por tiempo" la meta puede quedar en 0 y la fecha de cierre es obligatoria. La campaña se cierra sola al pasar esa fecha.</small>
+        </div>
+        <div class='field'>
+          <label for='base_amount'>Aportación base (la pone la familia)</label>
+          <input type='number' name='base_amount' id='base_amount' min='0' step='0.01' value={project.base_amount ?? 0} />
+        </div>
+        <div class='field'>
+          <label for='base_label'>Etiqueta de la aportación base</label>
+          <input type='text' name='base_label' id='base_label' placeholder='Papá y mamá' maxlength='60' value={project.base_label ?? ''} />
+        </div>
+        <div class='field'>
+          <label for='allow_custom_amount'>Permitir "otra cantidad"</label>
+          <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' checked={!!project.allow_custom_amount} />
+        </div>
+        <div class='field'>
+          <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
+          <input type='number' name='min_custom_amount' id='min_custom_amount' min='1' step='0.01' value={project.min_custom_amount ?? 5} />
         </div>
       </div>
     </section>

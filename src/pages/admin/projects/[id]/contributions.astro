@@ -126,7 +126,7 @@ const fmtDate = (iso: string | null) =>
                   <small>{c.contributor_email}</small>
                   {c.message && <div class='msg'>"{c.message}"</div>}
                 </td>
-                <td>{c.level_name ?? '—'}</td>
+                <td>{c.level_name ?? 'Aportación libre'}</td>
                 <td>
                   {Number(c.amount).toFixed(2)} {currency}
                 </td>
