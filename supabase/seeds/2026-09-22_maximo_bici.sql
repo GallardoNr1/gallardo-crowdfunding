@@ -48,7 +48,7 @@ with nuevo as (
         'title', '¿Le das un empujón?',
         'text', 'Elige un nivel o pon la cantidad que quieras. Todo suma a la bici de Máximo hasta el 29 de octubre.',
         'stats', jsonb_build_array(
-          jsonb_build_object('number', '150 €', 'label', 'los ponen papá y mamá'),
+          jsonb_build_object('number', '100 €', 'label', 'los ponen papá y mamá'),
           jsonb_build_object('number', '29/10', 'label', 'cierre de la campaña'),
           jsonb_build_object('number', '5/11', 'label', 'cumpleaños de Máximo')
         )
