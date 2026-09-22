@@ -19,7 +19,7 @@ Todas las acciones son formularios `POST` con un campo oculto `_action`.
 | GET/POST | `/admin/login` | Iniciar sesión (email + contraseña de Supabase Auth) | `src/pages/admin/login.astro` |
 | POST | `/admin/logout` | Revoca la sesión en Supabase y borra cookies | `src/pages/admin/logout.astro` |
 | GET | `/admin` | Proyectos con contadores de contribuciones y mensajes pendientes | `src/pages/admin/index.astro` |
-| GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único) | `src/pages/admin/projects/new.astro` |
+| GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
 | GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |
 | GET/POST | `/admin/projects/:id/contributions` | `set_status` con `status` ∈ `pending` / `completed` / `failed` (recalcula `current_amount`) | `src/pages/admin/projects/[id]/contributions.astro` |
 | GET/POST | `/admin/projects/:id/messages` | `approve`, `unapprove`, `delete` | `src/pages/admin/projects/[id]/messages.astro` |

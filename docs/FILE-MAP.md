@@ -38,6 +38,8 @@ gallardo-crowdfunding/
 │   │   ├── contributions-server.ts   # Crear pendiente, cambiar estado, recalcular importe, listar
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
+│   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
+│   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
 │   │   ├── schemas.ts                # Zod: ContributionInput, SupportMessageInput, ProjectFormInput
 │   │   ├── project-form.ts           # FormData del backoffice → fila de project_config
 │   │   ├── env-schema.ts, env.ts     # Validación de variables de entorno al arrancar

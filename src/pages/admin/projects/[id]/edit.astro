@@ -3,6 +3,7 @@ export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { parseProjectForm } from '@/lib/project-form';
+import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
 
 const { id } = Astro.params;
@@ -62,8 +63,14 @@ if (Astro.request.method === 'POST') {
           })
           .eq('id', id);
 
-        if (dbErr) error = dbErr.message;
-        else successMsg = '✅ Proyecto actualizado correctamente.';
+        if (dbErr) {
+          error = dbErr.message;
+        } else {
+          successMsg = '✅ Proyecto actualizado correctamente.';
+          const upload = await uploadProjectImage(supabase, id!, form.get('project_image'));
+          if (!upload.ok) error = `La imagen no se ha subido: ${upload.error}`;
+          else if (upload.url) successMsg = '✅ Proyecto e imagen actualizados.';
+        }
       }
     }
   }
@@ -155,6 +162,8 @@ const emojiOptions = (project.emoji_options ?? []) as { value: string; label: st
 
 const createdParam = Astro.url.searchParams.get('created');
 if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de contribución.';
+const imageErrorParam = Astro.url.searchParams.get('image_error');
+if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
 ---
 
 <AdminLayout title={`Editar: ${project.project_name}`}>
@@ -178,7 +187,7 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
   </nav>
 
   <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
-  <form method='POST' class='project-form'>
+  <form method='POST' class='project-form' enctype='multipart/form-data'>
     <input type='hidden' name='_action' value='update_project' />
 
     <section class='form-section'>
@@ -250,7 +259,16 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
 
         <div class='field full'>
-          <label for='project_image_url'>URL de la imagen</label>
+          <label for='project_image'>Imagen (subir desde el dispositivo)</label>
+          <input type='file' name='project_image' id='project_image' accept='image/jpeg,image/png,image/webp,image/gif' />
+          <small>JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, sustituye a la imagen actual.</small>
+          {project.project_image_url && (
+            <img src={project.project_image_url} alt='Imagen actual del proyecto' class='image-preview' />
+          )}
+        </div>
+
+        <div class='field full'>
+          <label for='project_image_url'>… o URL de la imagen</label>
           <input type='url' name='project_image_url' id='project_image_url' value={project.project_image_url ?? ''} />
           <small data-mode='open'>En campañas por tiempo es solo ilustrativa (no enlaza a ningún producto).</small>
         </div>
@@ -929,6 +947,13 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
   }
   [hidden] {
     display: none !important;
+  }
+  .image-preview {
+    display: block;
+    max-height: 140px;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid var(--color-admin-border);
   }
 </style>
 

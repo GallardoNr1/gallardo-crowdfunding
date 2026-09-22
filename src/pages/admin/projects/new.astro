@@ -3,6 +3,7 @@ export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { parseProjectForm } from '@/lib/project-form';
+import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
 
 let error = '';
@@ -42,7 +43,10 @@ if (Astro.request.method === 'POST') {
       if (dbError || !data) {
         error = dbError?.message ?? 'No se pudo crear el proyecto.';
       } else {
-        return Astro.redirect(`/admin/projects/${data.id}/edit?created=1`);
+        // La imagen se sube una vez existe el id del proyecto (ruta projects/<id>/cover-*).
+        const upload = await uploadProjectImage(supabase, data.id, form.get('project_image'));
+        const suffix = upload.ok ? '' : `&image_error=${encodeURIComponent(upload.error)}`;
+        return Astro.redirect(`/admin/projects/${data.id}/edit?created=1${suffix}`);
       }
     }
   }
@@ -63,7 +67,7 @@ if (Astro.request.method === 'POST') {
     )
   }
 
-  <form method='POST' class='project-form'>
+  <form method='POST' class='project-form' enctype='multipart/form-data'>
     <section class='form-section'>
       <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
       <div class='mode-options'>
@@ -129,7 +133,13 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class='field full'>
-          <label for='project_image_url'>URL de la imagen</label>
+          <label for='project_image'>Imagen (subir desde el dispositivo)</label>
+          <input type='file' name='project_image' id='project_image' accept='image/jpeg,image/png,image/webp,image/gif' />
+          <small>JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, manda sobre la URL de abajo.</small>
+        </div>
+
+        <div class='field full'>
+          <label for='project_image_url'>… o URL de la imagen</label>
           <input type='url' name='project_image_url' id='project_image_url' placeholder='https://...' />
           <small data-mode='open'>En campañas por tiempo es solo ilustrativa (no enlaza a ningún producto).</small>
         </div>

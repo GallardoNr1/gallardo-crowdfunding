@@ -1,11 +1,10 @@
 -- Proyecto "Bici para Máximo" — campaña por tiempo (cierra el 29/10/2026, una semana antes de su cumpleaños).
 -- Requiere la migración 20260922110000_open_campaigns.sql.
 --
--- ANTES DE EJECUTAR, sustituye los tres marcadores:
---   {{URL_BICI}}     enlace a la bici elegida (tienda)
---   {{IMAGEN_BICI}}  URL de la imagen del producto
---   {{BIZUM}}        número de Bizum (9 dígitos)
--- El concepto de Bizum propuesto es "Bici Máximo"; cámbialo si quieres.
+-- Se ejecuta tal cual. Después, desde el backoffice (/admin → Bici para Máximo → Editar):
+--   - sube la imagen desde el dispositivo,
+--   - pon el número de Bizum (el concepto propuesto es "Bici Máximo"),
+--   - y retoca los textos si quieres.
 -- Idempotente: si ya existe un proyecto con slug 'bici-maximo' no hace nada.
 
 with nuevo as (
@@ -23,8 +22,8 @@ with nuevo as (
     'active',
     'open', 0, 0, 150, 'Papá y mamá',
     true, 5,
-    'EUR', '{{IMAGEN_BICI}}', current_date, date '2026-10-29', '/',
-    '{{BIZUM}}', 'Bici Máximo',
+    'EUR', null, current_date, date '2026-10-29', '/',
+    null, 'Bici Máximo',
     '[
       {"value": "🚴", "label": "Compañero de ruta"},
       {"value": "💛", "label": "Familia"},
@@ -34,7 +33,7 @@ with nuevo as (
     jsonb_build_object(
       'pageTitle', '🚴 Una bici para Máximo',
       'pageSubtitle', 'Su cumpleaños es el 5 de noviembre: ¡ayúdanos a que llegue pedaleando!',
-      'productUrl', '{{URL_BICI}}',
+      'productUrl', '',
       'mainMessage', jsonb_build_object(
         'message', E'¡Hola familia y amigos! 🚴\n\nEl 5 de noviembre Máximo cumple años y este año tiene un sueño de dos ruedas: su primera bici de verdad.\n\nNosotros ponemos los primeros 150 €. Con lo que aportéis entre todos hasta el 29 de octubre elegiremos la mejor bici que podamos: no hay objetivo, cada euro la hace un poco mejor.\n\nMás que el dinero, queremos que Máximo sepa cuánta gente le quiere y le empuja. Cada aportación, grande o pequeña, es un empujoncito en su primera ruta.\n\n¡Gracias por pedalear con nosotros! 💛',
         'signature', 'Con todo nuestro cariño',
@@ -54,7 +53,7 @@ with nuevo as (
           jsonb_build_object('number', '5/11', 'label', 'cumpleaños de Máximo')
         )
       ),
-      'bizum_phone', '{{BIZUM}}',
+      'bizum_phone', '',
       'bizum_concept', 'Bici Máximo'
     )
   where not exists (select 1 from public.project_config where slug = 'bici-maximo')
