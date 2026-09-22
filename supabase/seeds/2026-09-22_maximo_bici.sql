@@ -18,9 +18,9 @@ with nuevo as (
   select
     'Bici para Máximo',
     'bici-maximo',
-    'El 5 de noviembre Máximo cumple años y sueña con su primera bici de verdad. Papá y mamá ponen los primeros 150 €; todo lo que consigamos entre familia y amigos hasta el 29 de octubre irá íntegro a la bici.',
+    'El 5 de noviembre Máximo cumple años y sueña con su primera bici de verdad. Papá y mamá ponen los primeros 100 €; todo lo que consigamos entre familia y amigos hasta el 29 de octubre irá íntegro a la bici.',
     'active',
-    'open', 0, 0, 150, 'Papá y mamá',
+    'open', 0, 0, 100, 'Papá y mamá',
     true, 5,
     'EUR', null, current_date, date '2026-10-29', '/',
     null, 'Bici Máximo',
@@ -35,7 +35,7 @@ with nuevo as (
       'pageSubtitle', 'Su cumpleaños es el 5 de noviembre: ¡ayúdanos a que llegue pedaleando!',
       'productUrl', '',
       'mainMessage', jsonb_build_object(
-        'message', E'¡Hola familia y amigos! 🚴\n\nEl 5 de noviembre Máximo cumple años y este año tiene un sueño de dos ruedas: su primera bici de verdad.\n\nNosotros ponemos los primeros 150 €. Con lo que aportéis entre todos hasta el 29 de octubre elegiremos la mejor bici que podamos: no hay objetivo, cada euro la hace un poco mejor.\n\nMás que el dinero, queremos que Máximo sepa cuánta gente le quiere y le empuja. Cada aportación, grande o pequeña, es un empujoncito en su primera ruta.\n\n¡Gracias por pedalear con nosotros! 💛',
+        'message', E'¡Hola familia y amigos! 🚴\n\nEl 5 de noviembre Máximo cumple años y este año tiene un sueño de dos ruedas: su primera bici de verdad.\n\nNosotros ponemos los primeros 100 €. Con lo que aportéis entre todos hasta el 29 de octubre elegiremos la mejor bici que podamos: no hay objetivo, cada euro la hace un poco mejor.\n\nMás que el dinero, queremos que Máximo sepa cuánta gente le quiere y le empuja. Cada aportación, grande o pequeña, es un empujoncito en su primera ruta.\n\n¡Gracias por pedalear con nosotros! 💛',
         'signature', 'Con todo nuestro cariño',
         'familyName', 'Papá y mamá',
         'date', 'Septiembre 2026'
