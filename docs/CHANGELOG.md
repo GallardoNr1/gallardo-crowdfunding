@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-22] — Pulido del diseño común
+
+- **Qué cambió:** `global.css`: scroll suave, foco visible coherente (`:focus-visible`), color de selección, utilidad `.reveal` (aparición al hacer scroll), botón "volver arriba" y `prefers-reduced-motion`. Cabecera con línea de acento en los colores del tema y entrada animada del título. Home: tarjetas con tokens, elevación al pasar el ratón, zoom suave de la imagen, entrada escalonada, barra de progreso animada, estado como píldora y pie de página (antes no tenía). Página de proyecto: las secciones aparecen al hacer scroll (`.reveal`, JS del `[slug]`) y el botón de contribuir late cuando ya se puede pulsar.
+- **Por qué:** Dar coherencia y "vida" al diseño sin tocar la estructura ni el contenido.
+- **Archivos tocados:** `public/styles/global.css`, `src/layouts/BaseLayout.astro`, `src/layouts/Header.astro`, `src/pages/index.astro`, `src/pages/projects/[slug].astro`, `src/components/ContributionLevels.astro`.
+- **Impacto:** Solo CSS y dos scripts pequeños; sin JS todo se ve (la clase `.reveal` la añade el script). Las animaciones se desactivan con `prefers-reduced-motion`.
+
+---
+
 ## [2026-09-22] — Temas por proyecto y ajustes del backoffice
 
 - **Qué cambió:** En las campañas por tiempo la barra de progreso mide el **tiempo** (inicio → cierre, `campaignTimeline` en `src/lib/campaign.ts`): "Día X de N", fechas de inicio y cierre y cuenta atrás, en lugar de la barra de dinero. Seis temas (fiesta, aventura, navidad, fantasía, viaje, tecnología) definidos en `src/lib/themes.ts` con paleta de colores y juego de emojis; se guardan en `page_content.theme` (sin migración) y se aplican en la página del proyecto con `html[data-theme]` sobrescribiendo los tokens CSS y pasando los emojis a `ContributionLevels`, `MessageSection`, `SupportMessageSection`, el modal, el hero de cierre y el confeti. Los colores fijos de los componentes públicos pasan a tokens (`--color-accent*` nuevos en `tokens.css`). La home marca cada tarjeta con el color de su tema. Backoffice: sección "Aspecto" con tarjetas de tema; los selectores de modo y tema ocultan el círculo del radio. Imagen del producto sin recortar (`object-fit: contain`); botones 💳/💬 del listado de `/admin` con borde y ajuste de línea. Temas asignados a los proyectos existentes.

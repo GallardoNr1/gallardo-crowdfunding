@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(
@@ -12,15 +16,81 @@ body {
     var(--color-body-bg-mid, #e6e7e8) 50%,
     var(--color-body-bg-to, #a7a8aa) 100%
   );
-
+  background-attachment: fixed;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--color-brand-yellow, #ffcc02);
+  color: #1f2937;
+}
+
+/* Foco visible y coherente para teclado en toda la web */
+:focus-visible {
+  outline: 3px solid var(--color-brand-purple, #667eea);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+}
+
+/* Aparición al hacer scroll: la clase .reveal la añade JS (sin JS todo se ve). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Botón "volver arriba" (BaseLayout) */
+.to-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: var(--color-brand-orange, #ff6b35);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    background 0.2s ease;
+  z-index: 900;
+}
+
+.to-top.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.to-top:hover {
+  background: var(--color-brand-primary, #d32f2f);
 }
 
 /* Animaciones */
@@ -79,6 +149,18 @@ body {
   }
 }
 
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 8px 25px rgba(0, 0, 0, 0.15),
+      0 0 0 10px rgba(255, 107, 53, 0.12);
+  }
+}
+
 /* Elementos flotantes */
 .floating-elements {
   position: fixed;
@@ -101,5 +183,28 @@ body {
 @media (max-width: 768px) {
   .container {
     padding: 10px;
+  }
+
+  .to-top {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+/* Quien prefiere menos movimiento: sin animaciones ni desplazamientos */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }

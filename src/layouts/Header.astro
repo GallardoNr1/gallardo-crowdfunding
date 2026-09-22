@@ -46,6 +46,14 @@ const {
     align-items: center;
     justify-content: center;
     width: 100%;
+    border-bottom: 4px solid transparent;
+    border-image: linear-gradient(
+        90deg,
+        var(--color-brand-orange),
+        var(--color-brand-yellow),
+        var(--color-brand-primary)
+      )
+      1;
   }
   .header {
     display: flex;
@@ -87,12 +95,15 @@ const {
     font-weight: var(--font-weight-bold);
     color: var(--color-header-text);
     margin: 0;
+    letter-spacing: -0.01em;
+    animation: fadeInUp 0.6s ease both;
   }
 
   .subtitle {
     font-size: var(--text-md);
     color: var(--color-header-subtitle);
     margin-top: 6px;
+    animation: fadeInUp 0.6s 0.15s ease both;
   }
 
   @media (max-width: 768px) {

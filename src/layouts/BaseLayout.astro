@@ -73,6 +73,7 @@ const {
     </main>
     <slot name='footer' />
     <div id='gc-toast-container'></div>
+    <button type='button' class='to-top' id='gcToTop' aria-label='Volver arriba'>↑</button>
     {project && (
     <ContributionModal
       paymentMethods={paymentMethods}
@@ -189,4 +190,15 @@ const {
       setTimeout(function () { if (toast.parentElement) toast.remove(); }, 320);
     }, duration);
   };
+</script>
+
+<script>
+  // Botón "volver arriba": aparece tras bajar media pantalla larga.
+  const toTop = document.getElementById('gcToTop');
+  if (toTop) {
+    const update = () => toTop.classList.toggle('is-visible', window.scrollY > 500);
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
 </script>

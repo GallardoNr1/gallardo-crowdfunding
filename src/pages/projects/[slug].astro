@@ -532,7 +532,13 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     );
 
     document
-      .querySelectorAll('.main-card, .progress-section, .contributors-section, .message-section')
-      .forEach((section) => observer.observe(section));
+      .querySelectorAll(
+        '.main-card, .progress-section, .completed-hero, .family-photos, .contributors-section, .message-section'
+      )
+      .forEach((section, i) => {
+        section.classList.add('reveal');
+        (section as HTMLElement).style.transitionDelay = `${Math.min(i, 4) * 70}ms`;
+        observer.observe(section);
+      });
   });
 </script>
