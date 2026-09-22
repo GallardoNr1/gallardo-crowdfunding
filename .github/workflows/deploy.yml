@@ -3,6 +3,7 @@ name: Deploy gallardo-crowdfunding
 on:
   push:
     branches:
+      - master
       - main
 
 concurrency:

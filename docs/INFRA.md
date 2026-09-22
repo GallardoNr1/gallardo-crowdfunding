@@ -44,7 +44,7 @@ Cada release contiene `server/`, `client/`, `package.json`, `package-lock.json`,
 |----------|-----------|
 | **Supabase** | Postgres (con RLS), Auth (admin), Realtime Broadcast, Storage (`project-assets`) |
 | **Google Fonts** | Poppins (público) e Inter (backoffice) |
-| **GitHub Actions** | CI en PR y deploy en push a `main` |
+| **GitHub Actions** | CI en PR y deploy en push a `master` (rama por defecto del repo) |
 
 ## Base de datos: migraciones y permisos
 
@@ -68,7 +68,7 @@ Las migraciones están en `supabase/migrations/` y se aplican con el SQL Editor 
 ```mermaid
 graph LR
     Dev[Desarrollador] -->|PR| CI[ci.yml: check + lint + test + build]
-    Dev -->|push main| GH[deploy.yml]
+    Dev -->|push master| GH[deploy.yml]
     GH --> Verify[verify: check + lint + test]
     Verify --> Build[build con .env real]
     Build -->|SCP| Rel["releases/<sha>"]
