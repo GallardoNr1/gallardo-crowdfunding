@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { parseProjectForm } from '@/lib/project-form';
 import { createAdminClient } from '@/lib/supabase-server';
 
 const { id } = Astro.params;
@@ -9,6 +10,19 @@ const supabase = createAdminClient();
 
 let error = '';
 let successMsg = '';
+let fieldErrors: Record<string, string> = {};
+
+// Se carga antes del POST para conservar lo que el formulario no edita (stats del CTA)
+// y para comprobar el slug.
+const { data: current } = await supabase
+  .from('project_config')
+  .select('*')
+  .eq('id', id)
+  .maybeSingle();
+
+if (!current) {
+  return Astro.redirect('/admin');
+}
 
 // ── Manejar acciones POST ────────────────────────────────────────────────────
 if (Astro.request.method === 'POST') {
@@ -17,73 +31,67 @@ if (Astro.request.method === 'POST') {
 
   // Actualizar datos del proyecto
   if (action === 'update_project') {
-    const slug = (form.get('slug') as string).trim().toLowerCase().replace(/\s+/g, '-');
+    const parsed = parseProjectForm(form);
 
-    const page_content = {
-      pageTitle: form.get('pageTitle') as string,
-      pageSubtitle: form.get('pageSubtitle') as string,
-      productUrl: form.get('productUrl') as string,
-      mainMessage: {
-        message: form.get('mainMessage_message') as string,
-        signature: form.get('mainMessage_signature') as string,
-        familyName: form.get('mainMessage_familyName') as string,
-        date: form.get('mainMessage_date') as string,
-      },
-      progressTitle: (form.get('progressTitle') as string) || '🎯 Progreso',
-      contributorsTitle: (form.get('contributorsTitle') as string) || '✨ Contribuidores',
-      photoSectionTitle: (form.get('photoSectionTitle') as string) || '📸 Fotos',
-      cta: {
-        icon: (form.get('cta_icon') as string) || '🎁',
-        title: (form.get('cta_title') as string) || '',
-        text: (form.get('cta_text') as string) || '',
-        stats: [],
-      },
-      bizum_phone: form.get('bizum_phone') as string,
-      bizum_concept: form.get('bizum_concept') as string,
-    };
+    if (!parsed.ok) {
+      fieldErrors = parsed.fields;
+      error = 'Revisa los campos marcados.';
+    } else {
+      const { data: clash } = await supabase
+        .from('project_config')
+        .select('id')
+        .eq('slug', parsed.data.slug)
+        .neq('id', id)
+        .maybeSingle();
 
-    const { error: dbErr } = await supabase
-      .from('project_config')
-      .update({
-        project_name: form.get('project_name') as string,
-        slug,
-        project_description: form.get('project_description') as string,
-        project_status: form.get('project_status') as string,
-        target_amount: parseFloat(form.get('target_amount') as string) || 0,
-        currency: (form.get('currency') as string) || 'EUR',
-        project_image_url: form.get('project_image_url') as string || null,
-        start_date: form.get('start_date') as string || null,
-        end_date: form.get('end_date') as string || null,
-        redirect_url: (form.get('redirect_url') as string) || '/',
-        bizum_phone: form.get('bizum_phone') as string || null,
-        bizum_concept: form.get('bizum_concept') as string || null,
-        page_content,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
+      if (clash) {
+        error = `Ya existe otro proyecto con el slug "${parsed.data.slug}".`;
+      } else {
+        const existingStats =
+          (current.page_content as { cta?: { stats?: { number: string; label: string }[] } } | null)
+            ?.cta?.stats ?? [];
+        const { error: dbErr } = await supabase
+          .from('project_config')
+          .update({
+            ...parsed.data,
+            page_content: {
+              ...parsed.data.page_content,
+              cta: { ...parsed.data.page_content.cta, stats: existingStats },
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id);
 
-    if (dbErr) error = dbErr.message;
-    else successMsg = '✅ Proyecto actualizado correctamente.';
+        if (dbErr) error = dbErr.message;
+        else successMsg = '✅ Proyecto actualizado correctamente.';
+      }
+    }
   }
 
   // Añadir nivel de contribución
   if (action === 'add_level') {
-    const { error: dbErr } = await supabase
-      .from('contribution_levels')
-      .insert([{
-        project_id: id,
-        name: form.get('level_name') as string,
-        amount: parseFloat(form.get('level_amount') as string) || 0,
-        emoji: (form.get('level_emoji') as string) || '⭐',
-        description: (form.get('level_description') as string) || '',
-        color: (form.get('level_color') as string) || '#6366f1',
-        rewards: [],
-        is_active: true,
-        sort_order: parseInt(form.get('level_sort_order') as string) || 0,
-      }]);
+    const name = String(form.get('level_name') ?? '').trim();
+    const amount = parseFloat(String(form.get('level_amount') ?? ''));
+    if (!name || !Number.isFinite(amount) || amount <= 0) {
+      error = 'El nivel necesita un nombre y un importe mayor que 0.';
+    } else {
+      const { error: dbErr } = await supabase.from('contribution_levels').insert([
+        {
+          project_id: id,
+          name,
+          amount,
+          emoji: (form.get('level_emoji') as string) || '⭐',
+          description: (form.get('level_description') as string) || '',
+          color: (form.get('level_color') as string) || '#6366f1',
+          rewards: [],
+          is_active: true,
+          sort_order: parseInt(form.get('level_sort_order') as string) || 0,
+        },
+      ]);
 
-    if (dbErr) error = dbErr.message;
-    else successMsg = '✅ Nivel añadido.';
+      if (dbErr) error = dbErr.message;
+      else successMsg = '✅ Nivel añadido.';
+    }
   }
 
   // Eliminar nivel de contribución
@@ -104,15 +112,10 @@ if (Astro.request.method === 'POST') {
     const emojiValue = (form.get('emoji_value') as string).trim();
     const emojiLabel = (form.get('emoji_label') as string).trim();
     if (emojiValue && emojiLabel) {
-      const { data: proj } = await supabase
-        .from('project_config')
-        .select('emoji_options')
-        .eq('id', id)
-        .single();
-      const current = (proj?.emoji_options ?? []) as { value: string; label: string }[];
+      const currentOptions = (current.emoji_options ?? []) as { value: string; label: string }[];
       const { error: dbErr } = await supabase
         .from('project_config')
-        .update({ emoji_options: [...current, { value: emojiValue, label: emojiLabel }] })
+        .update({ emoji_options: [...currentOptions, { value: emojiValue, label: emojiLabel }] })
         .eq('id', id);
       if (dbErr) error = dbErr.message;
       else successMsg = '✅ Emoji añadido.';
@@ -122,13 +125,8 @@ if (Astro.request.method === 'POST') {
   // Eliminar emoji option
   if (action === 'delete_emoji') {
     const idx = parseInt(form.get('emoji_index') as string);
-    const { data: proj } = await supabase
-      .from('project_config')
-      .select('emoji_options')
-      .eq('id', id)
-      .single();
-    const current = (proj?.emoji_options ?? []) as { value: string; label: string }[];
-    const updated = current.filter((_, i) => i !== idx);
+    const currentOptions = (current.emoji_options ?? []) as { value: string; label: string }[];
+    const updated = currentOptions.filter((_, i) => i !== idx);
     const { error: dbErr } = await supabase
       .from('project_config')
       .update({ emoji_options: updated })
@@ -138,7 +136,7 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-// ── Cargar datos actuales ─────────────────────────────────────────────────────
+// ── Cargar datos actuales (tras el POST) ─────────────────────────────────────
 const [{ data: project, error: projectErr }, { data: levels }] = await Promise.all([
   supabase.from('project_config').select('*').eq('id', id).single(),
   supabase.from('contribution_levels').select('*').eq('project_id', id).order('sort_order'),
@@ -162,6 +160,22 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
 <AdminLayout title={`Editar: ${project.project_name}`}>
   {successMsg && <div class='alert-success'>{successMsg}</div>}
   {error && <div class='alert-error'>⚠️ {error}</div>}
+  {
+    Object.keys(fieldErrors).length > 0 && (
+      <ul class='alert-error field-errors'>
+        {Object.entries(fieldErrors).map(([field, message]) => (
+          <li>
+            <code>{field}</code>: {message}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <nav class='subnav'>
+    <a href={`/admin/projects/${id}/contributions`} class='btn-secondary'>💳 Contribuciones</a>
+    <a href={`/admin/projects/${id}/messages`} class='btn-secondary'>💬 Mensajes de apoyo</a>
+  </nav>
 
   <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
   <form method='POST' class='project-form'>
@@ -171,23 +185,23 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
       <h2 class='section-title'>Información básica</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Nombre del proyecto *</label>
-          <input type='text' name='project_name' required value={project.project_name} />
+          <label for='project_name'>Nombre del proyecto *</label>
+          <input type='text' name='project_name' id='project_name' required value={project.project_name} />
         </div>
 
         <div class='field'>
-          <label>Slug (URL) *</label>
+          <label for='slug'>Slug (URL) *</label>
           <div class='input-prefix'>
             <span class='prefix'>/projects/</span>
-            <input type='text' name='slug' required value={project.slug}
+            <input type='text' name='slug' id='slug' required value={project.slug}
               pattern='[a-z0-9\-]+' title='Solo letras minúsculas, números y guiones' />
           </div>
           <small>Solo minúsculas, números y guiones.</small>
         </div>
 
         <div class='field'>
-          <label>Estado</label>
-          <select name='project_status'>
+          <label for='project_status'>Estado</label>
+          <select name='project_status' id='project_status'>
             {['active', 'paused', 'completed', 'cancelled'].map((s) => (
               <option value={s} selected={project.project_status === s}>
                 {s === 'active' ? 'Activo'
@@ -200,41 +214,41 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         </div>
 
         <div class='field full'>
-          <label>Descripción</label>
-          <textarea name='project_description' rows='3'>{project.project_description ?? ''}</textarea>
+          <label for='project_description'>Descripción</label>
+          <textarea name='project_description' id='project_description' rows='3'>{project.project_description ?? ''}</textarea>
         </div>
 
         <div class='field'>
-          <label>Meta (importe) *</label>
-          <input type='number' name='target_amount' required min='1' step='0.01'
+          <label for='target_amount'>Meta (importe) *</label>
+          <input type='number' name='target_amount' id='target_amount' required min='1' step='0.01'
             value={project.target_amount} />
         </div>
 
         <div class='field'>
-          <label>Moneda</label>
-          <input type='text' name='currency' value={project.currency ?? 'EUR'} maxlength='5' />
+          <label for='currency'>Moneda</label>
+          <input type='text' name='currency' id='currency' value={project.currency ?? 'EUR'} maxlength='5' />
         </div>
 
         <div class='field full'>
-          <label>URL de la imagen del producto</label>
-          <input type='url' name='project_image_url' value={project.project_image_url ?? ''} />
+          <label for='project_image_url'>URL de la imagen del producto</label>
+          <input type='url' name='project_image_url' id='project_image_url' value={project.project_image_url ?? ''} />
         </div>
 
         <div class='field'>
-          <label>Fecha de inicio</label>
-          <input type='date' name='start_date'
+          <label for='start_date'>Fecha de inicio</label>
+          <input type='date' name='start_date' id='start_date'
             value={project.start_date ? project.start_date.split('T')[0] : ''} />
         </div>
 
         <div class='field'>
-          <label>Fecha de cierre (opcional)</label>
-          <input type='date' name='end_date'
+          <label for='end_date'>Fecha de cierre (opcional)</label>
+          <input type='date' name='end_date' id='end_date'
             value={project.end_date ? project.end_date.split('T')[0] : ''} />
         </div>
 
         <div class='field full'>
-          <label>URL de redirección al finalizar</label>
-          <input type='text' name='redirect_url' value={project.redirect_url ?? '/'} />
+          <label for='redirect_url'>URL de redirección al finalizar</label>
+          <input type='text' name='redirect_url' id='redirect_url' value={project.redirect_url ?? '/'} />
         </div>
       </div>
     </section>
@@ -243,12 +257,12 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
       <h2 class='section-title'>Pago — Bizum</h2>
       <div class='form-grid'>
         <div class='field'>
-          <label>Número de Bizum</label>
-          <input type='text' name='bizum_phone' value={project.bizum_phone ?? ''} />
+          <label for='bizum_phone'>Número de Bizum</label>
+          <input type='text' name='bizum_phone' id='bizum_phone' value={project.bizum_phone ?? ''} />
         </div>
         <div class='field'>
-          <label>Concepto Bizum</label>
-          <input type='text' name='bizum_concept' value={project.bizum_concept ?? ''} />
+          <label for='bizum_concept'>Concepto Bizum</label>
+          <input type='text' name='bizum_concept' id='bizum_concept' value={project.bizum_concept ?? ''} />
         </div>
       </div>
     </section>
@@ -257,29 +271,29 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
       <h2 class='section-title'>Contenido de la página</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Título de la página</label>
-          <input type='text' name='pageTitle' value={pc.pageTitle ?? ''} />
+          <label for='pageTitle'>Título de la página</label>
+          <input type='text' name='pageTitle' id='pageTitle' value={pc.pageTitle ?? ''} />
         </div>
         <div class='field full'>
-          <label>Subtítulo</label>
-          <input type='text' name='pageSubtitle' value={pc.pageSubtitle ?? ''} />
+          <label for='pageSubtitle'>Subtítulo</label>
+          <input type='text' name='pageSubtitle' id='pageSubtitle' value={pc.pageSubtitle ?? ''} />
         </div>
         <div class='field full'>
-          <label>URL del producto</label>
-          <input type='url' name='productUrl' value={pc.productUrl ?? ''} />
+          <label for='productUrl'>URL del producto</label>
+          <input type='url' name='productUrl' id='productUrl' value={pc.productUrl ?? ''} />
         </div>
 
         <div class='field'>
-          <label>Título sección progreso</label>
-          <input type='text' name='progressTitle' value={pc.progressTitle ?? '🎯 Progreso'} />
+          <label for='progressTitle'>Título sección progreso</label>
+          <input type='text' name='progressTitle' id='progressTitle' value={pc.progressTitle ?? '🎯 Progreso'} />
         </div>
         <div class='field'>
-          <label>Título sección contribuidores</label>
-          <input type='text' name='contributorsTitle' value={pc.contributorsTitle ?? '✨ Contribuidores'} />
+          <label for='contributorsTitle'>Título sección contribuidores</label>
+          <input type='text' name='contributorsTitle' id='contributorsTitle' value={pc.contributorsTitle ?? '✨ Contribuidores'} />
         </div>
         <div class='field full'>
-          <label>Título sección fotos</label>
-          <input type='text' name='photoSectionTitle' value={pc.photoSectionTitle ?? '📸 Fotos'} />
+          <label for='photoSectionTitle'>Título sección fotos</label>
+          <input type='text' name='photoSectionTitle' id='photoSectionTitle' value={pc.photoSectionTitle ?? '📸 Fotos'} />
         </div>
       </div>
     </section>
@@ -288,20 +302,20 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
       <h2 class='section-title'>Mensaje principal de la familia</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Mensaje</label>
-          <textarea name='mainMessage_message' rows='5'>{mm.message ?? ''}</textarea>
+          <label for='mainMessage_message'>Mensaje</label>
+          <textarea name='mainMessage_message' id='mainMessage_message' rows='5'>{mm.message ?? ''}</textarea>
         </div>
         <div class='field'>
-          <label>Firma</label>
-          <input type='text' name='mainMessage_signature' value={mm.signature ?? ''} />
+          <label for='mainMessage_signature'>Firma</label>
+          <input type='text' name='mainMessage_signature' id='mainMessage_signature' value={mm.signature ?? ''} />
         </div>
         <div class='field'>
-          <label>Nombre de familia</label>
-          <input type='text' name='mainMessage_familyName' value={mm.familyName ?? ''} />
+          <label for='mainMessage_familyName'>Nombre de familia</label>
+          <input type='text' name='mainMessage_familyName' id='mainMessage_familyName' value={mm.familyName ?? ''} />
         </div>
         <div class='field'>
-          <label>Fecha del mensaje</label>
-          <input type='text' name='mainMessage_date' value={mm.date ?? ''} />
+          <label for='mainMessage_date'>Fecha del mensaje</label>
+          <input type='text' name='mainMessage_date' id='mainMessage_date' value={mm.date ?? ''} />
         </div>
       </div>
     </section>
@@ -310,16 +324,16 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
       <h2 class='section-title'>Call to Action (CTA)</h2>
       <div class='form-grid'>
         <div class='field'>
-          <label>Icono (emoji)</label>
-          <input type='text' name='cta_icon' value={cta.icon ?? '🎁'} maxlength='4' />
+          <label for='cta_icon'>Icono (emoji)</label>
+          <input type='text' name='cta_icon' id='cta_icon' value={cta.icon ?? '🎁'} maxlength='4' />
         </div>
         <div class='field'>
-          <label>Título del CTA</label>
-          <input type='text' name='cta_title' value={cta.title ?? ''} />
+          <label for='cta_title'>Título del CTA</label>
+          <input type='text' name='cta_title' id='cta_title' value={cta.title ?? ''} />
         </div>
         <div class='field full'>
-          <label>Texto del CTA</label>
-          <textarea name='cta_text' rows='3'>{cta.text ?? ''}</textarea>
+          <label for='cta_text'>Texto del CTA</label>
+          <textarea name='cta_text' id='cta_text' rows='3'>{cta.text ?? ''}</textarea>
         </div>
       </div>
     </section>
@@ -369,28 +383,28 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         <input type='hidden' name='_action' value='add_level' />
         <div class='form-grid'>
           <div class='field'>
-            <label>Nombre *</label>
-            <input type='text' name='level_name' required placeholder='Paladín' />
+            <label for='level_name'>Nombre *</label>
+            <input type='text' name='level_name' id='level_name' required placeholder='Paladín' />
           </div>
           <div class='field'>
-            <label>Importe (€) *</label>
-            <input type='number' name='level_amount' required min='1' step='0.01' placeholder='25' />
+            <label for='level_amount'>Importe (€) *</label>
+            <input type='number' name='level_amount' id='level_amount' required min='1' step='0.01' placeholder='25' />
           </div>
           <div class='field'>
-            <label>Emoji</label>
-            <input type='text' name='level_emoji' value='⭐' maxlength='4' />
+            <label for='level_emoji'>Emoji</label>
+            <input type='text' name='level_emoji' id='level_emoji' value='⭐' maxlength='4' />
           </div>
           <div class='field'>
-            <label>Color</label>
-            <input type='color' name='level_color' value='#6366f1' />
+            <label for='level_color'>Color</label>
+            <input type='color' name='level_color' id='level_color' value='#6366f1' />
           </div>
           <div class='field'>
-            <label>Orden</label>
-            <input type='number' name='level_sort_order' value={levels ? levels.length : 0} min='0' />
+            <label for='level_sort_order'>Orden</label>
+            <input type='number' name='level_sort_order' id='level_sort_order' value={levels ? levels.length : 0} min='0' />
           </div>
           <div class='field full'>
-            <label>Descripción (opcional)</label>
-            <input type='text' name='level_description' placeholder='Para los más generosos...' />
+            <label for='level_description'>Descripción (opcional)</label>
+            <input type='text' name='level_description' id='level_description' placeholder='Para los más generosos...' />
           </div>
         </div>
         <button type='submit' class='btn-primary' style='margin-top: 12px;'>
@@ -437,13 +451,13 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
         <input type='hidden' name='_action' value='add_emoji' />
         <div class='form-grid'>
           <div class='field'>
-            <label>Emoji *</label>
-            <input type='text' name='emoji_value' required maxlength='4' placeholder='🙂' />
+            <label for='emoji_value'>Emoji *</label>
+            <input type='text' name='emoji_value' id='emoji_value' required maxlength='4' placeholder='🙂' />
             <small>Un solo emoji</small>
           </div>
           <div class='field'>
-            <label>Etiqueta *</label>
-            <input type='text' name='emoji_label' required placeholder='Amigo de la familia' />
+            <label for='emoji_label'>Etiqueta *</label>
+            <input type='text' name='emoji_label' id='emoji_label' required placeholder='Amigo de la familia' />
             <small>Texto que verá el contribuidor</small>
           </div>
         </div>
@@ -827,5 +841,15 @@ if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de
     .form-grid {
       grid-template-columns: 1fr;
     }
+  }
+  .field-errors {
+    list-style: disc inside;
+    margin: 0 0 16px;
+  }
+  .subnav {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
   }
 </style>

@@ -11,6 +11,19 @@ const { data: projects, error } = await supabase
   .select('id, project_name, slug, project_status, current_amount, target_amount, currency, created_at')
   .order('created_at', { ascending: false });
 
+// Pendientes por proyecto (confirmar pagos / aprobar mensajes)
+const [{ data: pendingContribs }, { data: pendingMessages }] = await Promise.all([
+  supabase.from('contributions').select('project_id').eq('payment_status', 'pending'),
+  supabase.from('support_messages').select('project_id').eq('is_approved', false),
+]);
+const countByProject = (rows: { project_id: string }[] | null) =>
+  (rows ?? []).reduce<Record<string, number>>((acc, r) => {
+    acc[r.project_id] = (acc[r.project_id] ?? 0) + 1;
+    return acc;
+  }, {});
+const pendingContribCount = countByProject(pendingContribs);
+const pendingMessageCount = countByProject(pendingMessages);
+
 const statusLabel: Record<string, string> = {
   active: 'Activo',
   completed: 'Completado',
@@ -99,6 +112,20 @@ const statusColor: Record<string, string> = {
                   class='btn-secondary'
                 >
                   ✏️ Editar
+                </a>
+                <a
+                  href={`/admin/projects/${p.id}/contributions`}
+                  class={`btn-ghost ${pendingContribCount[p.id] ? 'has-pending' : ''}`}
+                >
+                  💳 Contribuciones
+                  {pendingContribCount[p.id] ? ` (${pendingContribCount[p.id]})` : ''}
+                </a>
+                <a
+                  href={`/admin/projects/${p.id}/messages`}
+                  class={`btn-ghost ${pendingMessageCount[p.id] ? 'has-pending' : ''}`}
+                >
+                  💬 Mensajes
+                  {pendingMessageCount[p.id] ? ` (${pendingMessageCount[p.id]})` : ''}
                 </a>
               </div>
             </div>
@@ -257,5 +284,10 @@ const statusColor: Record<string, string> = {
     padding: 14px 18px;
     border-radius: var(--radius-sm);
     margin-bottom: 20px;
+  }
+  .has-pending {
+    border-color: #f59e0b;
+    color: #92400e;
+    background: #fffbeb;
   }
 </style>

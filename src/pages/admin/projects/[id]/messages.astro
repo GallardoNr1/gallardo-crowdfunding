@@ -1,0 +1,284 @@
+---
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import {
+  deleteSupportMessage,
+  listSupportMessages,
+  setSupportMessageApproved,
+} from '@/lib/support-messages-server';
+import { createAdminClient } from '@/lib/supabase-server';
+
+const { id } = Astro.params;
+const admin = createAdminClient();
+
+let error = '';
+let successMsg = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? '');
+  const messageId = String(form.get('message_id') ?? '');
+
+  if (!messageId) {
+    error = 'Acción no válida.';
+  } else if (action === 'approve' || action === 'unapprove') {
+    const result = await setSupportMessageApproved(admin, messageId, action === 'approve');
+    if (result.ok) successMsg = action === 'approve' ? '✅ Mensaje publicado.' : '✅ Mensaje ocultado.';
+    else error = result.error;
+  } else if (action === 'delete') {
+    const result = await deleteSupportMessage(admin, messageId);
+    if (result.ok) successMsg = '✅ Mensaje eliminado.';
+    else error = result.error;
+  } else {
+    error = 'Acción no válida.';
+  }
+}
+
+const { data: project } = await admin
+  .from('project_config')
+  .select('id, project_name, slug')
+  .eq('id', id)
+  .maybeSingle();
+
+if (!project) {
+  return Astro.redirect('/admin');
+}
+
+const rows = await listSupportMessages(admin, project.id);
+const pending = rows.filter((m) => !m.is_approved);
+const approved = rows.filter((m) => m.is_approved);
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+---
+
+<AdminLayout title={`Mensajes de apoyo: ${project.project_name}`}>
+  <nav class='subnav'>
+    <a href={`/admin/projects/${project.id}/edit`} class='btn-ghost'>✏️ Editar proyecto</a>
+    <a href={`/admin/projects/${project.id}/contributions`} class='btn-ghost'>💳 Contribuciones</a>
+    <a href={`/projects/${project.slug}`} target='_blank' class='btn-ghost'>👁 Ver página</a>
+  </nav>
+
+  {successMsg && <div class='alert-success'>{successMsg}</div>}
+  {error && <div class='alert-error'>⚠️ {error}</div>}
+
+  <section class='block'>
+    <h2 class='section-title'>Pendientes de aprobación ({pending.length})</h2>
+    {
+      pending.length === 0 ? (
+        <p class='empty-state'>No hay mensajes pendientes.</p>
+      ) : (
+        <ul class='message-list'>
+          {pending.map((m) => (
+            <li class='message-row pending'>
+              <div class='message-body'>
+                <div class='message-meta'>
+                  <strong>
+                    {m.author_emoji} {m.author_name}
+                  </strong>
+                  {m.is_from_contributor && <span class='tag'>⭐ contribuidor</span>}
+                  <small>{fmtDate(m.created_at)}</small>
+                </div>
+                <p class='message-text'>{m.message}</p>
+              </div>
+              <div class='actions'>
+                <form method='POST'>
+                  <input type='hidden' name='_action' value='approve' />
+                  <input type='hidden' name='message_id' value={m.id} />
+                  <button type='submit' class='btn-primary btn-sm'>✔ Publicar</button>
+                </form>
+                <form method='POST'>
+                  <input type='hidden' name='_action' value='delete' />
+                  <input type='hidden' name='message_id' value={m.id} />
+                  <button
+                    type='submit'
+                    class='btn-delete btn-sm'
+                    onclick="return confirm('¿Eliminar este mensaje?')"
+                  >
+                    🗑 Eliminar
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <section class='block'>
+    <h2 class='section-title'>Publicados ({approved.length})</h2>
+    {
+      approved.length === 0 ? (
+        <p class='empty-state'>Todavía no hay mensajes publicados.</p>
+      ) : (
+        <ul class='message-list'>
+          {approved.map((m) => (
+            <li class='message-row'>
+              <div class='message-body'>
+                <div class='message-meta'>
+                  <strong>
+                    {m.author_emoji} {m.author_name}
+                  </strong>
+                  {m.is_from_contributor && <span class='tag'>⭐ contribuidor</span>}
+                  <small>{fmtDate(m.created_at)}</small>
+                </div>
+                <p class='message-text'>{m.message}</p>
+              </div>
+              <div class='actions'>
+                <form method='POST'>
+                  <input type='hidden' name='_action' value='unapprove' />
+                  <input type='hidden' name='message_id' value={m.id} />
+                  <button type='submit' class='btn-secondary btn-sm'>👁‍🗨 Ocultar</button>
+                </form>
+                <form method='POST'>
+                  <input type='hidden' name='_action' value='delete' />
+                  <input type='hidden' name='message_id' value={m.id} />
+                  <button
+                    type='submit'
+                    class='btn-delete btn-sm'
+                    onclick="return confirm('¿Eliminar este mensaje?')"
+                  >
+                    🗑 Eliminar
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</AdminLayout>
+
+<style>
+  .subnav {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .block {
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-admin-text);
+    margin-bottom: 12px;
+  }
+  .message-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .message-row {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+  .message-row.pending {
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+  .message-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+    color: #64748b;
+  }
+  .message-meta strong {
+    color: var(--color-admin-text);
+  }
+  .message-text {
+    margin: 0;
+    white-space: pre-wrap;
+    color: var(--color-admin-text);
+  }
+  .tag {
+    font-size: 0.72rem;
+    background: #e2e8f0;
+    color: #334155;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 130px;
+  }
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    width: 100%;
+  }
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-delete {
+    display: inline-block;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--color-admin-primary);
+    color: #fff;
+  }
+  .btn-secondary {
+    background: #fff;
+    color: var(--color-admin-text);
+    border-color: var(--color-admin-border);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-admin-primary);
+    padding: 8px 12px;
+    border-color: var(--color-admin-border);
+  }
+  .btn-delete {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+  }
+  .alert-success,
+  .alert-error {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+  }
+  .alert-success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+  .empty-state {
+    color: #64748b;
+    padding: 20px;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-admin-border);
+    border-radius: var(--radius-lg);
+  }
+</style>

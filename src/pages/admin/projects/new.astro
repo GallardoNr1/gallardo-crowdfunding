@@ -2,88 +2,81 @@
 export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { parseProjectForm } from '@/lib/project-form';
 import { createAdminClient } from '@/lib/supabase-server';
 
 let error = '';
-let success = false;
+let fieldErrors: Record<string, string> = {};
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
+  const parsed = parseProjectForm(form);
 
-  const slug = (form.get('slug') as string).trim().toLowerCase().replace(/\s+/g, '-');
-
-  const page_content = {
-    pageTitle: form.get('pageTitle') as string,
-    pageSubtitle: form.get('pageSubtitle') as string,
-    productUrl: form.get('productUrl') as string,
-    mainMessage: {
-      message: form.get('mainMessage_message') as string,
-      signature: form.get('mainMessage_signature') as string,
-      familyName: form.get('mainMessage_familyName') as string,
-      date: form.get('mainMessage_date') as string,
-    },
-    progressTitle: (form.get('progressTitle') as string) || '🎯 Progreso',
-    contributorsTitle: (form.get('contributorsTitle') as string) || '✨ Contribuidores',
-    photoSectionTitle: (form.get('photoSectionTitle') as string) || '📸 Fotos',
-    cta: {
-      icon: (form.get('cta_icon') as string) || '🎁',
-      title: (form.get('cta_title') as string) || '',
-      text: (form.get('cta_text') as string) || '',
-      stats: [],
-    },
-    bizum_phone: form.get('bizum_phone') as string,
-    bizum_concept: form.get('bizum_concept') as string,
-  };
-
-  const supabase = createAdminClient();
-
-  const { data, error: dbError } = await supabase
-    .from('project_config')
-    .insert([{
-      project_name: form.get('project_name') as string,
-      slug,
-      project_description: form.get('project_description') as string,
-      project_status: form.get('project_status') as string,
-      target_amount: parseFloat(form.get('target_amount') as string) || 0,
-      current_amount: 0,
-      currency: (form.get('currency') as string) || 'EUR',
-      project_image_url: form.get('project_image_url') as string || null,
-      start_date: form.get('start_date') as string || new Date().toISOString(),
-      end_date: form.get('end_date') as string || null,
-      redirect_url: (form.get('redirect_url') as string) || '/',
-      bizum_phone: form.get('bizum_phone') as string || null,
-      bizum_concept: form.get('bizum_concept') as string || null,
-      page_content,
-      emoji_options: [],
-    }])
-    .select('id')
-    .single();
-
-  if (dbError) {
-    error = dbError.message;
+  if (!parsed.ok) {
+    fieldErrors = parsed.fields;
+    error = 'Revisa los campos marcados.';
   } else {
-    return Astro.redirect(`/admin/projects/${data.id}/edit?created=1`);
+    const supabase = createAdminClient();
+    const { data: clash } = await supabase
+      .from('project_config')
+      .select('id')
+      .eq('slug', parsed.data.slug)
+      .maybeSingle();
+
+    if (clash) {
+      error = `Ya existe un proyecto con el slug "${parsed.data.slug}".`;
+    } else {
+      const { data, error: dbError } = await supabase
+        .from('project_config')
+        .insert([
+          {
+            ...parsed.data,
+            start_date: parsed.data.start_date ?? new Date().toISOString().slice(0, 10),
+            current_amount: 0,
+            emoji_options: [],
+          },
+        ])
+        .select('id')
+        .single();
+
+      if (dbError || !data) {
+        error = dbError?.message ?? 'No se pudo crear el proyecto.';
+      } else {
+        return Astro.redirect(`/admin/projects/${data.id}/edit?created=1`);
+      }
+    }
   }
 }
 ---
 
 <AdminLayout title='Nuevo proyecto'>
   {error && <div class='alert-error'>⚠️ {error}</div>}
+  {
+    Object.keys(fieldErrors).length > 0 && (
+      <ul class='alert-error field-errors'>
+        {Object.entries(fieldErrors).map(([field, message]) => (
+          <li>
+            <code>{field}</code>: {message}
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
   <form method='POST' class='project-form'>
     <section class='form-section'>
       <h2 class='section-title'>Información básica</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Nombre del proyecto *</label>
-          <input type='text' name='project_name' required placeholder='Tablet para Ana' />
+          <label for='project_name'>Nombre del proyecto *</label>
+          <input type='text' name='project_name' id='project_name' required placeholder='Tablet para Ana' />
         </div>
 
         <div class='field'>
-          <label>Slug (URL) *</label>
+          <label for='slug'>Slug (URL) *</label>
           <div class='input-prefix'>
             <span class='prefix'>/projects/</span>
-            <input type='text' name='slug' required placeholder='tablet-ana'
+            <input type='text' name='slug' id='slug' required placeholder='tablet-ana'
               pattern='[a-z0-9\-]+'
               title='Solo letras minúsculas, números y guiones' />
           </div>
@@ -91,8 +84,8 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class='field'>
-          <label>Estado</label>
-          <select name='project_status'>
+          <label for='project_status'>Estado</label>
+          <select name='project_status' id='project_status'>
             <option value='active'>Activo</option>
             <option value='paused'>Pausado</option>
             <option value='completed'>Completado</option>
@@ -101,38 +94,38 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class='field full'>
-          <label>Descripción</label>
-          <textarea name='project_description' rows='3' placeholder='Describe el proyecto...'></textarea>
+          <label for='project_description'>Descripción</label>
+          <textarea name='project_description' id='project_description' rows='3' placeholder='Describe el proyecto...'></textarea>
         </div>
 
         <div class='field'>
-          <label>Meta (importe) *</label>
-          <input type='number' name='target_amount' required min='1' step='0.01' placeholder='200.00' />
+          <label for='target_amount'>Meta (importe) *</label>
+          <input type='number' name='target_amount' id='target_amount' required min='1' step='0.01' placeholder='200.00' />
         </div>
 
         <div class='field'>
-          <label>Moneda</label>
-          <input type='text' name='currency' value='EUR' maxlength='5' />
+          <label for='currency'>Moneda</label>
+          <input type='text' name='currency' id='currency' value='EUR' maxlength='5' />
         </div>
 
         <div class='field full'>
-          <label>URL de la imagen del producto</label>
-          <input type='url' name='project_image_url' placeholder='https://...' />
+          <label for='project_image_url'>URL de la imagen del producto</label>
+          <input type='url' name='project_image_url' id='project_image_url' placeholder='https://...' />
         </div>
 
         <div class='field'>
-          <label>Fecha de inicio</label>
-          <input type='date' name='start_date' value={new Date().toISOString().split('T')[0]} />
+          <label for='start_date'>Fecha de inicio</label>
+          <input type='date' name='start_date' id='start_date' value={new Date().toISOString().split('T')[0]} />
         </div>
 
         <div class='field'>
-          <label>Fecha de cierre (opcional)</label>
-          <input type='date' name='end_date' />
+          <label for='end_date'>Fecha de cierre (opcional)</label>
+          <input type='date' name='end_date' id='end_date' />
         </div>
 
         <div class='field full'>
-          <label>URL de redirección al finalizar</label>
-          <input type='text' name='redirect_url' placeholder='/' value='/' />
+          <label for='redirect_url'>URL de redirección al finalizar</label>
+          <input type='text' name='redirect_url' id='redirect_url' placeholder='/' value='/' />
         </div>
       </div>
     </section>
@@ -141,12 +134,12 @@ if (Astro.request.method === 'POST') {
       <h2 class='section-title'>Pago — Bizum</h2>
       <div class='form-grid'>
         <div class='field'>
-          <label>Número de Bizum</label>
-          <input type='text' name='bizum_phone' placeholder='612345678' />
+          <label for='bizum_phone'>Número de Bizum</label>
+          <input type='text' name='bizum_phone' id='bizum_phone' placeholder='612345678' />
         </div>
         <div class='field'>
-          <label>Concepto Bizum</label>
-          <input type='text' name='bizum_concept' placeholder='Regalo Ana cumpleaños' />
+          <label for='bizum_concept'>Concepto Bizum</label>
+          <input type='text' name='bizum_concept' id='bizum_concept' placeholder='Regalo Ana cumpleaños' />
         </div>
       </div>
     </section>
@@ -155,29 +148,29 @@ if (Astro.request.method === 'POST') {
       <h2 class='section-title'>Contenido de la página</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Título de la página</label>
-          <input type='text' name='pageTitle' placeholder='🎁 Regalo para Ana' />
+          <label for='pageTitle'>Título de la página</label>
+          <input type='text' name='pageTitle' id='pageTitle' placeholder='🎁 Regalo para Ana' />
         </div>
         <div class='field full'>
-          <label>Subtítulo</label>
-          <input type='text' name='pageSubtitle' placeholder='¡Ayúdanos a conseguirlo!' />
+          <label for='pageSubtitle'>Subtítulo</label>
+          <input type='text' name='pageSubtitle' id='pageSubtitle' placeholder='¡Ayúdanos a conseguirlo!' />
         </div>
         <div class='field full'>
-          <label>URL del producto</label>
-          <input type='url' name='productUrl' placeholder='https://amazon.es/...' />
+          <label for='productUrl'>URL del producto</label>
+          <input type='url' name='productUrl' id='productUrl' placeholder='https://amazon.es/...' />
         </div>
 
         <div class='field'>
-          <label>Título sección progreso</label>
-          <input type='text' name='progressTitle' value='🎯 Progreso' />
+          <label for='progressTitle'>Título sección progreso</label>
+          <input type='text' name='progressTitle' id='progressTitle' value='🎯 Progreso' />
         </div>
         <div class='field'>
-          <label>Título sección contribuidores</label>
-          <input type='text' name='contributorsTitle' value='✨ Contribuidores' />
+          <label for='contributorsTitle'>Título sección contribuidores</label>
+          <input type='text' name='contributorsTitle' id='contributorsTitle' value='✨ Contribuidores' />
         </div>
         <div class='field full'>
-          <label>Título sección fotos</label>
-          <input type='text' name='photoSectionTitle' value='📸 Fotos' />
+          <label for='photoSectionTitle'>Título sección fotos</label>
+          <input type='text' name='photoSectionTitle' id='photoSectionTitle' value='📸 Fotos' />
         </div>
       </div>
     </section>
@@ -186,21 +179,21 @@ if (Astro.request.method === 'POST') {
       <h2 class='section-title'>Mensaje principal de la familia</h2>
       <div class='form-grid'>
         <div class='field full'>
-          <label>Mensaje</label>
-          <textarea name='mainMessage_message' rows='5'
+          <label for='mainMessage_message'>Mensaje</label>
+          <textarea name='mainMessage_message' id='mainMessage_message' rows='5'
             placeholder='Escribe el mensaje que verán los visitantes...'></textarea>
         </div>
         <div class='field'>
-          <label>Firma</label>
-          <input type='text' name='mainMessage_signature' placeholder='La familia Gallardo' />
+          <label for='mainMessage_signature'>Firma</label>
+          <input type='text' name='mainMessage_signature' id='mainMessage_signature' placeholder='La familia Gallardo' />
         </div>
         <div class='field'>
-          <label>Nombre de familia</label>
-          <input type='text' name='mainMessage_familyName' placeholder='Los Gallardo' />
+          <label for='mainMessage_familyName'>Nombre de familia</label>
+          <input type='text' name='mainMessage_familyName' id='mainMessage_familyName' placeholder='Los Gallardo' />
         </div>
         <div class='field'>
-          <label>Fecha del mensaje</label>
-          <input type='text' name='mainMessage_date' placeholder='Julio 2025' />
+          <label for='mainMessage_date'>Fecha del mensaje</label>
+          <input type='text' name='mainMessage_date' id='mainMessage_date' placeholder='Julio 2025' />
         </div>
       </div>
     </section>
@@ -209,16 +202,16 @@ if (Astro.request.method === 'POST') {
       <h2 class='section-title'>Call to Action (CTA)</h2>
       <div class='form-grid'>
         <div class='field'>
-          <label>Icono (emoji)</label>
-          <input type='text' name='cta_icon' value='🎁' maxlength='4' />
+          <label for='cta_icon'>Icono (emoji)</label>
+          <input type='text' name='cta_icon' id='cta_icon' value='🎁' maxlength='4' />
         </div>
         <div class='field'>
-          <label>Título del CTA</label>
-          <input type='text' name='cta_title' placeholder='¿Nos ayudas?' />
+          <label for='cta_title'>Título del CTA</label>
+          <input type='text' name='cta_title' id='cta_title' placeholder='¿Nos ayudas?' />
         </div>
         <div class='field full'>
-          <label>Texto del CTA</label>
-          <textarea name='cta_text' rows='3' placeholder='Cualquier aportación suma...'></textarea>
+          <label for='cta_text'>Texto del CTA</label>
+          <textarea name='cta_text' id='cta_text' rows='3' placeholder='Cualquier aportación suma...'></textarea>
         </div>
       </div>
     </section>
@@ -396,5 +389,9 @@ if (Astro.request.method === 'POST') {
     .form-grid {
       grid-template-columns: 1fr;
     }
+  }
+  .field-errors {
+    list-style: disc inside;
+    margin: 0 0 16px;
   }
 </style>
