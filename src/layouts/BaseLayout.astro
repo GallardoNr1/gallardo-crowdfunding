@@ -146,23 +146,33 @@ const customPaymentMethods = await getPaymentMethods();
   window.showToast = function (message, type, duration) {
     type = type || 'info';
     duration = duration || 4500;
-    var styles = {
+    const styles = {
       success: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', icon: '✅' },
       error:   { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', icon: '❌' },
       warning: { bg: '#fffbeb', border: '#fde68a', text: '#92400e', icon: '⚠️' },
       info:    { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', icon: 'ℹ️' },
     };
-    var s = styles[type] || styles.info;
-    var container = document.getElementById('gc-toast-container');
+    const s = styles[type] || styles.info;
+    const container = document.getElementById('gc-toast-container');
     if (!container) return;
 
-    var toast = document.createElement('div');
+    const toast = document.createElement('div');
     toast.className = 'gc-toast';
     toast.style.cssText = 'background:' + s.bg + ';border:1.5px solid ' + s.border + ';color:' + s.text;
-    toast.innerHTML =
-      '<span class="gc-toast-icon">' + s.icon + '</span>' +
-      '<span class="gc-toast-msg">' + message + '</span>' +
-      '<button class="gc-toast-close" onclick="this.parentElement.remove()" aria-label="Cerrar">×</button>';
+
+    // Construido con textContent: el mensaje puede venir de errores del servidor.
+    const icon = document.createElement('span');
+    icon.className = 'gc-toast-icon';
+    icon.textContent = s.icon;
+    const msg = document.createElement('span');
+    msg.className = 'gc-toast-msg';
+    msg.textContent = String(message);
+    const close = document.createElement('button');
+    close.className = 'gc-toast-close';
+    close.setAttribute('aria-label', 'Cerrar');
+    close.textContent = '×';
+    close.addEventListener('click', function () { toast.remove(); });
+    toast.append(icon, msg, close);
 
     container.appendChild(toast);
 

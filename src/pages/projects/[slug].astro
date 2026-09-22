@@ -450,16 +450,30 @@ const photoSection = {
             font-family: 'Poppins', sans-serif;
         `;
 
-    notification.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <span style="font-size: 1.5rem;">${contributor.emoji}</span>
-                <strong style="font-size: 1.1rem;">¡Nueva contribución!</strong>
-            </div>
-            <div style="font-size: 0.9rem; opacity: 0.9;">
-                <strong>${contributor.name}</strong> se unió como <strong>${contributor.level}</strong>
-                ${contributor.message ? `<br><em>"${contributor.message}"</em>` : ''}
-            </div>
-        `;
+    // Nombre, nivel y mensaje los escribe el contribuidor: siempre textContent, nunca innerHTML.
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;';
+    const emoji = document.createElement('span');
+    emoji.style.fontSize = '1.5rem';
+    emoji.textContent = contributor.emoji ?? '🎉';
+    const title = document.createElement('strong');
+    title.style.fontSize = '1.1rem';
+    title.textContent = '¡Nueva contribución!';
+    header.append(emoji, title);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'font-size:0.9rem;opacity:0.9;';
+    const name = document.createElement('strong');
+    name.textContent = contributor.name ?? 'Alguien';
+    const level = document.createElement('strong');
+    level.textContent = contributor.level ?? '';
+    body.append(name, document.createTextNode(' se unió como '), level);
+    if (contributor.message) {
+      const quote = document.createElement('em');
+      quote.textContent = `"${contributor.message}"`;
+      body.append(document.createElement('br'), quote);
+    }
+    notification.append(header, body);
 
     document.body.appendChild(notification);
 

@@ -3,37 +3,37 @@ export const prerender = false;
 
 import { createClient } from '@supabase/supabase-js';
 import '../../styles/tokens.css';
+import { env } from '@/lib/env';
+import { isAdminUser } from '@/lib/authz';
+import { ACCESS_COOKIE, setSessionCookies } from '@/lib/session-cookies';
 
-const existingToken = Astro.cookies.get('sb-access-token')?.value;
-if (existingToken) {
+if (Astro.cookies.get(ACCESS_COOKIE)?.value) {
   return Astro.redirect('/admin');
 }
 
-let error = '';
+let error =
+  Astro.url.searchParams.get('error') === 'forbidden'
+    ? 'Esta cuenta no tiene acceso al backoffice.'
+    : '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
-  const email = (form.get('email') as string)?.trim();
-  const password = form.get('password') as string;
+  const email = String(form.get('email') ?? '').trim();
+  const password = String(form.get('password') ?? '');
 
-  const supabase = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
-  );
+  const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
   if (authError || !data.session) {
     error = 'Email o contraseña incorrectos.';
+  } else if (!isAdminUser(data.user, env.adminEmails)) {
+    console.warn(`[auth] login sin rol admin: ${email}`);
+    error = 'Esta cuenta no tiene acceso al backoffice.';
   } else {
-    const isProd = import.meta.env.PROD;
-    Astro.cookies.set('sb-access-token', data.session.access_token, {
-      path: '/', maxAge: 60 * 60 * 24 * 7, httpOnly: true, secure: isProd, sameSite: 'lax',
-    });
-    Astro.cookies.set('sb-refresh-token', data.session.refresh_token, {
-      path: '/', maxAge: 60 * 60 * 24 * 30, httpOnly: true, secure: isProd, sameSite: 'lax',
-    });
+    setSessionCookies(Astro.cookies, data.session);
     return Astro.redirect('/admin');
   }
 }
@@ -45,6 +45,7 @@ if (Astro.request.method === 'POST') {
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>Acceso — Backoffice</title>
+    <meta name='robots' content='noindex, nofollow' />
     <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
     <link rel='shortcut icon' href='/favicon.svg' />
     <link

@@ -1,5 +1,10 @@
 ---
 export const prerender = false;
+
+// Showcase interno del design system: solo en desarrollo (ver MEJORAS N-15).
+if (!import.meta.env.DEV) {
+  return new Response(null, { status: 404 });
+}
 ---
 
 <!doctype html>
