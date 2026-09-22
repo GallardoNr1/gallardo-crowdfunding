@@ -23,6 +23,7 @@ de GitHub Actions al hacer `npm run build`.
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio: endpoints `/api/*` y backoffice. Nunca con prefijo `PUBLIC_` | Sí |
 | `ADMIN_EMAILS` | Emails (coma) con acceso al backoffice además de los usuarios con `app_metadata.role = 'admin'` | No |
 | `ANTHROPIC_API_KEY` | Clave de la API de Anthropic para el panel "Rellenar con IA" del alta de proyectos. Sin ella el panel muestra un aviso y el resto funciona igual. Solo servidor | No |
+| `ANTHROPIC_WORKSPACE_ID` | Solo si la API responde "This API key is not scoped to a workspace": ID del workspace (`wrkspc_…`, Console → Settings → Workspaces). Se envía como cabecera `anthropic-workspace-id` | No |
 
 ## Producción
 
@@ -97,7 +98,7 @@ Las acciones de GitHub están fijadas por SHA (`actions/checkout`, `actions/setu
 
 | Secret | Descripción |
 |--------|-------------|
-| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS` y `ANTHROPIC_API_KEY` si se usan) |
+| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS`, `ANTHROPIC_API_KEY` y `ANTHROPIC_WORKSPACE_ID` si se usan) |
 | `SERVER_HOST` | IP o hostname del VPS |
 | `SERVER_USER` | Usuario SSH |
 | `SERVER_SSH_KEY` | Clave privada SSH |

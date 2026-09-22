@@ -11,4 +11,5 @@ export const env = parseEnv({
   SUPABASE_SERVICE_ROLE_KEY: import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
   ADMIN_EMAILS: import.meta.env.ADMIN_EMAILS,
   ANTHROPIC_API_KEY: import.meta.env.ANTHROPIC_API_KEY,
+  ANTHROPIC_WORKSPACE_ID: import.meta.env.ANTHROPIC_WORKSPACE_ID,
 });

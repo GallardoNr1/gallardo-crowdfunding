@@ -35,6 +35,10 @@ export async function generateProjectDraft(
     client ??
     new Anthropic({
       apiKey: env.anthropicApiKey ?? undefined,
+      // Las claves de organización (sin workspace) exigen esta cabecera.
+      defaultHeaders: env.anthropicWorkspaceId
+        ? { 'anthropic-workspace-id': env.anthropicWorkspaceId }
+        : undefined,
       timeout: 120_000,
       maxRetries: 1,
     });
@@ -79,6 +83,12 @@ export async function generateProjectDraft(
 function describeApiError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError) {
     return 'La clave ANTHROPIC_API_KEY del servidor no es válida.';
+  }
+  if (
+    err instanceof Anthropic.BadRequestError &&
+    /workspace/i.test(err.message)
+  ) {
+    return 'La clave de Anthropic no está asociada a un workspace: añade ANTHROPIC_WORKSPACE_ID al servidor o usa una clave creada dentro de un workspace.';
   }
   if (err instanceof Anthropic.RateLimitError) {
     return 'La IA está saturada ahora mismo. Inténtalo dentro de un minuto.';

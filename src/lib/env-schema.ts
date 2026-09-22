@@ -10,6 +10,11 @@ const EnvSchema = z.object({
     (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
     z.string().min(20).optional()
   ),
+  /** Solo si la clave de Anthropic no está asociada a un workspace (la API lo exige entonces). */
+  ANTHROPIC_WORKSPACE_ID: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().trim().min(3).optional()
+  ),
 });
 
 export interface AppEnv {
@@ -20,6 +25,8 @@ export interface AppEnv {
   adminEmails: string[];
   /** Clave de la API de Anthropic; null desactiva el panel "Rellenar con IA" del alta. */
   anthropicApiKey: string | null;
+  /** Workspace de Anthropic (cabecera anthropic-workspace-id) para claves sin workspace. */
+  anthropicWorkspaceId: string | null;
 }
 
 /**
@@ -43,5 +50,6 @@ export function parseEnv(raw: Record<string, unknown>): AppEnv {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
     anthropicApiKey: env.ANTHROPIC_API_KEY ?? null,
+    anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID ?? null,
   };
 }

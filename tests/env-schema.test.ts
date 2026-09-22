@@ -42,6 +42,17 @@ describe('parseEnv', () => {
     );
   });
 
+  it('keeps the optional Anthropic workspace id and nulls it when blank', () => {
+    expect(parseEnv(valid).anthropicWorkspaceId).toBeNull();
+    expect(
+      parseEnv({ ...valid, ANTHROPIC_WORKSPACE_ID: ' ' }).anthropicWorkspaceId
+    ).toBeNull();
+    expect(
+      parseEnv({ ...valid, ANTHROPIC_WORKSPACE_ID: ' wrkspc_abc ' })
+        .anthropicWorkspaceId
+    ).toBe('wrkspc_abc');
+  });
+
   it('splits, trims and lowercases ADMIN_EMAILS', () => {
     const env = parseEnv({ ...valid, ADMIN_EMAILS: 'a@x.com, B@X.com ,, ' });
     expect(env.adminEmails).toEqual(['a@x.com', 'b@x.com']);
