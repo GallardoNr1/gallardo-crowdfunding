@@ -19,7 +19,8 @@ gallardo-crowdfunding/
 │   └── styles/global.css      # CSS global público
 ├── src/
 │   ├── components/            # Secciones de la página de proyecto (Astro)
-│   │   ├── ContributionLevels.astro   # Niveles (botones) → evento levelSelected
+│   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
+│   │   ├── OpenCampaignSection.astro  # Progreso de campañas por tiempo (totales + cuenta atrás)
 │   │   ├── ContributionModal.astro    # Modal: formulario → POST /api/contributions
 │   │   ├── SupportMessageFrom.astro   # Formulario → POST /api/support-messages
 │   │   ├── react/
@@ -36,6 +37,7 @@ gallardo-crowdfunding/
 │   │   ├── supabase-server.ts        # Cliente service_role (solo servidor)
 │   │   ├── contributions-server.ts   # Crear pendiente, cambiar estado, recalcular importe, listar
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
+│   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── schemas.ts                # Zod: ContributionInput, SupportMessageInput, ProjectFormInput
 │   │   ├── project-form.ts           # FormData del backoffice → fila de project_config
 │   │   ├── env-schema.ts, env.ts     # Validación de variables de entorno al arrancar
@@ -62,7 +64,8 @@ gallardo-crowdfunding/
 │   └── styles/tokens.css      # Variables CSS del design system
 ├── supabase/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
-│   └── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS
+│   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
+│   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
 ├── tests/*.test.ts            # Vitest: env, schemas, project-form, rate-limit, api, authz, format, html
 ├── .env.example
 ├── astro.config.mjs
@@ -80,6 +83,7 @@ gallardo-crowdfunding/
 | Cómo se crea una contribución (validación, importe, estado) | `src/lib/`, `src/pages/api/` | `schemas.ts`, `contributions-server.ts`, `api/contributions.ts` |
 | Cómo se crea/aprueba un mensaje de apoyo | `src/lib/`, `src/pages/api/`, `src/pages/admin/` | `support-messages-server.ts`, `api/support-messages.ts`, `projects/[id]/messages.astro` |
 | Confirmar pagos desde el backoffice | `src/pages/admin/projects/[id]/` | `contributions.astro` |
+| Campañas por tiempo (cierre, cuenta atrás, base, cantidad libre) | `src/lib/`, `src/components/` | `campaign.ts`, `OpenCampaignSection.astro`, `ContributionLevels.astro` |
 | Crear/editar proyectos, niveles, emojis | `src/pages/admin/projects/` | `new.astro`, `[id]/edit.astro`, `src/lib/project-form.ts` |
 | Quién puede entrar al backoffice | `src/` | `middleware.ts`, `lib/authz.ts`, `.env` (`ADMIN_EMAILS`) |
 | Cabeceras de seguridad / CSP | `src/` | `middleware.ts` |

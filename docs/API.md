@@ -31,13 +31,14 @@ Otros métodos: `405`. Límite: 10 peticiones por IP cada 10 minutos por endpoin
 
 ### `POST /api/contributions`
 
-Crea una contribución **pendiente**. El importe lo decide el servidor a partir del nivel; cualquier campo extra (`amount`) se rechaza.
+Crea una contribución **pendiente**. El importe lo decide el servidor: del nivel (`levelId`) o, si el proyecto tiene `allow_custom_amount`, de `customAmount` (≥ `min_custom_amount`). Se envía exactamente uno de los dos; cualquier campo extra (`amount`) se rechaza. Si la campaña está cerrada (`end_date` pasada o estado no activo) responde `409`.
 
 **Body:**
 ```json
 {
   "projectId": "uuid",
-  "levelId": "uuid",
+  "levelId": "uuid  (o bien customAmount)",
+  "customAmount": 12.5,
   "contributorName": "Ana",
   "contributorEmail": "ana@example.com",
   "contributorEmoji": "💛",
@@ -54,8 +55,8 @@ Crea una contribución **pendiente**. El importe lo decide el servidor a partir 
 | `201` | `{ "id", "amount", "level_name", "payment_status": "pending" }` |
 | `400` | Datos no válidos (`fields`) |
 | `404` | Proyecto inexistente |
-| `409` | Proyecto no activo |
-| `422` | Nivel no válido / método de pago no disponible |
+| `409` | Proyecto no activo o campaña cerrada por fecha |
+| `422` | Nivel no válido / cantidad libre no permitida o bajo mínimo / método de pago no disponible |
 | `429` | Demasiadas peticiones |
 
 **Archivo:** `src/pages/api/contributions.ts` → `src/lib/contributions-server.ts`

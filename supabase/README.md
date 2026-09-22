@@ -26,6 +26,12 @@ npx supabase link --project-ref <ref>
 npx supabase db push          # aplica las migraciones pendientes
 ```
 
+## Seeds
+
+`supabase/seeds/2026-09-22_maximo_bici.sql` crea el proyecto "Bici para Máximo" (campaña por tiempo, base 150 €,
+cantidad libre, cierre 29/10/2026) con sus niveles y emojis. Sustituye los marcadores `{{URL_BICI}}`, `{{IMAGEN_BICI}}`
+y `{{BIZUM}}` y ejecútalo en el SQL Editor **después** de la migración 7. Es idempotente (no duplica el slug).
+
 ## Capturar el esquema actual (baseline)
 
 Para que el repo contenga también las tablas, vistas y la RPC existentes:

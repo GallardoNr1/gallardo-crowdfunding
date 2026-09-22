@@ -27,6 +27,11 @@
 | **VPS** | Virtual Private Server. Servidor propio donde se despliega la aplicación. |
 | **Anónimo** | Contribuidor que elige no mostrar su nombre en la lista pública. |
 | **is_test** | Flag en las contribuciones para marcar aportaciones de prueba y excluirlas de estadísticas. |
+| **Campaña con objetivo** | `campaign_mode = 'target'`: meta fija, barra de porcentaje, "faltan X €". |
+| **Campaña por tiempo** | `campaign_mode = 'open'`: sin objetivo; se recauda hasta `end_date` (incluido) y se muestra recaudado + aportación base = total, con cuenta atrás. |
+| **Aportación base** | Cantidad que pone la familia de entrada (`base_amount`, etiqueta `base_label`). Se suma al total mostrado pero no es una contribución. |
+| **Otra cantidad / aportación libre** | Contribución sin nivel: el contribuidor elige el importe (≥ `min_custom_amount`) si el proyecto lo permite. |
+| **Cierre por fecha** | Pasado `end_date`, la campaña deja de admitir aportaciones aunque siga `active`; la página muestra el total final. |
 
 ## Acrónimos
 

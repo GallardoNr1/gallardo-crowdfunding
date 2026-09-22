@@ -21,12 +21,17 @@ Configuración y estado de cada campaña de crowdfunding.
 | `current_amount` | numeric | Cantidad recaudada acumulada |
 | `currency` | text | Moneda (ej: `EUR`) |
 | `start_date` | timestamptz | Fecha de inicio |
-| `end_date` | timestamptz | Fecha de cierre (opcional) |
+| `end_date` | timestamptz | Fecha de cierre. **Vinculante**: pasado ese día la campaña no admite aportaciones (obligatoria en modo `open`) |
 | `redirect_url` | text | URL de redirección al finalizar |
 | `page_content` | jsonb | Contenido configurable de la página (ver `ProjectPageContent`) |
 | `bizum_phone` | text | Número de Bizum del proyecto |
 | `bizum_concept` | text | Concepto para el Bizum |
 | `emoji_options` | jsonb | Array de opciones de emoji para contribuidores |
+| `campaign_mode` | text | `target` (objetivo fijo, por defecto) \| `open` (por tiempo: sin objetivo, cierra en `end_date`) |
+| `base_amount` | numeric | Aportación base de la familia (se suma al total mostrado, no cuenta como contribución). Por defecto 0 |
+| `base_label` | text | Etiqueta de la aportación base (ej: "Papá y mamá") |
+| `allow_custom_amount` | boolean | Permite la tarjeta "Otra cantidad" en los niveles |
+| `min_custom_amount` | numeric | Mínimo de la cantidad libre (por defecto 5) |
 | `created_at` | timestamptz | Fecha de creación |
 | `updated_at` | timestamptz | Última actualización |
 
@@ -59,8 +64,8 @@ Registro de cada aportación económica.
 | `contributor_email` | text | Email (privado, no se muestra públicamente) |
 | `contributor_emoji` | text | Emoji elegido por el contribuidor |
 | `amount` | numeric | Cantidad aportada. La fija el servidor a partir de `contribution_levels.amount`; el navegador no la envía |
-| `level_id` | uuid FK → `contribution_levels.id` | Nivel de contribución elegido |
-| `level_name` | text | Nombre del nivel (desnormalizado) |
+| `level_id` | uuid FK → `contribution_levels.id` | Nivel de contribución elegido; `null` en aportaciones libres |
+| `level_name` | text | Nombre del nivel (desnormalizado); `'Aportación libre'` sin nivel |
 | `message` | text | Mensaje opcional de apoyo |
 | `payment_method` | text | `bizum` \| `cash` \| `bank_transfer` |
 | `payment_status` | text | `pending` \| `processing` \| `completed` \| `failed` \| `refunded`. Nace `pending` (lo fija `/api/contributions`); el backoffice lo pasa a `completed` al recibir el pago. Solo `completed` cuenta para `current_amount` y la vista pública. |
@@ -163,7 +168,7 @@ Vista agregada con estadísticas del proyecto.
 | `end_date` | timestamptz | Fecha de cierre |
 
 ### `public_contributions`
-Vista filtrada de contribuciones visibles (completadas, no de test).
+Vista de contribuciones visibles (completadas, no de test), redefinida en `20260922110000_open_campaigns.sql` con `LEFT JOIN` a niveles (las aportaciones libres aparecen) y nombre "Anónimo" para las anónimas.
 
 | Campo | Tipo |
 |-------|------|
@@ -264,6 +269,7 @@ Definidos en `supabase/migrations/` (2026-09). Estado objetivo una vez aplicadas
 | `support_messages_broadcast` | trigger AFTER INSERT/UPDATE en `support_messages` | Cuando `is_approved` pasa a `true`: evento `support_message_approved` |
 | `increment_project_current_amount(uuid, numeric)` | RPC heredada | Se conserva pero **sin permiso de ejecución** para `anon` / `authenticated` |
 | `project_config_slug_key` | índice único | `slug` único |
+| `project_config_campaign_mode_check` | check | `campaign_mode in ('target','open')` |
 
 El servidor (`src/lib/contributions-server.ts`) recalcula también `current_amount` al confirmar un pago, así el importe se mantiene correcto aunque la migración del trigger no esté aplicada todavía.
 

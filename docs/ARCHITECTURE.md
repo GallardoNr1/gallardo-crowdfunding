@@ -27,6 +27,7 @@
 | **Data layer (lectura)** | `src/lib/supabase.ts` | Tipos, consultas públicas y `subscribeToProjectEvents` |
 | **Data layer (escritura)** | `src/lib/contributions-server.ts`, `src/lib/support-messages-server.ts`, `src/lib/supabase-server.ts` | Lógica de servidor con service role |
 | **Límites** | `src/lib/schemas.ts`, `src/lib/env-schema.ts`, `src/lib/project-form.ts` | Esquemas Zod: cuerpos HTTP, formularios y variables de entorno |
+| **Reglas de campaña** | `src/lib/campaign.ts` | Apertura/cierre por `end_date`, días restantes, totales (recaudado + base) |
 | **Utilidades** | `src/lib/{authz,session-cookies,api,rate-limit,format,html}.ts`, `src/helpers/` | Autorización, cookies, respuestas JSON, rate limit, moneda, escape HTML, fechas |
 | **Base de datos** | `supabase/migrations/` | Triggers, broadcast, defaults, índices y políticas RLS versionadas |
 
@@ -221,3 +222,4 @@ sequenceDiagram
 | Rate limit en memoria | Un solo proceso PM2 y tráfico familiar; si se escala, sustituir por Redis/Postgres. |
 | Migraciones SQL en `supabase/migrations/` | Los cambios de esquema y permisos quedan revisables y reproducibles (`supabase db push`). |
 | Sin pagos online (Stripe eliminado) | No estaba integrado; se retira hasta que exista un plan real. |
+| Campañas por tiempo como **modo** del mismo proyecto (`campaign_mode = 'open'`) | La bici de Máximo no tiene objetivo: se recauda hasta una fecha y la familia pone una base. Un flag más cuatro campos reutilizan niveles, modal, backoffice y broadcast; la lógica de apertura/cierre y totales está en `src/lib/campaign.ts`. `end_date` pasa a ser vinculante para todos los proyectos. |
