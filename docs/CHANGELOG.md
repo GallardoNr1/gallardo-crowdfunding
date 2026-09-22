@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-09-22] — Revisión completa + graphify + RTK
+
+- **Qué cambió:** Revisión completa del proyecto (seguridad, correctitud, infra, docs) registrada en `docs/MEJORAS.md` (28 hallazgos nuevos, estado de los 15 anteriores y orden de ataque). Instalado **graphify** (grafo de conocimiento en `graphify-out/`, sección `## graphify` en `CLAUDE.md` y hooks `PreToolUse` en `.claude/settings.json`) e **RTK** (binario `rtk` 0.48 vía winget, instrucciones en `CLAUDE.md`, filtros en `.rtk/filters.toml`).
+- **Por qué:** Detectar riesgos antes de seguir añadiendo funcionalidad y reducir el coste en tokens de las sesiones de Claude Code (el grafo evita re-escanear el repo; RTK comprime la salida de comandos).
+- **Archivos tocados:** `docs/MEJORAS.md`, `docs/CHANGELOG.md`, `docs/FILE-MAP.md`, `docs/COMMANDS.md`, `docs/STACK.md`, `CLAUDE.md`, `.claude/settings.json`, `.rtk/filters.toml` (nuevo), `graphify-out/` (nuevo).
+- **Impacto:** Sin cambios en código de producción. El hook global de RTK (`rtk init -g`) queda pendiente de ejecutar a mano (modifica `~/.claude/settings.json`). Ver MEJORAS N-01…N-05 antes de cualquier otro desarrollo.
+
+---
 ## [2026-04-21] — Banner de proyecto completado + sistema de toast
 
 - **Qué cambió:** Cuando `project_status === 'completed'` se muestra una sección celebratoria animada (emojis flotantes CSS, trofeo con animación spring, importe recaudado en grande, mensaje de agradecimiento). Se reemplazaron los 5 `alert()` nativos de `ContributionModal` y `ContributionLevels` por un sistema de toast global (`window.showToast`) definido en `BaseLayout`, con tipos `success / error / warning / info` y animación slide-in.

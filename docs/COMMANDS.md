@@ -115,3 +115,27 @@ window.debugCrowdfunding.triggerTestContribution()
 // Ver estado de los componentes
 window.debugCrowdfunding.getComponentsStatus()
 ```
+
+---
+
+## Tooling de Claude Code
+
+### graphify — grafo de conocimiento del repo
+```bash
+graphify query "¿cómo se registra una contribución?"   # respuesta desde el grafo (sin releer archivos)
+graphify path "ContributionModal" "createContribution"  # camino entre dos conceptos
+graphify explain "middleware"                            # explicación de un nodo
+graphify update .                                        # reconstruir tras cambiar código (solo AST, sin LLM)
+```
+- Salidas en `graphify-out/`: `graph.html` (interactivo), `GRAPH_REPORT.md`, `graph.json`.
+- Desde Claude Code: `/graphify` (rebuild completo) o `/graphify --update`.
+
+### rtk — salida de comandos comprimida (menos tokens)
+```bash
+rtk git status        # equivalente compacto de git status
+rtk npm run build     # filtra el ruido del build
+rtk gain              # cuánto se ha ahorrado
+```
+- El hook automático (reescribe los comandos Bash de Claude) se instala con `rtk init -g --auto-patch` y requiere reiniciar Claude Code.
+- Filtros propios del proyecto en `.rtk/filters.toml`.
+

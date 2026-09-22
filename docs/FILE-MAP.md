@@ -4,8 +4,11 @@
 
 ```
 gallardo-crowdfunding/
+├── .claude/settings.json  # Permisos + hooks PreToolUse de graphify para Claude Code
 ├── .github/workflows/     # CI/CD — pipeline de deploy a producción
+├── .rtk/filters.toml      # Filtros locales de RTK (compresión de salida de comandos)
 ├── docs/                  # Documentación del proyecto (este directorio)
+├── graphify-out/          # Grafo de conocimiento (graph.html, graph.json, GRAPH_REPORT.md) — no tocar a mano
 ├── public/
 │   ├── img/               # Imágenes estáticas del sitio
 │   └── styles/
@@ -17,16 +20,21 @@ gallardo-crowdfunding/
 │   │   │   └── SupportMessageSection/  # Muro de mensajes de apoyo
 │   │   └── UI/            # Componentes UI atómicos (Modal, Spinner, Botones)
 │   ├── helpers/           # Utilidades puras sin efectos secundarios
-│   ├── layouts/           # HTML shell + header + footer
+│   ├── layouts/           # HTML shell + header + footer (+ AdminLayout del backoffice)
 │   │   └── lego/          # Layout alternativo para páginas Lego (experimento)
 │   ├── lib/
-│   │   └── supabase.ts    # TODO el acceso a datos: tipos, queries, mutations, realtime
+│   │   ├── supabase.ts        # TODO el acceso a datos: tipos, queries, mutations, realtime (clave anon)
+│   │   └── supabase-server.ts # Cliente con service role — solo servidor / backoffice
+│   ├── middleware.ts      # Protege /admin/* validando la cookie sb-access-token
 │   ├── pages/
+│   │   ├── admin/         # Backoffice: login, listado, nuevo proyecto, edición
 │   │   ├── api/           # Endpoints de API (JSON)
+│   │   ├── design-system.astro  # Showcase de tokens (público; ver MEJORAS N-15)
 │   │   ├── info/          # Páginas informativas estáticas (tablet_ana)
 │   │   ├── lego/          # Páginas experimentales de tema Lego
 │   │   └── projects/      # Páginas de proyecto dinámicas ([slug].astro)
 │   └── styles/
+│       ├── tokens.css     # Variables CSS del design system
 │       └── globals.css    # CSS global alternativo (sin uso activo)
 ├── astro.config.mjs       # Configuración de Astro (SSR, adaptador, integraciones)
 ├── data.json              # Datos de muestra / fallback local
@@ -39,6 +47,10 @@ gallardo-crowdfunding/
 | Si quiero tocar… | Ir a… | Archivos clave |
 |-----------------|-------|----------------|
 | Añadir una nueva página de proyecto | `src/pages/projects/` | `[slug].astro` |
+| Backoffice (crear/editar proyectos, niveles, emojis) | `src/pages/admin/` | `index.astro`, `projects/new.astro`, `projects/[id]/edit.astro` |
+| Autenticación de admin | `src/` | `middleware.ts`, `pages/admin/login.astro`, `lib/supabase-server.ts` |
+| Tokens del design system (colores, espaciado, sombras) | `src/styles/` | `tokens.css` (showcase en `pages/design-system.astro`) |
+| Consultar el grafo del repo / ahorrar tokens | raíz | `graphify-out/`, `.rtk/filters.toml` (ver COMMANDS.md) |
 | Añadir una nueva ruta/endpoint | `src/pages/api/` | `data.json.ts` (ejemplo) |
 | Cambiar el HTML de una sección de la página de proyecto | `src/components/` | `ProductCard.astro`, `ProgressSection.astro`, `ContributionLevels.astro`, `MessageSection.astro`, `FamilyPhotos.astro` |
 | Modificar la lista de contribuidores (interactiva) | `src/components/react/ContributorsList/` | `ContributorsList.tsx`, `style.css` |

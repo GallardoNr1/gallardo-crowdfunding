@@ -75,3 +75,5 @@ Thumbs.db
 # Build outputs
 dist/
 .astro/
+# Knowledge graph de graphify (regenerable con /graphify)
+graphify-out/

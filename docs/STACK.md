@@ -45,3 +45,10 @@
 ### Stripe
 - Instalado como dependencia (`stripe: ^18.3.0`) pero sin uso real en el código.
 - Probablemente planeado para pagos con tarjeta en el futuro.
+
+### Tooling de desarrollo (no se despliega)
+| Herramienta | Versión | Propósito |
+|-------------|---------|-----------|
+| graphify (`graphifyy`, pipx) | 0.9.46 | Grafo de conocimiento del repo en `graphify-out/` para consultas de Claude Code |
+| rtk (winget `rtk-ai.rtk`) | 0.48.0 | Compresión de la salida de comandos para ahorrar tokens |
+
