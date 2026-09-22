@@ -10,8 +10,10 @@
 | Integración React | @astrojs/react | ^4.4 | Islands de React en Astro |
 | BaaS / DB | @supabase/supabase-js | ^2.117 | Postgres (RLS), Auth, Realtime Broadcast, Storage |
 | Validación | zod | ^4 | Cuerpos HTTP, formularios del backoffice y variables de entorno |
+| IA | @anthropic-ai/sdk | ^0.128 | Borrador de proyecto en el backoffice (`POST /admin/api/draft-project`, `claude-opus-5` con salida estructurada) |
 | Lenguaje | TypeScript | ^5.9 | `tsconfig` estricto; `astro check` en CI |
 | Tests | vitest | ^5 | Unitarios de `src/lib` (`tests/`) |
+| Tests (DOM) | happy-dom | ^20 (dev) | Entorno DOM para los scripts del navegador del alta (`tests/client-forms.test.ts`) |
 | Lint / formato | eslint 10 + typescript-eslint + eslint-plugin-astro, prettier + prettier-plugin-astro | — | `npm run lint`, `npm run format` |
 | Tipos Astro | @astrojs/check | ^0.9 | `npm run check` |
 | Estilos | CSS vanilla | — | `public/styles/global.css`, `src/styles/tokens.css`, `<style>` por componente |
