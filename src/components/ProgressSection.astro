@@ -4,19 +4,39 @@ export interface Props {
   targetAmount: number;
   currency?: string;
   title?: string;
+  /** Importe del nivel más bajo: se usa para "aportaciones que faltan". */
+  minLevelAmount?: number;
 }
 
-const { currentAmount, targetAmount, currency = '€', title } = Astro.props;
+const {
+  currentAmount,
+  targetAmount,
+  currency = '€',
+  title,
+  minLevelAmount,
+} = Astro.props;
 
-// Calcular porcentaje
-const percentage = Math.min((currentAmount / targetAmount) * 100, 100);
+const percentage =
+  targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
 const roundedPercentage = Math.round(percentage);
+const remaining = Math.max(0, targetAmount - currentAmount);
+const neededContributions =
+  minLevelAmount && minLevelAmount > 0 && remaining > 0
+    ? Math.ceil(remaining / minLevelAmount)
+    : null;
 ---
 
 <div class='progress-section'>
   <h3 class='progress-title'>{title}</h3>
 
-  <div class='progress-container'>
+  <div
+    class='progress-container'
+    role='progressbar'
+    aria-label='Progreso de la recaudación'
+    aria-valuemin='0'
+    aria-valuemax='100'
+    aria-valuenow={roundedPercentage}
+  >
     <div
       class='progress-bar'
       data-percentage={percentage}
@@ -32,6 +52,7 @@ const roundedPercentage = Math.round(percentage);
       <span
         class='amount-value'
         data-target={currentAmount}
+        data-currency={currency}
       >
         {currentAmount.toFixed(2)}
         {currency}
@@ -58,18 +79,16 @@ const roundedPercentage = Math.round(percentage);
 
   <div class='progress-stats'>
     <div class='stat-item'>
-      <span class='stat-number'
-        >{(targetAmount - currentAmount).toFixed(2)} {currency}</span
-      >
+      <span class='stat-number'>{remaining.toFixed(2)} {currency}</span>
       <span class='stat-label'>Faltan por conseguir</span>
     </div>
 
-    <div class='stat-item'>
-      <span class='stat-number'
-        >{Math.ceil((targetAmount - currentAmount) / 25)}</span
-      >
-      <span class='stat-label'>Contribuciones de 25€ necesarias</span>
-    </div>
+    {neededContributions !== null && (
+      <div class='stat-item'>
+        <span class='stat-number'>{neededContributions}</span>
+        <span class='stat-label'>Aportaciones de {minLevelAmount} {currency} que faltan</span>
+      </div>
+    )}
   </div>
 </div>
 
@@ -335,16 +354,16 @@ const roundedPercentage = Math.round(percentage);
           if (current < target) {
             if (element.textContent?.includes('%')) {
               element.textContent = Math.floor(current) + '%';
-            } else if (element.textContent?.includes('€')) {
-              element.textContent = current.toFixed(2) + ' €';
+            } else if (element.dataset.currency !== undefined) {
+              element.textContent = current.toFixed(2) + ' ' + element.dataset.currency;
             }
             requestAnimationFrame(updateNumber);
           } else {
             // Mostrar el valor final
             if (element.textContent?.includes('%')) {
               element.textContent = Math.round(target) + '%';
-            } else if (element.textContent?.includes('€')) {
-              element.textContent = target.toFixed(2) + ' €';
+            } else if (element.dataset.currency !== undefined) {
+              element.textContent = target.toFixed(2) + ' ' + element.dataset.currency;
             }
           }
         };

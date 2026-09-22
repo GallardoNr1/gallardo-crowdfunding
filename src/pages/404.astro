@@ -1,0 +1,27 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+export const prerender = false;
+---
+
+<BaseLayout
+  title='Página no encontrada'
+  subtitle='Este proyecto no existe o ya no está disponible'
+>
+  <div class='container not-found'>
+    <p class='not-found__icon' aria-hidden='true'>🔍</p>
+    <h2>No encontramos lo que buscas</h2>
+    <p><a href='/'>← Volver a los proyectos</a></p>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .not-found__icon {
+    font-size: 4rem;
+    margin: 0 0 12px;
+  }
+</style>

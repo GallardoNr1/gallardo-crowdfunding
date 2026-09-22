@@ -34,6 +34,14 @@ const {
   callToAction,
   project_id,
 } = Astro.props;
+
+// La fecha del mensaje es texto libre en el backoffice ("Julio 2025"): solo se formatea si es ISO.
+const rawDate = mainMessage?.date?.trim() ?? '';
+const parsedDate = /^\d{4}-\d{2}-\d{2}/.test(rawDate) ? new Date(rawDate) : null;
+const displayDate =
+  parsedDate && !Number.isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+    : rawDate;
 ---
 
 <div class='message-section'>
@@ -60,15 +68,7 @@ const {
       <div class='signature-text'>{mainMessage?.signature}</div>
       <div class='family-name'>{mainMessage?.familyName}</div>
       <div class='signature-date'>
-        {
-          mainMessage?.date
-            ? new Date(mainMessage.date).toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })
-            : ''
-        }
+        {displayDate}
       </div>
     </div>
   </div>

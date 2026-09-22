@@ -7,153 +7,112 @@ import ProductCard from '@/components/ProductCard.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
+import { currencySymbol } from '@/lib/format';
 import {
   getContributionLevels,
-  getPublicContributions,
   getFamilyMembers,
-  type ContributionLevel,
-  type FamilyMember,
-  type PublicContribution,
   getImagesFromFolder,
+  getPaymentMethods,
   getProjectBySlug,
-  normalizeProjectPageContent
+  getPublicContributions,
+  normalizeProjectPageContent,
 } from '@/lib/supabase';
 
 export const prerender = false;
 
-// Obtener configuración del proyecto desde Supabase
-let projectConfig = null;
-let errorLoadingConfig = false;
-let contributionLevels: ContributionLevel[] = [];
-let contibutionsList: PublicContribution[] = [];
-let familyMembers: FamilyMember[] = [];
-let photos: string[] = [];
-
 const { slug } = Astro.params;
+const projectConfig = slug ? await getProjectBySlug(slug) : null;
 
-try {
-  projectConfig = await getProjectBySlug(slug || '');
-  if (!projectConfig) {
-    throw new Error('Project not found');
-  }
-  if (projectConfig.project_status === 'cancelled') {
-    return Astro.redirect('/');
-  }
-  contributionLevels = await getContributionLevels(projectConfig.id);
-  contibutionsList = await getPublicContributions(projectConfig.id);
-  familyMembers = await getFamilyMembers(projectConfig.id);
-  photos = await getImagesFromFolder(projectConfig.id);
-} catch (error) {
-  console.error('Error loading data base:', error);
-  errorLoadingConfig = true;
+if (!projectConfig) {
+  return new Response(null, { status: 404 });
+}
+if (projectConfig.project_status === 'cancelled') {
+  return Astro.redirect('/');
 }
 
-const completed = projectConfig?.project_status === 'completed';
+// Consultas independientes en paralelo (antes eran 7 viajes secuenciales a Supabase).
+const [contributionLevels, contributions, familyMembers, photos, paymentMethods] =
+  await Promise.all([
+    getContributionLevels(projectConfig.id),
+    getPublicContributions(projectConfig.id),
+    getFamilyMembers(projectConfig.id),
+    getImagesFromFolder(projectConfig.id),
+    getPaymentMethods(),
+  ]);
 
-// Datos del producto (por defecto: tablet de Ana)
-const productData = {
-  title: projectConfig?.project_name || 'Tablet para el cumpleaños de Ana',
-  description:
-    projectConfig?.project_description ||
-    'Este crowdfunding es un regalo de cumpleaños para Ana, una mujer increíble, madre de 7 hijos y profe entregada. Queremos ayudarla a conseguir una tablet Lenovo que le sirva para preparar sus clases, corregir, organizarse mejor y, aun así, seguir cuidando de todos nosotros. Si te apetece participar, cualquier aportación suma y es un gesto de cariño hacia ella.',
-  price: projectConfig?.target_amount || 159.0,
-  imageUrl:
-    projectConfig?.project_image_url ||
-    'https://p2-ofp.static.pub/medias/1272005020_1280x720.png',
-  imageAlt: 'Tablet Lenovo Idea Tab 11 ZAFR0389ES',
-};
-
-const content =  normalizeProjectPageContent(projectConfig?.page_content);
-
-const pageTitle = content.pageTitle;
-const pageSubtitle = content.pageSubtitle;
-const productUrl = content.productUrl;
-const mainMessage = content.mainMessage;
-const progressTitle = content.progressTitle;
-const contributorsTitle = content.contributorsTitle;
-const photoSectionTitle = content.photoSectionTitle;
-const callToAction = content.cta;
-
-const tabletPhotos = [
-  { emoji: '🍎', caption: 'Su pasión por enseñar' },
-  { emoji: '📚', caption: 'Preparando clases con cariño' },
-  { emoji: '👩‍🏫', caption: 'Inspirando a sus alumnos' },
-  { emoji: '💻', caption: 'Trabajando sin parar por su familia' },
-];
-
-const photoSection = {
-  title: photoSectionTitle,
-  photos: tabletPhotos,
-};
+const completed = projectConfig.project_status === 'completed';
+const currency = currencySymbol(projectConfig.currency);
+// Fuente de verdad del progreso: project_config.current_amount (lo mantiene el trigger / el servidor).
+const currentAmount = Number(projectConfig.current_amount) || 0;
+const targetAmount = Number(projectConfig.target_amount) || 0;
+const content = normalizeProjectPageContent(projectConfig.page_content);
+const levelAmounts = contributionLevels
+  .map((l) => Number(l.amount) || 0)
+  .filter((a) => a > 0);
+const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefined;
 ---
 
 <BaseLayout
-  title={pageTitle}
-  subtitle={pageSubtitle}
+  title={content.pageTitle || projectConfig.project_name}
+  subtitle={content.pageSubtitle}
+  project={projectConfig}
+  paymentMethods={paymentMethods}
 >
   <div class='container'>
-    {
-      errorLoadingConfig && (
-        <div class='global-error-banner'>
-          <div class='error-content'>
-            <span class='error-icon'>⚠️</span>
-            <div class='error-text'>
-              <strong>Modo de demostración:</strong>
-              Algunos datos son de ejemplo debido a problemas de conexión con la
-              base de datos.
-            </div>
-          </div>
-        </div>
-      )
-    }
-
     <ProductCard
-      title={productData.title}
-      description={productData.description}
-      price={productData.price}
-      href={productUrl}
-      imageUrl={productData.imageUrl}
-      imageAlt={productData.imageAlt}
+      title={projectConfig.project_name}
+      description={projectConfig.project_description ?? ''}
+      price={targetAmount}
+      href={content.productUrl}
+      imageUrl={projectConfig.project_image_url ?? ''}
+      imageAlt={projectConfig.project_name}
       completed={completed}
-      icon={callToAction?.icon}
+      icon={content.cta.icon}
+      currency={currency}
     />
 
     <ProgressSection
-      currentAmount={contibutionsList.reduce((sum, c) => sum + c.amount, 0)}
-      targetAmount={projectConfig?.target_amount ?? 0}
-      title={progressTitle}
+      currentAmount={currentAmount}
+      targetAmount={targetAmount}
+      currency={currency}
+      title={content.progressTitle}
+      minLevelAmount={minLevelAmount}
     />
 
-    {completed && (
-      <section class='completed-hero'>
-        <div class='completed-particles' aria-hidden='true'>
-          <span style='left:4%;animation-delay:0s;animation-duration:4.2s'>🎉</span>
-          <span style='left:14%;animation-delay:0.7s;animation-duration:5s'>✨</span>
-          <span style='left:26%;animation-delay:1.1s;animation-duration:3.6s'>🎊</span>
-          <span style='left:42%;animation-delay:0.3s;animation-duration:4.8s'>💛</span>
-          <span style='left:58%;animation-delay:1.4s;animation-duration:3.9s'>🎁</span>
-          <span style='left:72%;animation-delay:0.9s;animation-duration:4.4s'>⭐</span>
-          <span style='left:86%;animation-delay:0.4s;animation-duration:5.3s'>🎉</span>
-        </div>
-        <div class='completed-check'>🏆</div>
-        <h2 class='completed-title'>¡Lo conseguimos!</h2>
-        <div class='completed-amount-block'>
-          <span class='completed-total'>
-            {contibutionsList.reduce((sum, c) => sum + c.amount, 0).toFixed(2)}€
-          </span>
-          <span class='completed-label'>recaudados de {projectConfig?.target_amount}€</span>
-        </div>
-        <p class='completed-msg'>
-          Gracias a cada persona que sumó su granito de arena.<br />
-          Juntos lo hicisteis posible. 💛
-        </p>
-      </section>
-    )}
+    {
+      completed && (
+        <section class='completed-hero'>
+          <div class='completed-particles' aria-hidden='true'>
+            <span style='left:4%;animation-delay:0s;animation-duration:4.2s'>🎉</span>
+            <span style='left:14%;animation-delay:0.7s;animation-duration:5s'>✨</span>
+            <span style='left:26%;animation-delay:1.1s;animation-duration:3.6s'>🎊</span>
+            <span style='left:42%;animation-delay:0.3s;animation-duration:4.8s'>💛</span>
+            <span style='left:58%;animation-delay:1.4s;animation-duration:3.9s'>🎁</span>
+            <span style='left:72%;animation-delay:0.9s;animation-duration:4.4s'>⭐</span>
+            <span style='left:86%;animation-delay:0.4s;animation-duration:5.3s'>🎉</span>
+          </div>
+          <div class='completed-check'>🏆</div>
+          <h2 class='completed-title'>¡Lo conseguimos!</h2>
+          <div class='completed-amount-block'>
+            <span class='completed-total'>
+              {currentAmount.toFixed(2)} {currency}
+            </span>
+            <span class='completed-label'>
+              recaudados de {targetAmount.toFixed(2)} {currency}
+            </span>
+          </div>
+          <p class='completed-msg'>
+            Gracias a cada persona que sumó su granito de arena.<br />
+            Juntos lo hicisteis posible. 💛
+          </p>
+        </section>
+      )
+    }
 
     {
       photos.length > 0 && (
         <FamilyPhotos
-          title={photoSection.title}
+          title={content.photoSectionTitle}
           photos={photos}
           altPreText='Foto familiar'
         />
@@ -161,20 +120,25 @@ const photoSection = {
     }
 
     {
-      !completed &&
-        <ContributionLevels levels={contributionLevels} />
+      !completed && (
+        <>
+          <ContributionLevels levels={contributionLevels} currency={currency} />
           <ContributorsListReact
-          contributors={contibutionsList}
-          contributorsTitle={contributorsTitle}
+            contributors={contributions}
+            contributorsTitle={content.contributorsTitle}
+            projectId={projectConfig.id}
+            currency={currency}
           />
+        </>
+      )
     }
 
     <MessageSection
       familyMembers={familyMembers}
-      mainMessage={mainMessage}
+      mainMessage={content.mainMessage}
       memberTitle='🌸 La Tribu Que Le Da Alas'
-      callToAction={callToAction}
-      project_id={projectConfig?.id || ''}
+      callToAction={content.cta}
+      project_id={projectConfig.id}
     />
   </div>
   <Footer slot='footer' />
@@ -360,95 +324,78 @@ const photoSection = {
 </style>
 
 <script>
-  // Manejar eventos de contribución completada
-  document.addEventListener('contributionCompleted', (event: any) => {
-    const { amount, contributor } = event.detail;
+  // contributionCompleted: una contribución confirmada por la familia (broadcast recibido por
+  // ContributorsList) → confeti + aviso. contributionSubmitted: el visitante acaba de enviar
+  // el formulario → solo confeti; el aviso llegará cuando se confirme.
+  document.addEventListener('contributionCompleted', (event: Event) => {
+    const { contributor } = (event as CustomEvent).detail ?? {};
+    launchConfetti();
+    showContributionNotification(contributor ?? {});
 
-    // Mostrar celebración global
-    showGlobalCelebration(contributor);
-
-    // Actualizar título de la página si es necesario
-    if (typeof document !== 'undefined') {
-      const originalTitle = document.title;
-      document.title = `🎉 ¡Nueva contribución! - ${originalTitle}`;
-
-      // Restaurar título después de 5 segundos
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 5000);
-    }
+    const originalTitle = document.title;
+    document.title = `🎉 ¡Nueva contribución! - ${originalTitle}`;
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 5000);
   });
 
-  function showGlobalCelebration(contributor: any) {
+  document.addEventListener('contributionSubmitted', () => {
+    launchConfetti();
+  });
+
+  function launchConfetti() {
     const celebration = document.createElement('div');
-    celebration.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-        `;
+    celebration.style.cssText =
+      'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
 
     for (let i = 0; i < 100; i++) {
-      setTimeout(() => {
-        createGlobalConfetti(celebration);
-      }, i * 30);
+      setTimeout(() => createGlobalConfetti(celebration), i * 30);
     }
 
     document.body.appendChild(celebration);
-
-    showContributionNotification(contributor);
-
-    setTimeout(() => {
-      if (document.body.contains(celebration)) {
-        document.body.removeChild(celebration);
-      }
-    }, 8000);
+    setTimeout(() => celebration.remove(), 8000);
   }
 
   function createGlobalConfetti(container: HTMLElement) {
     const confetti = document.createElement('div');
-    const emojis = ['🎉', '✨', '🌟', '💫', '🎊', '🎁', '💝', '📚', '👩‍🏫', '📱'];
-    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-
-    confetti.textContent = emoji;
+    const emojis = ['🎉', '✨', '🌟', '💫', '🎊', '🎁', '💝', '💛', '⭐'];
+    confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     confetti.style.cssText = `
-            position: absolute;
-            font-size: ${Math.random() * 25 + 15}px;
-            left: ${Math.random() * 100}vw;
-            top: -50px;
-            animation: globalConfettiFall ${Math.random() * 4 + 3}s linear forwards;
-            transform: rotate(${Math.random() * 360}deg);
-            z-index: 10000;
-        `;
-
+      position: absolute;
+      font-size: ${Math.random() * 25 + 15}px;
+      left: ${Math.random() * 100}vw;
+      top: -50px;
+      animation: globalConfettiFall ${Math.random() * 4 + 3}s linear forwards;
+      transform: rotate(${Math.random() * 360}deg);
+      z-index: 10000;
+    `;
     container.appendChild(confetti);
-
-    setTimeout(() => {
-      if (container.contains(confetti)) {
-        container.removeChild(confetti);
-      }
-    }, 8000);
+    setTimeout(() => confetti.remove(), 8000);
   }
 
-  function showContributionNotification(contributor: any) {
+  interface NotifiedContributor {
+    name?: string;
+    emoji?: string;
+    level?: string;
+    message?: string;
+  }
+
+  function showContributionNotification(contributor: NotifiedContributor) {
     const notification = document.createElement('div');
     notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(145deg, #4caf50, #45a049);
-            color: white;
-            padding: 20px 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
-            z-index: 10001;
-            animation: slideInRight 0.5s ease-out;
-            max-width: 300px;
-            font-family: 'Poppins', sans-serif;
-        `;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(145deg, #4caf50, #45a049);
+      color: white;
+      padding: 20px 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+      z-index: 10001;
+      animation: slideInRight 0.5s ease-out;
+      max-width: 300px;
+      font-family: 'Poppins', sans-serif;
+    `;
 
     // Nombre, nivel y mensaje los escribe el contribuidor: siempre textContent, nunca innerHTML.
     const header = document.createElement('div');
@@ -479,165 +426,40 @@ const photoSection = {
 
     setTimeout(() => {
       notification.style.animation = 'slideOutRight 0.5s ease-in';
-      setTimeout(() => {
-        if (document.body.contains(notification)) {
-          document.body.removeChild(notification);
-        }
-      }, 500);
+      setTimeout(() => notification.remove(), 500);
     }, 6000);
   }
 
   const globalStyles = document.createElement('style');
   globalStyles.textContent = `
-        @keyframes globalConfettiFall {
-            to {
-                transform: translateY(100vh) rotate(720deg);
-                opacity: 0;
-            }
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes slideOutRight {
-            from {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        .loading-indicator {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .connection-status {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        .connection-status.online {
-            background: rgba(76, 175, 80, 0.9);
-            color: white;
-        }
-
-        .connection-status.offline {
-            background: rgba(244, 67, 54, 0.9);
-            color: white;
-        }
-    `;
+    @keyframes globalConfettiFall {
+      to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(100px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(100px); }
+    }
+    .container { position: relative; z-index: 1; }
+    html { scroll-behavior: smooth; }
+  `;
   document.head.appendChild(globalStyles);
 
-  // function updateConnectionStatus() {
-  //   let statusIndicator = document.getElementById('connectionStatus');
-
-  //   if (!statusIndicator) {
-  //     statusIndicator = document.createElement('div');
-  //     statusIndicator.id = 'connectionStatus';
-  //     statusIndicator.className = 'connection-status';
-  //     document.body.appendChild(statusIndicator);
-  //   }
-
-  //   if (navigator.onLine) {
-  //     statusIndicator.className = 'connection-status online';
-  //     statusIndicator.textContent = '🟢 Conectado';
-  //   } else {
-  //     statusIndicator.className = 'connection-status offline';
-  //     statusIndicator.textContent = '🔴 Sin conexión';
-  //   }
-  // }
-
-  // window.addEventListener('online', updateConnectionStatus);
-  // window.addEventListener('offline', updateConnectionStatus);
-
   document.addEventListener('DOMContentLoaded', () => {
-    // updateConnectionStatus();
-
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px',
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    }, observerOptions);
-
-    const sections = document.querySelectorAll(
-      '.main-card, .progress-section, .contributors-section, .message-section'
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
-    sections.forEach((section) => observer.observe(section));
+
+    document
+      .querySelectorAll('.main-card, .progress-section, .contributors-section, .message-section')
+      .forEach((section) => observer.observe(section));
   });
-
-  (window as any).debugCrowdfunding = {
-    triggerTestContribution: () => {
-      const testContribution = {
-        amount: 25,
-        contributor: {
-          name: 'Usuario de Prueba',
-          emoji: '🧪',
-          level: 'Colaborador',
-          message: 'Esta es una contribución de prueba',
-          color: '#ff9800',
-          isAnonymous: false,
-        },
-      };
-
-      document.dispatchEvent(
-        new CustomEvent('contributionCompleted', {
-          detail: testContribution,
-        })
-      );
-    },
-
-    getComponentsStatus: () => {
-      return {
-        contributionLevels: !!(window as any).contributionLevels,
-        contributorsList: !!(window as any).contributorsList,
-        contributionModal: !!(window as any).contributionModal,
-        messageSection: !!(window as any).messageSection,
-      };
-    },
-  };
 </script>

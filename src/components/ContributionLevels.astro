@@ -14,17 +14,19 @@ const {
 } = Astro.props;
 ---
 
-<div class='contributors-section'>
+<div class='contributors-section' data-currency={currency}>
   <h3 class='contributors-title'>🏰 Niveles de Contribución</h3>
 
   <div class='contribution-levels'>
     {
       levels.map((level) => (
-        <div
+        <button
+          type='button'
           class='level-card'
           data-level-id={level.id}
           data-amount={level.amount}
           style={`--level-color: ${level.color}`}
+          aria-pressed='false'
         >
           <div class='level-emoji'>{level.emoji}</div>
           <div class='level-name'>{level.name}</div>
@@ -33,7 +35,7 @@ const {
           </div>
           <div class='level-description'>{level.description}</div>
           <div class='level-glow' />
-        </div>
+        </button>
       ))
     }
   </div>
@@ -116,6 +118,12 @@ const {
     position: relative;
     overflow: hidden;
     user-select: none;
+  }
+
+  button.level-card {
+    font: inherit;
+    color: inherit;
+    width: 100%;
   }
 
   .level-card:hover {
@@ -373,10 +381,14 @@ const {
     private selectedLevel: any = null;
     private selectedLevelInfo: HTMLElement;
     private contributeButton: HTMLElement;
+    private currency: string;
 
     constructor() {
       this.selectedLevelInfo = document.getElementById('selectedLevelInfo')!;
       this.contributeButton = document.getElementById('contributeButton')!;
+      this.currency =
+        (document.querySelector('.contributors-section') as HTMLElement | null)?.dataset
+          .currency || '€';
       this.init();
     }
 
@@ -396,7 +408,7 @@ const {
     private handleLevelClick(event: Event) {
       const card = event.currentTarget as HTMLElement;
       const levelId = card.dataset.levelId;
-      const amount = parseInt(card.dataset.amount || '0');
+      const amount = Number(card.dataset.amount || 0);
 
       if (card.classList.contains('selected')) {
         this.resetSelection();
@@ -405,10 +417,12 @@ const {
       // Remover selección anterior
       document.querySelectorAll('.level-card').forEach((c) => {
         c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
       });
 
       // Añadir selección actual
       card.classList.add('selected');
+      card.setAttribute('aria-pressed', 'true');
 
       // Guardar datos del nivel seleccionado
       this.selectedLevel = {
@@ -443,7 +457,7 @@ const {
 
       if (this.selectedLevel) {
         this.contributeButton.removeAttribute('disabled');
-        buttonText.textContent = `¡Contribuir ${this.selectedLevel.amount}€!`;
+        buttonText.textContent = `¡Contribuir ${this.selectedLevel.amount} ${this.currency}!`;
       } else {
         this.contributeButton.setAttribute('disabled', 'true');
         buttonText.textContent = 'Selecciona un nivel primero';
@@ -455,15 +469,10 @@ const {
         (window as any).showToast?.('Selecciona un nivel de contribución primero 😊', 'info');
         return;
       }
-      // Disparar evento personalizado para que otros componentes puedan escuchar
-      window.openModal('contributionModal');
-      setTimeout(() => {
-        document.dispatchEvent(event);
-      }, 100);
-      const event = new CustomEvent('levelSelected', {
-        detail: this.selectedLevel,
-      });
-      document.dispatchEvent(event);
+      // El modal se abre al recibir el evento (ContributionModal.handleLevelSelected).
+      document.dispatchEvent(
+        new CustomEvent('levelSelected', { detail: this.selectedLevel })
+      );
     }
 
     // Método público para obtener el nivel seleccionado
@@ -476,6 +485,7 @@ const {
       this.selectedLevel = null;
       document.querySelectorAll('.level-card').forEach((card) => {
         card.classList.remove('selected');
+        card.setAttribute('aria-pressed', 'false');
       });
       this.selectedLevelInfo.style.display = 'none';
       this.updateContributeButton();

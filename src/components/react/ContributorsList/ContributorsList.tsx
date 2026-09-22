@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { subscribeToContributionsNormalized } from '../../../lib/supabase';
+import {
+  subscribeToProjectEvents,
+  type ProjectContributionEvent,
+} from '../../../lib/supabase';
 import './style.css';
-
-export interface LevelInfo {
-  name: string;
-  color: string;
-  emoji: string;
-}
 
 export interface PublicContribution {
   id: string;
@@ -26,7 +23,22 @@ export interface ContributorsListProps {
   showTotal?: boolean;
   maxDisplay?: number;
   contributorsTitle?: string;
-  contributorsLevels?: LevelInfo[];
+  /** Necesario para recibir en tiempo real las contribuciones confirmadas de este proyecto. */
+  projectId?: string;
+}
+
+function fromEvent(ev: ProjectContributionEvent): PublicContribution {
+  return {
+    id: ev.id,
+    contributor_name: ev.contributor_name || 'Anónimo',
+    contributor_emoji: ev.contributor_emoji || '🎉',
+    amount: Number(ev.amount) || 0,
+    level_name: ev.level_name ?? '',
+    level_color: ev.level_color || '#9e9e9e',
+    level_emoji: ev.level_emoji || '⭐',
+    message: ev.message ?? undefined,
+    created_at: ev.created_at || new Date().toISOString(),
+  };
 }
 
 export const ContributorsList: React.FC<ContributorsListProps> = ({
@@ -35,161 +47,43 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
   showTotal = true,
   maxDisplay = 20,
   contributorsTitle = '',
+  projectId,
 }) => {
-  const [items, setItems] = useState<PublicContribution[]>(contributors || []);
-  const recentKeysRef = React.useRef<Set<string>>(new Set());
+  const [items, setItems] = useState<PublicContribution[]>(contributors);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    setItems(contributors || []);
+    setItems(contributors);
   }, [contributors]);
 
   useEffect(() => {
-    const sub = subscribeToContributionsNormalized((p) => {
-      try {
-        if (!p) return;
-        const eventType = (p.eventType || '').toString().toUpperCase();
-        if (eventType.includes('INSERT')) {
-          const rec = p.newRecord || p.raw?.record || p.raw || {};
-          const newItem: PublicContribution = {
-            id: rec.id || String(Math.random()),
-            contributor_name:
-              rec.contributor_name || rec.contributorName || 'Anon',
-            contributor_emoji:
-              rec.contributor_emoji || rec.contributorEmoji || '🎉',
-            amount: Number(rec.amount || rec.value || 0),
-            level_name: rec.level_name || rec.levelName || '',
-            message: rec.message || '',
-            created_at: rec.created_at || new Date().toISOString(),
-            level_color: rec.level_color || '#9e9e9e',
-            level_emoji: rec.level_emoji || '⭐',
-          };
-
-          setItems((prev) => [newItem, ...prev]);
-
-          // store recent key to avoid duplicate when modal also dispatches
-          try {
-            const key = `${newItem.contributor_name}-${newItem.amount}-${newItem.created_at}`;
-            recentKeysRef.current.add(key);
-            setTimeout(() => recentKeysRef.current.delete(key), 5000);
-          } catch (e) {
-            // ignore
-          }
-
-          // Emitir evento global para celebraciones
-          try {
-            document.dispatchEvent(
-              new CustomEvent('contributionCompleted', {
-                detail: {
-                  amount: newItem.amount,
-                  contributor: {
-                    name: newItem.contributor_name,
-                    emoji: newItem.contributor_emoji,
-                    level: newItem.level_name,
-                    message: newItem.message,
-                    color: newItem.level_color,
-                  },
-                },
-              })
-            );
-          } catch (e) {
-            // no bloquear en SSR o entornos sin DOM
-          }
-        }
-      } catch (err) {
-        console.error(
-          'Error handling realtime payload in ContributorsList:',
-          err
+    if (!projectId) return;
+    return subscribeToProjectEvents(projectId, {
+      onContribution: (ev) => {
+        // Deduplicación por id de fila: el mismo evento puede llegar más de una vez.
+        setItems((prev) => (prev.some((c) => c.id === ev.id) ? prev : [fromEvent(ev), ...prev]));
+        document.dispatchEvent(
+          new CustomEvent('contributionCompleted', {
+            detail: {
+              amount: Number(ev.amount) || 0,
+              contributor: {
+                name: ev.contributor_name,
+                emoji: ev.contributor_emoji,
+                level: ev.level_name,
+                message: ev.message,
+                color: ev.level_color,
+              },
+            },
+          })
         );
-      }
+      },
     });
-
-    return () => {
-      try {
-        if (sub && typeof (sub as any).unsubscribe === 'function') {
-          (sub as any).unsubscribe();
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-  }, []);
-
-  // Escuchar eventos locales emitidos por el modal (contributionCompleted)
-  useEffect(() => {
-    const handler = (ev: Event) => {
-      try {
-        const e = ev as CustomEvent;
-        const payload = e.detail || {};
-        const amount = Number(payload.amount || 0);
-        const contributor = payload.contributor || {};
-
-        // Crear clave para deduplicar
-        const key = `${contributor.name || 'anon'}-${amount}-${
-          contributor.message || ''
-        }`;
-        if (recentKeysRef.current.has(key)) {
-          return; // ya procesado por realtime o por este mismo handler
-        }
-
-        const newItem: PublicContribution = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          contributor_name: contributor.name || 'Anon',
-          contributor_emoji: contributor.emoji || '🎉',
-          amount: amount,
-          level_name: contributor.level || contributor.level_name || '',
-          message: contributor.message || '',
-          created_at: new Date().toISOString(),
-          level_color: contributor.color || '#9e9e9e',
-          level_emoji: contributor.levelEmoji || '⭐',
-        };
-
-        recentKeysRef.current.add(key);
-        setTimeout(() => recentKeysRef.current.delete(key), 5000);
-
-        setItems((prev) => [newItem, ...prev]);
-
-        // también emitir evento global para compatibilidad
-        try {
-          document.dispatchEvent(
-            new CustomEvent('contributionLocalInserted', { detail: newItem })
-          );
-        } catch (err) {}
-      } catch (err) {
-        console.error('Error handling local contributionCompleted event:', err);
-      }
-    };
-
-    document.addEventListener(
-      'contributionCompleted',
-      handler as EventListener
-    );
-    window.addEventListener('contributionCompleted', handler as EventListener);
-
-    return () => {
-      document.removeEventListener(
-        'contributionCompleted',
-        handler as EventListener
-      );
-      window.removeEventListener(
-        'contributionCompleted',
-        handler as EventListener
-      );
-    };
-  }, []);
+  }, [projectId]);
 
   const totalContributors = items.length;
   const totalAmount = items.reduce((sum, c) => sum + (c.amount || 0), 0);
-  const displayedContributors = items.slice(0, maxDisplay);
-  const hiddenCount = Math.max(0, totalContributors - maxDisplay);
-
-  const handleShowMore = (e: React.MouseEvent) => {
-    const btn = e.currentTarget as HTMLButtonElement;
-    btn.disabled = true;
-    btn.innerText = 'Cargando...';
-    setTimeout(() => {
-      btn.style.display = 'none';
-    }, 800);
-  };
+  const displayedContributors = showAll ? items : items.slice(0, maxDisplay);
+  const hiddenCount = Math.max(0, totalContributors - displayedContributors.length);
 
   return (
     <div className='contributors-section'>
@@ -212,39 +106,29 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
         </div>
       </div>
 
-      <div
-        className='contributors-grid'
-        id='contributorsGrid'
-      >
+      <div className='contributors-grid' id='contributorsGrid'>
         {displayedContributors.map((contributor, index) => (
           <div
             key={contributor.id}
             className='contributor-card'
             data-contributor-id={contributor.id}
-            style={{
-              //@ts-ignore
-              ['--contributor-color' as any]:
-                contributor.level_color || '#9e9e9e',
-              animationDelay: `${index * 0.1}s`,
-            }}
+            style={
+              {
+                '--contributor-color': contributor.level_color || '#9e9e9e',
+                animationDelay: `${Math.min(index, 20) * 0.1}s`,
+              } as React.CSSProperties
+            }
           >
             <div className='contributor-avatar'>
-              <span className='avatar-emoji'>
-                {contributor.contributor_emoji}
-              </span>
+              <span className='avatar-emoji'>{contributor.contributor_emoji}</span>
               <div className='avatar-ring' />
-              <div
-                className='level-badge'
-                title={`Nivel: ${contributor.level_name}`}
-              >
+              <div className='level-badge' title={`Nivel: ${contributor.level_name ?? ''}`}>
                 {contributor.level_emoji}
               </div>
             </div>
 
             <div className='contributor-info'>
-              <div className='contributor-name'>
-                {contributor.contributor_name}
-              </div>
+              <div className='contributor-name'>{contributor.contributor_name}</div>
               <div className='contributor-amount'>
                 {contributor.amount} {currency}
               </div>
@@ -272,9 +156,10 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
       {hiddenCount > 0 && (
         <div className='more-contributors'>
           <button
+            type='button'
             className='show-more-btn'
             id='showMoreBtn'
-            onClick={handleShowMore}
+            onClick={() => setShowAll(true)}
           >
             <span className='btn-text'>Ver {hiddenCount} héroes más</span>
             <span className='btn-icon'>👥</span>

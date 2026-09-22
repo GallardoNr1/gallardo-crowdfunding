@@ -205,12 +205,20 @@ const {
       if (modalDialog) {
         modalDialog.showModal();
         document.body.style.overflow = 'hidden';
+        // <dialog> también se cierra con Escape sin pasar por closeModal: restaurar el scroll siempre.
+        modalDialog.addEventListener(
+          'close',
+          () => {
+            document.body.style.overflow = '';
+          },
+          { once: true }
+        );
 
         // Focus en el primer elemento focuseable
         const firstFocusable = modalDialog.querySelector(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        ) as HTMLElement;
-        firstFocusable.focus();
+        ) as HTMLElement | null;
+        firstFocusable?.focus();
       }
     };
 

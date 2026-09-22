@@ -10,10 +10,20 @@ export interface Props {
   href?: string;
   completed?: boolean;
   icon?: string;
+  currency?: string;
 }
 
-const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
-  Astro.props;
+const {
+  title,
+  description,
+  price,
+  imageUrl,
+  imageAlt,
+  href,
+  completed,
+  icon,
+  currency = '€',
+} = Astro.props;
 ---
 
 <div
@@ -28,11 +38,13 @@ const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
     target='_blank'
     title='Ver set'
   >
-    <img
-      src={`${imageUrl}`}
-      alt={imageAlt}
-      class='lego-image'
-    />
+    {imageUrl && (
+      <img
+        src={imageUrl}
+        alt={imageAlt}
+        class='lego-image'
+      />
+    )}
   </a>
 
   <h2 class='product-title'>{title}</h2>
@@ -40,7 +52,7 @@ const { title, description, price, imageUrl, imageAlt, href, completed, icon } =
 
   <div class='price'>
     <span>💰</span>
-    <span>{price.toFixed(2)} €</span>
+    <span>{price.toFixed(2)} {currency}</span>
   </div>
 </div>
 

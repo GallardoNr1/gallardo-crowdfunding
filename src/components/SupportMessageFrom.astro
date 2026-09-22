@@ -62,11 +62,6 @@ const { project_id } = Astro.props;
         name='project_id'
         value={project_id}
       />
-      <input
-        type='hidden'
-        name='csrf_token'
-        value='{{ csrf_token }}'
-      />
 
       <div class='input-actions'>
         <button
@@ -300,8 +295,6 @@ const { project_id } = Astro.props;
 </style>
 
 <script>
-  import { createSupportMessage } from '../lib/supabase';
-
   class CommentFormHandler {
     private form: HTMLFormElement;
     private textarea: HTMLTextAreaElement;
@@ -425,18 +418,22 @@ const { project_id } = Astro.props;
         const emailValue = this.emailInput?.value.trim() || '';
         const projectId = this.getProjectId(); // ⬅️ AQUÍ SE USA
 
-        const response = await createSupportMessage({
-          message: commentValue,
-          author_name: authorValue,
-          author_email: emailValue,
-          author_emoji: '',
-          project_id: projectId, // ⬅️ SE ENVÍA AL BACK
+        const res = await fetch('/api/support-messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            message: commentValue,
+            authorName: authorValue || undefined,
+            authorEmail: emailValue || undefined,
+          }),
         });
+        const payload = await res.json().catch(() => ({}));
 
-        if (response.success) {
-          this.handleSuccess(response);
+        if (res.ok) {
+          this.handleSuccess();
         } else {
-          this.handleError(response.error || 'Error al enviar el comentario');
+          this.handleError(payload?.error || 'Error al enviar el comentario');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -536,8 +533,8 @@ const { project_id } = Astro.props;
       });
     }
 
-    private async handleSuccess(result: any) {
-      this.showSuccess('¡Mensaje enviado! Gracias por tu apoyo ❤️');
+    private handleSuccess() {
+      this.showSuccess('¡Gracias! Tu mensaje se publicará en cuanto lo revise la familia 💛');
       this.form.reset();
       this.updateCharCounter();
       this.autoResizeTextarea();
@@ -549,34 +546,6 @@ const { project_id } = Astro.props;
           this.submitButton.classList.remove('success');
         }, 3000);
       }
-
-      // Enviar evento para agregar el mensaje al UI
-      this.dispatchNewMessageEvent(result);
-    }
-
-    private dispatchNewMessageEvent(result: any) {
-      const messageData = {
-        id: result.data?.id || `temp-${Date.now()}`,
-        author_name: result.data?.author_name || 'Usuario',
-        message: result.data?.message || result.data?.text || '',
-        author_emoji: result.data?.author_emoji || '👤',
-        is_from_contributor: result.data?.is_from_contributor ?? false,
-        is_approved: result.data?.is_approved ?? true,
-        created_at: result.data?.created_at || new Date().toISOString(),
-        updated_at: result.data?.updated_at || new Date().toISOString(),
-      };
-
-      const event = new CustomEvent('newSupportMessage', {
-        detail: {
-          message: messageData,
-          timestamp: new Date().toISOString(),
-          action: 'add',
-        },
-        bubbles: true,
-        composed: true,
-      });
-
-      this.form.dispatchEvent(event);
     }
 
     private handleError(message: string) {
@@ -648,7 +617,6 @@ const { project_id } = Astro.props;
     interface Window {
       messageSection: any;
       commentFormHandler: CommentFormHandler;
-      createSupportMessage?: (data: any) => Promise<any>;
     }
   }
 

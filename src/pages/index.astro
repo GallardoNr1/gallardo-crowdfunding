@@ -6,6 +6,19 @@ import FloatingEleents from '../components/FloatingEleents.astro';
 
 import { getProjectsConfig, type ProjectConfig } from '../lib/supabase';
 import CompletedBage from '@/components/UI/CompletedBage.astro';
+import { currencySymbol } from '@/lib/format';
+
+const statusLabel: Record<string, string> = {
+  active: 'Activo',
+  completed: 'Completado',
+  paused: 'Pausado',
+  cancelled: 'Cancelado',
+};
+
+const progressPct = (p: ProjectConfig) =>
+  p.target_amount > 0
+    ? Math.min(100, Math.round(((p.current_amount ?? 0) / p.target_amount) * 100))
+    : 0;
 
 let projects: ProjectConfig[] | null = [];
 let errorLoadingProjects = false;
@@ -42,13 +55,8 @@ try {
         ) : (
           <ul class='projects-list'>
             {projects.map((project) => (
-              <a
-                href={`/projects/${project.slug}`}
-                target='_self'
-                rel='noopener noreferrer'
-                class='project-link'
-              >
-                <li class='project-card'>
+              <li class='project-card'>
+                <a href={`/projects/${project.slug}`} class='project-link'>
                   {project.project_status === 'completed' && (
                     <CompletedBage size='sm' />
                   )}
@@ -57,6 +65,7 @@ try {
                       src={project.project_image_url}
                       alt={project.project_name}
                       class='project-image'
+                      loading='lazy'
                     />
                   )}
 
@@ -72,7 +81,8 @@ try {
                     <p class='project-amount'>
                       Objetivo:{' '}
                       <strong>
-                        {project.target_amount} {project.currency}
+                        {Number(project.target_amount).toFixed(2)}{' '}
+                        {currencySymbol(project.currency)}
                       </strong>
                     </p>
 
@@ -80,45 +90,33 @@ try {
                       <div class='progress-info'>
                         <span>Recaudado:</span>
                         <strong>
-                          {project.current_amount ?? 0} {project.currency}
+                          {Number(project.current_amount ?? 0).toFixed(2)}{' '}
+                          {currencySymbol(project.currency)}
                         </strong>
                       </div>
 
-                      <div class='progress-bar'>
+                      <div
+                        class='progress-bar'
+                        role='progressbar'
+                        aria-valuemin='0'
+                        aria-valuemax='100'
+                        aria-valuenow={progressPct(project)}
+                      >
                         <div
                           class='progress-fill'
-                          style={`width: ${Math.min(
-                            100,
-                            Math.round(
-                              ((project.current_amount ?? 0) /
-                                project.target_amount) *
-                                100
-                            )
-                          )}%`}
+                          style={`width: ${progressPct(project)}%`}
                         />
                       </div>
 
-                      <div class='progress-percent'>
-                        {Math.min(
-                          100,
-                          Math.round(
-                            ((project.current_amount ?? 0) /
-                              project.target_amount) *
-                              100
-                          )
-                        )}
-                        %
-                      </div>
+                      <div class='progress-percent'>{progressPct(project)}%</div>
                     </div>
 
-                    <p
-                      class={`project-status status-${project.project_status}`}
-                    >
-                      Estado: {project.project_status}
+                    <p class={`project-status status-${project.project_status}`}>
+                      Estado: {statusLabel[project.project_status] ?? project.project_status}
                     </p>
                   </div>
-                </li>
-              </a>
+                </a>
+              </li>
             ))}
           </ul>
         ))

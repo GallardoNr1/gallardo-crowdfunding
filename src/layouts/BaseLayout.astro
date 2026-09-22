@@ -3,23 +3,25 @@ import '../styles/tokens.css';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
 import ContributionModal from '@/components/ContributionModal.astro';
-import { getPaymentMethods, getProjectBySlug } from '@/lib/supabase';
+import { currencySymbol } from '@/lib/format';
+import type { PaymentMethodConfig, ProjectConfig } from '@/lib/supabase';
 
 export interface Props {
   title: string;
   description?: string;
   subtitle?: string;
+  /** Proyecto de la página (solo /projects/[slug]). Sin él no se monta el modal de contribución. */
+  project?: ProjectConfig | null;
+  paymentMethods?: PaymentMethodConfig[];
 }
 
 const {
   title,
   description = 'Plataforma familiar de crowdfundings Gallardo',
   subtitle,
+  project = null,
+  paymentMethods = [],
 } = Astro.props;
-
-const { slug } = Astro.params;
-const projectConfig = await getProjectBySlug(slug || '');
-const customPaymentMethods = await getPaymentMethods();
 ---
 
 <!doctype html>
@@ -66,9 +68,10 @@ const customPaymentMethods = await getPaymentMethods();
     </main>
     <slot name='footer' />
     <div id='gc-toast-container'></div>
+    {project && (
     <ContributionModal
-      paymentMethods={customPaymentMethods}
-      currency='€'
+      paymentMethods={paymentMethods}
+      currency={currencySymbol(project.currency)}
       modalTitle='Apoya el proyecto familiar'
       modalIcon='🧡'
       modalSubtitle='Ayuda a la familia a crear recuerdos inolvidables'
@@ -79,18 +82,18 @@ const customPaymentMethods = await getPaymentMethods();
       successMessage='Hemos registrado tu contribución correctamente.'
       cancelButtonText='Cerrar'
       confirmButtonText='Confirmar y Registrar'
-      bizumConcept={projectConfig?.bizum_concept || ''}
-      bizumNumber={projectConfig?.bizum_phone || ''}
+      bizumConcept={project.bizum_concept || ''}
+      bizumNumber={project.bizum_phone || ''}
       totalLabel='Total a contribuir:'
-      emojiOptions={projectConfig?.emoji_options &&
-      projectConfig.emoji_options.length > 0
-        ? projectConfig.emoji_options
+      emojiOptions={project.emoji_options && project.emoji_options.length > 0
+        ? project.emoji_options
         : [
             { value: '🙂', label: 'Amigo de la familia' },
             { value: '💛', label: 'Colaborador' },
           ]}
-      projectId={projectConfig?.id && projectConfig.id}
+      projectId={project.id}
     />
+    )}
   </body>
 </html>
 

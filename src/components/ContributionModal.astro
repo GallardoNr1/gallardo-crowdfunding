@@ -1213,11 +1213,10 @@ const {
 </style>
 
 <script>
-  import {
-    createContribution,
-    type PaymentInstructionsTemplate,
-    type PaymentMethodConfig,
-    type PaymentMethodId,
+  import type {
+    PaymentInstructionsTemplate,
+    PaymentMethodConfig,
+    PaymentMethodId,
   } from '../lib/supabase';
 
   class ContributionModalManager {
@@ -1533,7 +1532,7 @@ const {
         this.hideLoading();
 
         if (result?.success) {
-          (window as any).showToast?.('¡Contribución registrada! Gracias por participar 🎉', 'success', 6000);
+          (window as any).showToast?.('¡Gracias! Hemos registrado tu aportación. La familia la confirmará en cuanto reciba el pago 💛', 'success', 8000);
           this.closeModal();
         } else {
           (window as any).showToast?.(result?.error || 'Error al procesar la contribución', 'error');
@@ -1548,40 +1547,38 @@ const {
       data: any
     ): Promise<{ success: boolean; error?: string } | null> {
       try {
-        const res = await createContribution({
-          contributorName: data.contributorName,
-          contributorEmail: data.contributorEmail,
-          contributorEmoji: data.contributorEmoji,
-          amount: Number(data.amount),
-          levelId: data.levelId || null,
-          levelName: data.levelName || null,
-          contributorMessage: data.contributorMessage,
-          paymentMethod: data.paymentMethod,
-          isAnonymous: !!data.isAnonymous,
-          metadata: data.metadata || null,
-          projectId: data.projectId || '',
+        // El servidor fija el importe a partir del nivel y crea la contribución como pendiente.
+        const res = await fetch('/api/contributions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: data.projectId,
+            levelId: data.levelId,
+            contributorName: data.contributorName,
+            contributorEmail: data.contributorEmail,
+            contributorEmoji: data.contributorEmoji,
+            message: data.contributorMessage || undefined,
+            paymentMethod: data.paymentMethod,
+            isAnonymous: !!data.isAnonymous,
+          }),
         });
+        const payload = await res.json().catch(() => ({}));
 
-        if (!res?.success) {
+        if (!res.ok) {
+          const firstField = payload?.fields
+            ? String(Object.values(payload.fields)[0] ?? '')
+            : '';
           return {
             success: false,
-            error: res?.error || 'Error en createContribution',
+            error: payload?.error
+              ? `${payload.error}${firstField ? ' ' + firstField : ''}`
+              : 'Error al registrar la contribución',
           };
         }
 
         document.dispatchEvent(
-          new CustomEvent('contributionCompleted', {
-            detail: {
-              amount: this.selectedLevel?.amount ?? 0,
-              contributor: {
-                name: data.contributorName,
-                emoji: data.contributorEmoji,
-                message: data.contributorMessage,
-                level: this.selectedLevel?.name ?? '',
-                color: this.selectedLevel?.color || '#4caf50',
-                isAnonymous: data.isAnonymous,
-              },
-            },
+          new CustomEvent('contributionSubmitted', {
+            detail: { amount: payload.amount, levelName: payload.level_name },
           })
         );
 
