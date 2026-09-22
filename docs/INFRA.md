@@ -108,3 +108,11 @@ El job `deploy` usa el environment `production` de GitHub; se le puede exigir ap
 `src/middleware.ts` añade en todas las respuestas `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,
 `Permissions-Policy` y, solo en producción, una `Content-Security-Policy` (`default-src 'self'`, Supabase en `connect-src`,
 Google Fonts en `style-src`/`font-src`, `frame-ancestors 'none'`). En `/admin/*` añade `X-Robots-Tag: noindex` y `Cache-Control: no-store`.
+
+## Reverse proxy y formularios
+
+`astro.config.mjs` lleva `security.checkOrigin: false`: detrás de nginx la URL interna (`http://127.0.0.1:5025`) no coincide
+con el `Origin` del navegador y Astro devolvía "Cross-site POST form submissions are forbidden" en todos los formularios.
+El CSRF lo cubren las cookies `SameSite=Lax` (un POST desde otro sitio llega sin sesión). Si se quiere reactivar el check,
+nginx debe pasar `proxy_set_header Host $host;`, `X-Forwarded-Proto $scheme;` y `X-Forwarded-Host $host;`.
+

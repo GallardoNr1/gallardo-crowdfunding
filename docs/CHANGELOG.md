@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-22] — Formularios detrás de nginx
+
+- **Qué cambió:** `security.checkOrigin: false` en `astro.config.mjs`.
+- **Por qué:** En producción todos los POST de formulario (login, backoffice) fallaban con "Cross-site POST form submissions are forbidden": Node ve `http://127.0.0.1:5025` y el navegador envía `Origin: https://gc.gallardcode.com`.
+- **Archivos tocados:** `astro.config.mjs`, `docs/INFRA.md`.
+- **Impacto:** CSRF cubierto por cookies `SameSite=Lax`. Reactivable si nginx envía `X-Forwarded-Proto`/`Host` (ver INFRA).
+
+---
+
 ## [2026-09-22] — Pulido del diseño común
 
 - **Qué cambió:** Backoffice en móvil: botón hamburguesa en la barra superior que abre el menú lateral como cajón desde la derecha (fondo oscurecido, cierre con ✕, fondo o Escape; `AdminLayout.astro`). Tarjeta del proyecto con botón "Quiero aportar" llamativo (anillo pulsante, brillo, flecha) que baja a la sección de niveles (`#contribuir`), solo mientras la campaña está abierta; las secciones ya visibles al cargar no se animan (evita un doble salto). `global.css`: scroll suave, foco visible coherente (`:focus-visible`), color de selección, utilidad `.reveal` (aparición al hacer scroll), botón "volver arriba" y `prefers-reduced-motion`. Cabecera con línea de acento en los colores del tema y entrada animada del título. Home: tarjetas con tokens, elevación al pasar el ratón, zoom suave de la imagen, entrada escalonada, barra de progreso animada, estado como píldora y pie de página (antes no tenía). Página de proyecto: las secciones aparecen al hacer scroll (`.reveal`, JS del `[slug]`) y el botón de contribuir late cuando ya se puede pulsar.
