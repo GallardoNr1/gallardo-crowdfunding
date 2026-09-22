@@ -7,21 +7,32 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "start": "NODE_ENV=production HOST=127.0.0.1 PORT=5025 node ./dist/server/entry.mjs"
+    "start": "node ./dist/server/entry.mjs",
+    "check": "astro check",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{astro,ts,tsx,css}\""
   },
   "dependencies": {
-    "@astrojs/node": "^9.4.0",
-    "@astrojs/react": "^4.3.0",
-    "@astrojs/vercel": "^8.2.5",
-    "@supabase/supabase-js": "^2.50.4",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "astro": "^5.12.9",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "stripe": "^18.3.0"
+    "@astrojs/node": "^9.5.5",
+    "@astrojs/react": "^4.4.2",
+    "@supabase/supabase-js": "^2.117.0",
+    "astro": "^5.18.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/stripe": "^8.0.416"
+    "@astrojs/check": "^0.9.10",
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^10.11.0",
+    "eslint-plugin-astro": "^1.7.0",
+    "prettier": "^3.9.8",
+    "prettier-plugin-astro": "^1.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
   }
 }

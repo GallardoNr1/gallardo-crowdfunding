@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Los saltos de major de Astro y sus adaptadores se planifican a mano.
+      - dependency-name: astro
+        update-types: [version-update:semver-major]
+      - dependency-name: '@astrojs/*'
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
