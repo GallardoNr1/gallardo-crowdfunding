@@ -531,14 +531,26 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
 
-    document
-      .querySelectorAll(
+    // Las raíces de las islas React (hijas directas de <astro-island>) se excluyen: tocar su
+    // className antes de hidratar provoca avisos de hydration mismatch y ya traen su animación.
+    const targets = Array.from(
+      document.querySelectorAll<HTMLElement>(
         '.main-card, .progress-section, .completed-hero, .family-photos, .contributors-section, .message-section'
       )
-      .forEach((section, i) => {
-        section.classList.add('reveal');
-        (section as HTMLElement).style.transitionDelay = `${Math.min(i, 4) * 70}ms`;
+    ).filter((el) => el.parentElement?.tagName !== 'ASTRO-ISLAND');
+
+    targets.forEach((section, i) => {
+      section.classList.add('reveal');
+      section.style.transitionDelay = `${Math.min(i, 4) * 70}ms`;
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        section.classList.add('visible');
+      } else {
         observer.observe(section);
-      });
+      }
+    });
+
+    // Red de seguridad: si el observer no llegara a disparar, nada queda oculto.
+    setTimeout(() => targets.forEach((s) => s.classList.add('visible')), 2500);
   });
 </script>
