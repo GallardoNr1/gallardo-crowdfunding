@@ -233,7 +233,8 @@ const statusColor: Record<string, string> = {
 
   .card-actions {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-content: flex-end;
   }
 
@@ -272,10 +273,12 @@ const statusColor: Record<string, string> = {
 
   .btn-ghost {
     color: var(--color-admin-text-muted);
-    padding: 7px 14px;
+    padding: 7px 12px;
+    border: 1px solid var(--color-admin-border);
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
     text-decoration: none;
+    white-space: nowrap;
     transition: var(--transition-fast);
   }
 
