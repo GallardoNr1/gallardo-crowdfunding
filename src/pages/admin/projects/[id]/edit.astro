@@ -343,9 +343,12 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
           <label for='base_label'>Etiqueta de la aportación base</label>
           <input type='text' name='base_label' id='base_label' placeholder='Papá y mamá' maxlength='60' value={project.base_label ?? ''} />
         </div>
-        <div class='field'>
-          <label for='allow_custom_amount'>Permitir "otra cantidad"</label>
-          <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' checked={!!project.allow_custom_amount} />
+        <div class='field field--check'>
+          <label class='check-label' for='allow_custom_amount'>
+            <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' checked={!!project.allow_custom_amount} />
+            <span>Permitir "otra cantidad"</span>
+          </label>
+          <small>Además de los niveles, se puede aportar cualquier importe (a partir del mínimo de al lado).</small>
         </div>
         <div class='field'>
           <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
@@ -1077,6 +1080,33 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
   .theme-option:has(input:focus-visible) {
     outline: 2px solid var(--color-admin-primary);
     outline-offset: 2px;
+  }
+
+  /* Casilla "otra cantidad": fila casilla + texto, sin heredar el ancho de los inputs. */
+  .field--check {
+    justify-content: center;
+  }
+  .check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-admin-text);
+  }
+  .check-label input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--color-admin-primary);
+    cursor: pointer;
+  }
+  .check-label.ai-filled {
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
   }
 </style>
 

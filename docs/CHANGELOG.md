@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Casilla "otra cantidad" alineada en los formularios del backoffice
+
+- **Qué cambió:** En "Aportaciones" (alta y edición) la casilla "Permitir otra cantidad" pasa a una fila casilla + texto (`.field--check`, `.check-label`) con tamaño propio y una ayuda debajo; antes heredaba el `width: 100%` de los inputs y quedaba descolgada. El resaltado de la IA marca la etiqueta entera de la casilla.
+- **Por qué:** Se veía mal (casilla suelta bajo la etiqueta, hueco enorme).
+- **Archivos tocados:** `src/pages/admin/projects/new.astro`, `src/pages/admin/projects/[id]/edit.astro`, `src/lib/client/ai-draft.ts`.
+- **Impacto:** Solo CSS y marcado; mismo `name`/`id`, así que el envío del formulario y la restauración no cambian.
+
+---
+
 ## [2026-09-22] — Borrador de proyecto con IA, niveles en el alta y textos por tema
 
 - **Qué cambió:** Panel "✨ Rellenar con IA" en `/admin/projects/new`: se describe el crowdfunding a grandes rasgos y `POST /admin/api/draft-project` pide a Claude (`claude-opus-5`, salida estructurada validada con Zod) un borrador de todos los campos del formulario, incluidos niveles de contribución y una lista de suposiciones/datos que faltan; el navegador rellena los campos (resaltados) y **no guarda nada** hasta pulsar "Crear proyecto". Nuevo `ANTHROPIC_API_KEY` opcional: sin clave el panel muestra un aviso. El alta admite ahora filas de niveles (se insertan tras crear el proyecto) y recupera lo escrito si el servidor devuelve un error (sessionStorage). Los temas llevan textos propios (`texts` en `themes.ts`): título de la familia ("La Tribu Que Le Da Alas"), etiqueta del contador ("Héroes"), títulos de niveles, mensaje familiar y muro de apoyo. Cabecera: el logo va en `position: absolute` para que el título quede centrado en la página.

@@ -43,7 +43,7 @@ export function applyDraftToForm(
 
     if (first instanceof HTMLInputElement && first.type === 'checkbox') {
       first.checked = value === true;
-      mark(first);
+      mark(first.closest('label') ?? first);
       filled++;
       continue;
     }
