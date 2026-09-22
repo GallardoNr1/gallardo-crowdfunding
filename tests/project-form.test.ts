@@ -30,6 +30,7 @@ describe('parseProjectForm', () => {
     expect(r.data.min_custom_amount).toBe(5);
     expect(r.data.page_content.progressTitle).toBe('🎯 Progreso');
     expect(r.data.page_content.cta).toEqual({ icon: '🎁', title: '', text: '', stats: [] });
+    expect(r.data.page_content.theme).toBe('fiesta');
     expect(r.data.page_content.mainMessage).toEqual({
       message: '',
       signature: '',
@@ -53,6 +54,9 @@ describe('parseProjectForm', () => {
     expect(r.data.page_content.pageTitle).toBe('🎁 Regalo');
     expect(r.data.page_content.mainMessage.message).toBe('Hola familia');
     expect(r.data.page_content.cta.icon).toBe('🚀');
+    const viaje = parseProjectForm(formWith({ ...minimal, theme: 'viaje' }));
+    expect(viaje.ok).toBe(true);
+    if (viaje.ok) expect(viaje.data.page_content.theme).toBe('viaje');
     expect(r.data.bizum_phone).toBe('612345678');
     expect(r.data.page_content.bizum_phone).toBe('612345678');
   });

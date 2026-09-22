@@ -2,6 +2,7 @@
 // SOLO LECTURAS y suscripciones. Toda escritura pasa por los endpoints /api/* con service_role
 // (ver src/lib/contributions-server.ts y src/lib/support-messages-server.ts).
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_THEME_ID, isThemeId, type ThemeId } from './themes';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -65,6 +66,8 @@ export type ProjectPageContent = {
   cta?: CtaProps;
   bizum_phone?: string;
   bizum_concept?: string;
+  /** Tema visual de la página (src/lib/themes.ts). */
+  theme?: ThemeId;
 };
 
 export interface CtaProps {
@@ -296,6 +299,7 @@ export function normalizeProjectPageContent(raw: unknown): Required<ProjectPageC
     },
     bizum_phone: c.bizum_phone ?? '',
     bizum_concept: c.bizum_concept ?? '',
+    theme: isThemeId(c.theme) ? c.theme : DEFAULT_THEME_ID,
   };
 }
 

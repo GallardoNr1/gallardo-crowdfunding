@@ -29,7 +29,7 @@
 .section-title {
   font-family: 'Fredoka One', cursive;
   font-size: 1.8rem;
-  color: #7b1fa2;
+  color: var(--color-brand-purple-dark);
   margin: 0;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
@@ -47,17 +47,17 @@
   border: 2px solid #e1bee7;
 }
 .stat-badge.total {
-  border-color: #4caf50;
+  border-color: var(--color-brand-green);
   background: linear-gradient(145deg, #e8f5e8, #c8e6c8);
 }
 .stat-number {
   display: block;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #7b1fa2;
+  color: var(--color-brand-purple-dark);
 }
 .stat-badge.total .stat-number {
-  color: #2e7d32;
+  color: var(--color-brand-green-dark);
 }
 .stat-label {
   display: block;
@@ -179,7 +179,7 @@
   margin-bottom: 25px;
 }
 .show-more-btn {
-  background: linear-gradient(145deg, #7b1fa2, #9c27b0);
+  background: linear-gradient(145deg, var(--color-brand-purple-dark), var(--color-brand-purple));
   color: white;
   border: none;
   padding: 12px 25px;

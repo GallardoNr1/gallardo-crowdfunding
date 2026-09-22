@@ -9,12 +9,19 @@ import Spinner from '../../UI/react/Spinner/Spinner';
 interface Props {
   allowComments?: boolean;
   project_id: string;
+  titleEmoji?: string;
+  emptyEmoji?: string;
 }
 
 const byNewest = (a: SupportMessage, b: SupportMessage) =>
   new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 
-const SupportMessageSection: React.FC<Props> = ({ allowComments = true, project_id = '' }) => {
+const SupportMessageSection: React.FC<Props> = ({
+  allowComments = true,
+  project_id = '',
+  titleEmoji = '💬',
+  emptyEmoji = '👋',
+}) => {
   const [comments, setComments] = useState<SupportMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +84,7 @@ const SupportMessageSection: React.FC<Props> = ({ allowComments = true, project_
     <div className='message-section'>
       <div className='comments-section'>
         <div className='comments-header'>
-          <h4 className='comments-title'>💬 Mensajes de Apoyo</h4>
+          <h4 className='comments-title'>{titleEmoji} Mensajes de Apoyo</h4>
         </div>
 
         {error && (
@@ -91,7 +98,7 @@ const SupportMessageSection: React.FC<Props> = ({ allowComments = true, project_
 
           {!isLoading && comments.length === 0 ? (
             <div className='no-comments'>
-              <p>👋 ¡Sé el primero en dejar un mensaje de apoyo!</p>
+              <p>{emptyEmoji} ¡Sé el primero en dejar un mensaje de apoyo!</p>
             </div>
           ) : (
             comments.map((comment, index) => (

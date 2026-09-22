@@ -1,4 +1,5 @@
 import { ProjectFormInput, fieldErrors, type CampaignMode, type ProjectStatus } from './schemas';
+import type { ThemeId } from './themes';
 
 // Convierte el formulario del backoffice (new/edit) en la fila de project_config.
 // Único punto de validación para ambos formularios (MEJORAS N-14).
@@ -14,6 +15,7 @@ export interface ProjectPageContentRow {
   cta: { icon: string; title: string; text: string; stats: { number: string; label: string }[] };
   bizum_phone: string;
   bizum_concept: string;
+  theme: ThemeId;
 }
 
 export interface ProjectRowInput {
@@ -90,6 +92,7 @@ export function parseProjectForm(
         },
         bizum_phone: d.bizum_phone ?? '',
         bizum_concept: d.bizum_concept ?? '',
+        theme: d.theme,
       },
     },
   };

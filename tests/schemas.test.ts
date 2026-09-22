@@ -150,6 +150,16 @@ describe('ProjectFormInput', () => {
     }
   });
 
+  it('defaults the theme to fiesta and rejects unknown themes', () => {
+    const r = ProjectFormInput.safeParse(valid);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.theme).toBe('fiesta');
+    const ok = ProjectFormInput.safeParse({ ...valid, theme: 'aventura' });
+    expect(ok.success).toBe(true);
+    if (ok.success) expect(ok.data.theme).toBe('aventura');
+    expect(ProjectFormInput.safeParse({ ...valid, theme: 'neon' }).success).toBe(false);
+  });
+
   it('requires an end date for open campaigns and a positive target for target campaigns', () => {
     expect(
       ProjectFormInput.safeParse({ ...valid, campaign_mode: 'open', target_amount: '' }).success

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-22] — Temas por proyecto y ajustes del backoffice
+
+- **Qué cambió:** Seis temas (fiesta, aventura, navidad, fantasía, viaje, tecnología) definidos en `src/lib/themes.ts` con paleta de colores y juego de emojis; se guardan en `page_content.theme` (sin migración) y se aplican en la página del proyecto con `html[data-theme]` sobrescribiendo los tokens CSS y pasando los emojis a `ContributionLevels`, `MessageSection`, `SupportMessageSection`, el modal, el hero de cierre y el confeti. Los colores fijos de los componentes públicos pasan a tokens (`--color-accent*` nuevos en `tokens.css`). La home marca cada tarjeta con el color de su tema. Backoffice: sección "Aspecto" con tarjetas de tema; los selectores de modo y tema ocultan el círculo del radio. Imagen del producto sin recortar (`object-fit: contain`); botones 💳/💬 del listado de `/admin` con borde y ajuste de línea. Temas asignados a los proyectos existentes.
+- **Por qué:** Cada campaña tiene su personalidad (bici, dragón, tablet, viaje) y el look único de "fiesta" no encajaba con todas.
+- **Archivos tocados:** `src/lib/themes.ts`, `src/styles/tokens.css`, `src/lib/supabase.ts`, `src/lib/schemas.ts`, `src/lib/project-form.ts`, `src/layouts/BaseLayout.astro`, `src/pages/projects/[slug].astro`, `src/pages/index.astro`, `src/components/**`, `src/pages/admin/projects/**`, `tests/themes.test.ts`, `docs/*`.
+- **Impacto:** Sin cambios de esquema. Un proyecto sin `theme` usa `fiesta` (aspecto anterior). Para añadir un tema basta con una entrada en `THEMES`.
+
+---
+
 ## [2026-09-22] — Campañas por tiempo (bici de Máximo)
 
 - **Qué cambió:** Nuevo `campaign_mode` en `project_config` (`target` | `open`) con `base_amount`, `base_label`, `allow_custom_amount` y `min_custom_amount` (migración `20260922110000`). En modo abierto la página muestra "familia y amigos + base = total" y una cuenta atrás (`OpenCampaignSection`), sin porcentaje ni precio; al pasar `end_date` la campaña se cierra sola (409 en la API, niveles ocultos, hero de cierre). Tarjeta "Otra cantidad" en los niveles y `customAmount` en `POST /api/contributions`. `end_date` pasa a ser vinculante en todos los proyectos. Backoffice con bloque "Tipo de campaña"; `/admin` muestra total y días. Vista `public_contributions` recreada con `LEFT JOIN` (aportaciones sin nivel visibles, anónimos como "Anónimo"). Seed `supabase/seeds/2026-09-22_maximo_bici.sql` con textos, niveles y emojis (imagen y Bizum se completan desde el backoffice). El formulario del backoffice empieza por "¿Cómo termina la campaña?" y muestra solo los campos del modo elegido (`src/lib/client/campaign-form.ts`); la imagen de portada se puede **subir desde el dispositivo** (`src/lib/project-image-server.ts` → bucket `project-assets/projects/<id>/cover-*`), además de pegar una URL; sin URL de producto la imagen no enlaza.

@@ -37,6 +37,7 @@ gallardo-crowdfunding/
 │   │   ├── supabase-server.ts        # Cliente service_role (solo servidor)
 │   │   ├── contributions-server.ts   # Crear pendiente, cambiar estado, recalcular importe, listar
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
+│   │   ├── themes.ts                 # Temas: colores (tokens) + emojis decorativos; getTheme, themeCss
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
 │   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
@@ -86,6 +87,7 @@ gallardo-crowdfunding/
 | Cómo se crea/aprueba un mensaje de apoyo | `src/lib/`, `src/pages/api/`, `src/pages/admin/` | `support-messages-server.ts`, `api/support-messages.ts`, `projects/[id]/messages.astro` |
 | Confirmar pagos desde el backoffice | `src/pages/admin/projects/[id]/` | `contributions.astro` |
 | Campañas por tiempo (cierre, cuenta atrás, base, cantidad libre) | `src/lib/`, `src/components/` | `campaign.ts`, `OpenCampaignSection.astro`, `ContributionLevels.astro` |
+| Temas (colores y emojis de la página de un proyecto) | `src/lib/`, `src/styles/` | `themes.ts` (añadir/editar temas), `tokens.css` (tokens que sobrescriben) |
 | Crear/editar proyectos, niveles, emojis | `src/pages/admin/projects/` | `new.astro`, `[id]/edit.astro`, `src/lib/project-form.ts` |
 | Quién puede entrar al backoffice | `src/` | `middleware.ts`, `lib/authz.ts`, `.env` (`ADMIN_EMAILS`) |
 | Cabeceras de seguridad / CSP | `src/` | `middleware.ts` |

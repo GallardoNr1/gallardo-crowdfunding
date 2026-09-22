@@ -4,7 +4,12 @@ export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FloatingEleents from '../components/FloatingEleents.astro';
 
-import { getProjectsConfig, type ProjectConfig } from '../lib/supabase';
+import {
+  getProjectsConfig,
+  normalizeProjectPageContent,
+  type ProjectConfig,
+} from '../lib/supabase';
+import { getTheme } from '@/lib/themes';
 import CompletedBage from '@/components/UI/CompletedBage.astro';
 import { currencySymbol } from '@/lib/format';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
@@ -64,7 +69,10 @@ try {
         ) : (
           <ul class='projects-list'>
             {projects.map((project) => (
-              <li class='project-card'>
+              <li
+                class='project-card'
+                style={`--card-accent: ${getTheme(normalizeProjectPageContent(project.page_content).theme).swatch[0]}`}
+              >
                 <a href={`/projects/${project.slug}`} class='project-link'>
                   {project.project_status === 'completed' && (
                     <CompletedBage size='sm' />
@@ -306,5 +314,8 @@ try {
         height: 160px;
       }
     }
-  </style>
+    .project-card {
+    border-top: 5px solid var(--card-accent, transparent);
+  }
+</style>
 </BaseLayout>

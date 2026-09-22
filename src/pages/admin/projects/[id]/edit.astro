@@ -5,6 +5,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import { parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { DEFAULT_THEME_ID, THEMES, THEME_IDS, isThemeId } from '@/lib/themes';
 
 const { id } = Astro.params;
 const supabase = createAdminClient();
@@ -164,6 +165,7 @@ const createdParam = Astro.url.searchParams.get('created');
 if (createdParam) successMsg = '✅ Proyecto creado. Ahora añade los niveles de contribución.';
 const imageErrorParam = Astro.url.searchParams.get('image_error');
 if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
+const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
 ---
 
 <AdminLayout title={`Editar: ${project.project_name}`}>
@@ -291,6 +293,33 @@ if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
           <label for='redirect_url'>URL de redirección al finalizar</label>
           <input type='text' name='redirect_url' id='redirect_url' value={project.redirect_url ?? '/'} />
         </div>
+      </div>
+    </section>
+
+    <section class='form-section'>
+      <h2 class='section-title'>Aspecto</h2>
+      <p class='section-hint'>Colores y emojis decorativos de la página del proyecto (no cambia los emojis que escribes tú).</p>
+      <div class='theme-options'>
+        {
+          THEME_IDS.map((id) => {
+            const t = THEMES[id];
+            return (
+              <label class='theme-option'>
+                <input type='radio' name='theme' value={id} checked={currentTheme === id} />
+                <span class='theme-option__body'>
+                  <span class='theme-swatch' aria-hidden='true'>
+                    {t.swatch.map((c) => <i style={`background:${c}`} />)}
+                  </span>
+                  <strong>{t.name}</strong>
+                  <small>{t.description}</small>
+                  <span class='theme-emojis' aria-hidden='true'>
+                    {t.emojis.levels} {t.emojis.message} {t.emojis.support} {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
+                  </span>
+                </span>
+              </label>
+            );
+          })
+        }
       </div>
     </section>
 
@@ -954,6 +983,74 @@ if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
     border-radius: 8px;
     margin-top: 8px;
     border: 1px solid var(--color-admin-border);
+  }
+  .section-hint {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: -6px 0 14px;
+  }
+  .theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+  }
+  .theme-option {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    background: var(--color-surface);
+  }
+  .theme-option:has(input:checked) {
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+  .theme-option input {
+    margin-top: 4px;
+  }
+  .theme-option__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .theme-swatch {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .theme-swatch i {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .theme-option small {
+    color: #64748b;
+  }
+  .theme-emojis {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+  }
+  /* Las tarjetas ya marcan la selección: el círculo del radio sobra (sigue accesible por teclado). */
+  .mode-option input,
+  .theme-option input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+  .mode-option,
+  .theme-option {
+    position: relative;
+  }
+  .mode-option:has(input:focus-visible),
+  .theme-option:has(input:focus-visible) {
+    outline: 2px solid var(--color-admin-primary);
+    outline-offset: 2px;
   }
 </style>
 

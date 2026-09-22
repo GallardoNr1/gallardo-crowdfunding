@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_THEME_ID, THEME_IDS } from './themes';
 
 // Esquemas de los límites de la aplicación (cuerpos HTTP y formularios del backoffice).
 // Fuera de aquí el código trabaja con los tipos inferidos: "parse, don't validate".
@@ -101,6 +102,7 @@ export const ProjectFormInput = z
   cta_icon: optionalText(8),
   cta_title: optionalText(120),
   cta_text: optionalText(1000),
+  theme: z.preprocess(emptyToUndefined, z.enum(THEME_IDS).default(DEFAULT_THEME_ID)),
   })
   .superRefine((d, ctx) => {
     if (d.campaign_mode === 'target' && d.target_amount <= 0) {

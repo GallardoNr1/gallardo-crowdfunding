@@ -16,6 +16,10 @@
   --color-brand-green-light:  #8bc34a;   /* Verde claro — gradientes */
   --color-brand-purple:       #667eea;   /* Púrpura — focus, modal */
   --color-brand-purple-dark:  #764ba2;   /* Púrpura oscuro — gradientes */
+  --color-accent:             #e91e63;   /* Acento "familia" — mensajes, tribu, insignias (lo cambia el tema) */
+  --color-accent-dark:        #c2185b;
+  --color-accent-light:       #f8bbd9;
+  --color-accent-bg:          #fce4ec;
 
   /* ── Colores de UI ────────────────────────────────────────── */
   --color-header-bg:          #1f2937;   /* Header/nav */

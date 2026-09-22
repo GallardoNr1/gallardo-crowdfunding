@@ -31,6 +31,7 @@
 | **Campaña por tiempo** | `campaign_mode = 'open'`: sin objetivo; se recauda hasta `end_date` (incluido) y se muestra recaudado + aportación base = total, con cuenta atrás. |
 | **Aportación base** | Cantidad que pone la familia de entrada (`base_amount`, etiqueta `base_label`). Se suma al total mostrado pero no es una contribución. |
 | **Otra cantidad / aportación libre** | Contribución sin nivel: el contribuidor elige el importe (≥ `min_custom_amount`) si el proyecto lo permite. |
+| **Tema** | Paleta de colores + emojis decorativos de la página de un proyecto (`page_content.theme`): fiesta, aventura, navidad, fantasía, viaje, tecnología. |
 | **Cierre por fecha** | Pasado `end_date`, la campaña deja de admitir aportaciones aunque siga `active`; la página muestra el total final. |
 
 ## Acrónimos

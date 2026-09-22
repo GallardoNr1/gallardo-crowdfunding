@@ -47,9 +47,12 @@ Configuración y estado de cada campaña de crowdfunding.
   "photoSectionTitle": "...",
   "cta": { "icon": "...", "title": "...", "text": "...", "stats": [{"number": "...", "label": "..."}] },
   "bizum_phone": "...",
-  "bizum_concept": "..."
+  "bizum_concept": "...",
+  "theme": "fiesta | aventura | navidad | fantasia | viaje | tecnologia"
 }
 ```
+
+`theme` elige los colores y emojis decorativos de la página (registro en `src/lib/themes.ts`); si falta o no es válido se usa `fiesta`.
 
 ---
 

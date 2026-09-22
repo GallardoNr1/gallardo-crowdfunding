@@ -6,7 +6,12 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #bcbec0 0%, #e6e7e8 50%, #a7a8aa 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-body-bg-from, #bcbec0) 0%,
+    var(--color-body-bg-mid, #e6e7e8) 50%,
+    var(--color-body-bg-to, #a7a8aa) 100%
+  );
 
   min-height: 100vh;
   overflow-x: hidden;

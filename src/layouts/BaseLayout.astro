@@ -4,6 +4,7 @@ import Header from './Header.astro';
 import Footer from './Footer.astro';
 import ContributionModal from '@/components/ContributionModal.astro';
 import { currencySymbol } from '@/lib/format';
+import { themeCss, type Theme } from '@/lib/themes';
 import type { PaymentMethodConfig, ProjectConfig } from '@/lib/supabase';
 
 export interface Props {
@@ -13,6 +14,8 @@ export interface Props {
   /** Proyecto de la página (solo /projects/[slug]). Sin él no se monta el modal de contribución. */
   project?: ProjectConfig | null;
   paymentMethods?: PaymentMethodConfig[];
+  /** Tema del proyecto (colores + emojis). Sin él se usa el tema por defecto. */
+  theme?: Theme;
 }
 
 const {
@@ -21,11 +24,12 @@ const {
   subtitle,
   project = null,
   paymentMethods = [],
+  theme,
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang='es'>
+<html lang='es' data-theme={theme?.id ?? 'fiesta'}>
   <head>
     <meta charset='UTF-8' />
     <meta
@@ -57,6 +61,7 @@ const {
       rel='stylesheet'
       href='/styles/global.css'
     />
+    <style is:inline set:html={themeCss()}></style>
   </head>
   <body>
     <Header
@@ -73,7 +78,7 @@ const {
       paymentMethods={paymentMethods}
       currency={currencySymbol(project.currency)}
       modalTitle='Apoya el proyecto familiar'
-      modalIcon='🧡'
+      modalIcon={theme?.emojis.modal ?? '🧡'}
       modalSubtitle='Ayuda a la familia a crear recuerdos inolvidables'
       summaryTitle='Resumen de tu aporte'
       formTitle='Tus datos'

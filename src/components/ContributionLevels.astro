@@ -7,6 +7,9 @@ export interface Props {
   /** Muestra la tarjeta "Otra cantidad" (campañas con cantidad libre). */
   allowCustomAmount?: boolean;
   minCustomAmount?: number;
+  /** Emojis del tema del proyecto. */
+  titleEmoji?: string;
+  spark?: string;
 }
 
 const {
@@ -14,11 +17,13 @@ const {
   currency = '€',
   allowCustomAmount = false,
   minCustomAmount = 5,
+  titleEmoji = '🏰',
+  spark = '✨',
 } = Astro.props;
 ---
 
 <div class='contributors-section' data-currency={currency}>
-  <h3 class='contributors-title'>🏰 Niveles de Contribución</h3>
+  <h3 class='contributors-title'>{titleEmoji} Niveles de Contribución</h3>
 
   <div class='contribution-levels'>
     {
@@ -96,9 +101,9 @@ const {
     id='contributeButton'
     disabled
   >
-    <span class='button-icon'>✨</span>
+    <span class='button-icon'>{spark}</span>
     <span class='button-text'>Selecciona un nivel primero</span>
-    <span class='button-icon'>✨</span>
+    <span class='button-icon'>{spark}</span>
   </button>
 </div>
 
@@ -350,7 +355,7 @@ const {
   .tips-title {
     font-family: 'Fredoka One', cursive;
     font-size: 1.3rem;
-    color: #2e7d32;
+    color: var(--color-brand-green-dark);
     text-align: center;
     margin-bottom: 20px;
   }

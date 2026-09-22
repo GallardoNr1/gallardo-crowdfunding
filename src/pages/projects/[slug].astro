@@ -10,6 +10,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
 import { campaignTotals, daysLeft, formatEndDate, isCampaignOpen } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
+import { getTheme } from '@/lib/themes';
 import {
   getContributionLevels,
   getFamilyMembers,
@@ -56,6 +57,16 @@ const currency = currencySymbol(projectConfig.currency);
 const currentAmount = Number(projectConfig.current_amount) || 0;
 const targetAmount = Number(projectConfig.target_amount) || 0;
 const content = normalizeProjectPageContent(projectConfig.page_content);
+const theme = getTheme(content.theme);
+const heroSlots: [string, string, string][] = [
+  ['4%', '0s', '4.2s'],
+  ['14%', '0.7s', '5s'],
+  ['26%', '1.1s', '3.6s'],
+  ['42%', '0.3s', '4.8s'],
+  ['58%', '1.4s', '3.9s'],
+  ['72%', '0.9s', '4.4s'],
+  ['86%', '0.4s', '5.3s'],
+];
 const levelAmounts = contributionLevels
   .map((l) => Number(l.amount) || 0)
   .filter((a) => a > 0);
@@ -67,8 +78,9 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   subtitle={content.pageSubtitle}
   project={projectConfig}
   paymentMethods={paymentMethods}
+  theme={theme}
 >
-  <div class='container'>
+  <div class='container' data-confetti={JSON.stringify(theme.emojis.confetti)}>
     <ProductCard
       title={projectConfig.project_name}
       description={projectConfig.project_description ?? ''}
@@ -109,13 +121,11 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       finished && (
         <section class='completed-hero'>
           <div class='completed-particles' aria-hidden='true'>
-            <span style='left:4%;animation-delay:0s;animation-duration:4.2s'>🎉</span>
-            <span style='left:14%;animation-delay:0.7s;animation-duration:5s'>✨</span>
-            <span style='left:26%;animation-delay:1.1s;animation-duration:3.6s'>🎊</span>
-            <span style='left:42%;animation-delay:0.3s;animation-duration:4.8s'>💛</span>
-            <span style='left:58%;animation-delay:1.4s;animation-duration:3.9s'>🎁</span>
-            <span style='left:72%;animation-delay:0.9s;animation-duration:4.4s'>⭐</span>
-            <span style='left:86%;animation-delay:0.4s;animation-duration:5.3s'>🎉</span>
+            {heroSlots.map(([left, delay, duration], i) => (
+              <span style={`left:${left};animation-delay:${delay};animation-duration:${duration}`}>
+                {theme.emojis.hero[i % theme.emojis.hero.length]}
+              </span>
+            ))}
           </div>
           <div class='completed-check'>{completed ? '🏆' : '🏁'}</div>
           <h2 class='completed-title'>{completed ? '¡Lo conseguimos!' : '¡Campaña cerrada!'}</h2>
@@ -154,6 +164,8 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
           currency={currency}
           allowCustomAmount={!!projectConfig.allow_custom_amount}
           minCustomAmount={Number(projectConfig.min_custom_amount) || 5}
+          titleEmoji={theme.emojis.levels}
+          spark={theme.emojis.spark}
         />
       )
     }
@@ -172,9 +184,13 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     <MessageSection
       familyMembers={familyMembers}
       mainMessage={content.mainMessage}
-      memberTitle='🌸 La Tribu Que Le Da Alas'
+      memberTitle={`${theme.emojis.family} La Tribu Que Le Da Alas`}
       callToAction={content.cta}
       project_id={projectConfig.id}
+      sectionEmoji={theme.emojis.message}
+      iconEmoji={theme.emojis.messageIcon}
+      supportEmoji={theme.emojis.support}
+      emptyEmoji={theme.emojis.empty}
     />
   </div>
   <Footer slot='footer' />
@@ -229,7 +245,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   .completed-title {
     font-family: var(--font-display);
     font-size: clamp(2rem, 6vw, 3.4rem);
-    color: #e65100;
+    color: var(--color-section-orange-accent);
     margin: 0 0 20px;
     animation: fadeInUp 0.6s 0.3s ease both;
   }
@@ -253,7 +269,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
 
   .completed-label {
     font-size: 0.95rem;
-    color: #e65100;
+    color: var(--color-section-orange-accent);
     opacity: 0.75;
   }
 
@@ -304,7 +320,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   }
 
   .status-active {
-    color: #4caf50;
+    color: var(--color-brand-green);
     font-weight: 600;
   }
 
@@ -314,7 +330,7 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   }
 
   .status-paused {
-    color: #ff9800;
+    color: var(--color-brand-orange);
     font-weight: 600;
   }
 
@@ -392,9 +408,20 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
     setTimeout(() => celebration.remove(), 8000);
   }
 
+  // Confeti del tema del proyecto (lo inyecta el servidor en data-confetti).
+  const CONFETTI: string[] = (() => {
+    try {
+      const raw = (document.querySelector('[data-confetti]') as HTMLElement | null)?.dataset.confetti;
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) && parsed.length ? parsed : ['🎉', '✨', '🌟'];
+    } catch {
+      return ['🎉', '✨', '🌟'];
+    }
+  })();
+
   function createGlobalConfetti(container: HTMLElement) {
     const confetti = document.createElement('div');
-    const emojis = ['🎉', '✨', '🌟', '💫', '🎊', '🎁', '💝', '💛', '⭐'];
+    const emojis = CONFETTI;
     confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     confetti.style.cssText = `
       position: absolute;

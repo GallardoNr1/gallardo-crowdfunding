@@ -222,4 +222,5 @@ sequenceDiagram
 | Rate limit en memoria | Un solo proceso PM2 y tráfico familiar; si se escala, sustituir por Redis/Postgres. |
 | Migraciones SQL en `supabase/migrations/` | Los cambios de esquema y permisos quedan revisables y reproducibles (`supabase db push`). |
 | Sin pagos online (Stripe eliminado) | No estaba integrado; se retira hasta que exista un plan real. |
+| Temas por proyecto en código (`src/lib/themes.ts`) guardados en `page_content.theme` | Seis paletas + juegos de emojis sin migración: el tema sobrescribe los tokens CSS vía `html[data-theme]` y los componentes reciben los emojis por props. Los emojis escritos por el administrador (títulos, niveles, modal) no cambian. |
 | Campañas por tiempo como **modo** del mismo proyecto (`campaign_mode = 'open'`) | La bici de Máximo no tiene objetivo: se recauda hasta una fecha y la familia pone una base. Un flag más cuatro campos reutilizan niveles, modal, backoffice y broadcast; la lógica de apertura/cierre y totales está en `src/lib/campaign.ts`. `end_date` pasa a ser vinculante para todos los proyectos. |
