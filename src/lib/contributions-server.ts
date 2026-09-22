@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isCampaignOpen } from './campaign';
 import type { ContributionInput, ContributionStatus } from './schemas';
 
 // Lógica de contribuciones que SOLO corre en servidor con el cliente service_role.
@@ -21,22 +22,47 @@ export async function createPendingContribution(
 ): Promise<CreateContributionResult> {
   const { data: project } = await admin
     .from('project_config')
-    .select('id, project_status')
+    .select('id, project_status, end_date, allow_custom_amount, min_custom_amount')
     .eq('id', input.projectId)
     .maybeSingle();
   if (!project) return { ok: false, status: 404, error: 'Proyecto no encontrado.' };
-  if (project.project_status !== 'active') {
-    return { ok: false, status: 409, error: 'Este proyecto ya no admite contribuciones.' };
+  if (!isCampaignOpen(project)) {
+    return {
+      ok: false,
+      status: 409,
+      error: 'Esta campaña ya está cerrada y no admite más aportaciones.',
+    };
   }
 
-  const { data: level } = await admin
-    .from('contribution_levels')
-    .select('id, name, amount, is_active')
-    .eq('id', input.levelId)
-    .eq('project_id', input.projectId)
-    .maybeSingle();
-  if (!level || !level.is_active) {
-    return { ok: false, status: 422, error: 'El nivel elegido no existe o no está disponible.' };
+  // Importe: del nivel elegido, o cantidad libre si el proyecto lo permite. Nunca del cliente tal cual.
+  let amount: number;
+  let levelId: string | null = null;
+  let levelName: string;
+
+  if (input.levelId) {
+    const { data: level } = await admin
+      .from('contribution_levels')
+      .select('id, name, amount, is_active')
+      .eq('id', input.levelId)
+      .eq('project_id', input.projectId)
+      .maybeSingle();
+    if (!level || !level.is_active) {
+      return { ok: false, status: 422, error: 'El nivel elegido no existe o no está disponible.' };
+    }
+    amount = Number(level.amount);
+    levelId = level.id;
+    levelName = level.name;
+  } else {
+    if (!project.allow_custom_amount) {
+      return { ok: false, status: 422, error: 'Este proyecto no admite cantidades libres.' };
+    }
+    const min = Number(project.min_custom_amount) || 1;
+    const custom = Math.round(Number(input.customAmount) * 100) / 100;
+    if (!Number.isFinite(custom) || custom < min) {
+      return { ok: false, status: 422, error: `La aportación mínima es de ${min} €.` };
+    }
+    amount = custom;
+    levelName = 'Aportación libre';
   }
 
   const { data: method } = await admin
@@ -55,9 +81,9 @@ export async function createPendingContribution(
       contributor_name: input.contributorName,
       contributor_email: input.contributorEmail,
       contributor_emoji: input.contributorEmoji,
-      amount: level.amount,
-      level_id: level.id,
-      level_name: level.name,
+      amount,
+      level_id: levelId,
+      level_name: levelName,
       message: input.message ?? null,
       payment_method: input.paymentMethod,
       payment_status: 'pending',
