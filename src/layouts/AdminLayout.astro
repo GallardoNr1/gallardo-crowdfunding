@@ -319,7 +319,8 @@ const pathname = Astro.url.pathname;
       display: flex;
     }
 
-    .sidebar-close {
+    /* La ✕ solo existe con el cajón abierto (nunca en escritorio) */
+    .sidebar.is-open .sidebar-close {
       display: block;
     }
 
