@@ -2,7 +2,7 @@
 
 Base de datos: **PostgreSQL** gestionado por Supabase.
 
-> Los tipos se infieren de las interfaces TypeScript en `src/lib/supabase.ts` y los datos de `data.json`. El esquema SQL exacto está en Supabase — no hay migraciones en el repo.
+> Los tipos se infieren de las interfaces TypeScript en `src/lib/supabase.ts`. El esquema base vive en Supabase; los cambios desde 2026-09 (triggers, broadcast, defaults, índices, RLS) están versionados en `supabase/migrations/` (ver `supabase/README.md`).
 
 ## Tablas
 
@@ -58,12 +58,12 @@ Registro de cada aportación económica.
 | `contributor_name` | text | Nombre del contribuidor |
 | `contributor_email` | text | Email (privado, no se muestra públicamente) |
 | `contributor_emoji` | text | Emoji elegido por el contribuidor |
-| `amount` | numeric | Cantidad aportada |
+| `amount` | numeric | Cantidad aportada. La fija el servidor a partir de `contribution_levels.amount`; el navegador no la envía |
 | `level_id` | uuid FK → `contribution_levels.id` | Nivel de contribución elegido |
 | `level_name` | text | Nombre del nivel (desnormalizado) |
 | `message` | text | Mensaje opcional de apoyo |
 | `payment_method` | text | `bizum` \| `cash` \| `bank_transfer` |
-| `payment_status` | text | `pending` \| `processing` \| `completed` \| `failed` \| `refunded` |
+| `payment_status` | text | `pending` \| `processing` \| `completed` \| `failed` \| `refunded`. Nace `pending` (lo fija `/api/contributions`); el backoffice lo pasa a `completed` al recibir el pago. Solo `completed` cuenta para `current_amount` y la vista pública. |
 | `payment_reference` | text | Referencia del pago (opcional) |
 | `is_anonymous` | boolean | Si el contribuidor quiere ser anónimo |
 | `is_test` | boolean | Si es una contribución de prueba |
@@ -126,7 +126,7 @@ Mensajes de apoyo públicos.
 | `message` | text | Contenido del mensaje |
 | `is_from_contributor` | boolean | Si el autor es un contribuidor registrado |
 | `contribution_id` | uuid FK → `contributions.id` | Contribución vinculada (opcional) |
-| `is_approved` | boolean | Si el mensaje es visible (siempre `true` actualmente) |
+| `is_approved` | boolean | Si el mensaje es visible. Por defecto `false` (migración `20260922100200`); se aprueba desde `/admin/projects/:id/messages` |
 | `created_at` | timestamptz | Fecha de creación |
 | `updated_at` | timestamptz | Última actualización |
 
@@ -252,33 +252,37 @@ erDiagram
     contributions ||--o| support_messages : "puede originar"
 ```
 
-## Función RPC en Supabase
+## Funciones, triggers y permisos
 
-Para incrementar `current_amount` de forma atómica, debe existir esta función en el SQL de Supabase:
+Definidos en `supabase/migrations/` (2026-09). Estado objetivo una vez aplicadas:
 
-```sql
-create or replace function increment_project_current_amount(
-  p_project_id uuid,
-  p_amount numeric
-) returns numeric as $$
-declare
-  new_amount numeric;
-begin
-  update project_config
-  set current_amount = current_amount + p_amount,
-      updated_at = now()
-  where id = p_project_id
-  returning current_amount into new_amount;
+| Objeto | Tipo | Qué hace |
+|--------|------|----------|
+| `recalc_project_current_amount(uuid)` | función (security definer) | `current_amount = sum(amount)` de las contribuciones `completed` y no de prueba del proyecto |
+| `contributions_recalc_amount` | trigger AFTER INSERT/UPDATE/DELETE en `contributions` | Llama a la función anterior para el proyecto afectado |
+| `contributions_broadcast` | trigger AFTER INSERT/UPDATE en `contributions` | Cuando una contribución pasa a `completed`: `realtime.send(...)` al topic `project:<id>` con el evento `contribution_completed` (sin email; "Anónimo" si `is_anonymous`) |
+| `support_messages_broadcast` | trigger AFTER INSERT/UPDATE en `support_messages` | Cuando `is_approved` pasa a `true`: evento `support_message_approved` |
+| `increment_project_current_amount(uuid, numeric)` | RPC heredada | Se conserva pero **sin permiso de ejecución** para `anon` / `authenticated` |
+| `project_config_slug_key` | índice único | `slug` único |
 
-  if not found then
-    raise exception 'Project not found';
-  end if;
+El servidor (`src/lib/contributions-server.ts`) recalcula también `current_amount` al confirmar un pago, así el importe se mantiene correcto aunque la migración del trigger no esté aplicada todavía.
 
-  return new_amount;
-end;
-$$ language plpgsql security definer;
-```
+### Políticas RLS (migración `20260922100400_rls_lockdown.sql`)
+
+| Tabla | `anon` / `authenticated` pueden… |
+|-------|----------------------------------|
+| `project_config` | `SELECT` de proyectos no cancelados |
+| `contribution_levels`, `family_members` | `SELECT` de filas `is_active` |
+| `payment_instructions` | `SELECT` |
+| `support_messages` | `SELECT` de filas `is_approved` |
+| `contributions` | `SELECT` solo de `completed` y no de prueba, **sin la columna `contributor_email`** (privilegio por columna) |
+| todas | Ningún `INSERT` / `UPDATE` / `DELETE` |
+
+`service_role` (endpoints y backoffice) salta RLS. `contributions` se retira de la publicación `supabase_realtime` (`postgres_changes`).
 
 ## Migraciones
 
-No hay sistema de migraciones en el repo. El esquema se gestiona directamente en el SQL Editor de Supabase. Para crear/modificar tablas: usar el Dashboard de Supabase > SQL Editor.
+- Archivos en `supabase/migrations/*.sql`, uno por cambio, con bloque `-- down` comentado.
+- Aplicación: SQL Editor del dashboard en orden, o `npx supabase db push`.
+- Baseline del esquema histórico: `npx supabase db pull` (pendiente de commitear).
+- Orden, dependencias con el despliegue y comprobaciones: [`supabase/README.md`](../supabase/README.md).

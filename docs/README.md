@@ -2,7 +2,7 @@
 
 ## Resumen ejecutivo
 
-Plataforma web de crowdfunding familiar, diseñada para que la familia Gallardo cree campañas de recaudación para regalos colectivos. Cada proyecto tiene su propia página pública donde los contribuidores pueden ver el progreso, seleccionar un nivel de aportación y registrar su contribución (Bizum, efectivo o transferencia). Las actualizaciones aparecen en tiempo real mediante Supabase Realtime.
+Plataforma web de crowdfunding familiar, diseñada para que la familia Gallardo cree campañas de recaudación para regalos colectivos. Cada proyecto tiene su propia página pública donde los contribuidores pueden ver el progreso, seleccionar un nivel de aportación y registrar su contribución (Bizum, efectivo o transferencia). Las contribuciones nacen pendientes y la familia las confirma desde un backoffice; las confirmaciones y los mensajes aprobados llegan a todos los visitantes en tiempo real (Supabase Realtime Broadcast).
 
 **URL de producción:** `https://gc.gallardcode.com`
 
@@ -28,3 +28,5 @@ npm run dev            # http://localhost:4321
 | [COMMANDS.md](COMMANDS.md) | Comandos de desarrollo, build, deploy y utilidades |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
 | [GLOSSARY.md](GLOSSARY.md) | Términos del dominio y conceptos clave |
+| [MEJORAS.md](MEJORAS.md) | Registro de hallazgos y mejoras con su estado |
+| [../supabase/README.md](../supabase/README.md) | Migraciones de base de datos y permisos |

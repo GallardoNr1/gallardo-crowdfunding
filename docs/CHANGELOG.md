@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-09-22] — Implementación de las mejoras N-01…N-28 (rama `mejoras/2026-09`)
+
+- **Qué cambió:**
+  - **Escrituras en servidor:** `POST /api/contributions` y `POST /api/support-messages` (Zod + rate limit + service role). El navegador ya no inserta ni actualiza nada; `src/lib/supabase.ts` solo lee. Las contribuciones nacen `pending` con el importe del nivel; los mensajes, sin aprobar.
+  - **Backoffice:** confirmación de pagos (`/admin/projects/:id/contributions`, recalcula `current_amount`), moderación de mensajes (`/admin/projects/:id/messages`), validación de formularios con `parseProjectForm`, slug único, labels accesibles, contadores de pendientes. Solo entran usuarios con `app_metadata.role = 'admin'` o email en `ADMIN_EMAILS`; la sesión se refresca sola y el logout revoca en Supabase.
+  - **Seguridad:** notificaciones y toasts sin `innerHTML`; cabeceras de seguridad y CSP en producción; `/admin` con `noindex`; `/design-system` solo en dev; `data.json` (email real) eliminado.
+  - **Base de datos:** migraciones versionadas en `supabase/migrations/` — trigger que recalcula `current_amount`, broadcast por proyecto desde triggers, `is_approved` por defecto `false`, índice único en `slug`, RLS (anon solo lee, sin `contributor_email`).
+  - **Tiempo real:** suscripción Broadcast `project:<id>` (`subscribeToProjectEvents`) en vez de `postgres_changes` sobre toda la tabla; dedupe por id.
+  - **Bugs:** 404 real en proyectos inexistentes, consultas en paralelo, progreso desde `current_amount`, `Number()` en importes de nivel, un solo evento `levelSelected`, scroll restaurado al cerrar el modal con Escape, fecha del mensaje en texto libre, `<dic>` → `<div>`, HTML válido en la home, estados traducidos, sin NaN ni negativos en el progreso, stats del CTA conservadas al editar.
+  - **Tooling:** Vitest (36 tests), `astro check`, ESLint + Prettier, Zod, `.env.example` + validación al arrancar, Dependabot; dependencias sin uso eliminadas (`stripe`, `@astrojs/vercel`) y actualizadas dentro de major.
+  - **CI/CD:** `ci.yml` en PR; `deploy.yml` con `verify`, acciones por SHA, releases + symlink `current` + `pm2 startOrReload` (`ecosystem.config.cjs`).
+  - **Limpieza:** eliminados `/api/data.json`, `SupabaseTest`, `ContributorsList.astro`, `RealtimeContributions`, `globals.css`, `/info/tablet_ana`, `/lego/DD`.
+- **Por qué:** cerrar los hallazgos críticos de `docs/MEJORAS.md` (importe manipulable, XSS, admin sin rol, fuga de datos por Realtime) y dejar red de seguridad (tests, typecheck, CI) antes de seguir añadiendo funcionalidad.
+- **Archivos tocados:** `src/lib/*`, `src/pages/api/*`, `src/pages/admin/**`, `src/pages/projects/[slug].astro`, `src/pages/index.astro`, `src/pages/404.astro`, `src/middleware.ts`, `src/layouts/*`, `src/components/**`, `supabase/**`, `tests/**`, `.github/**`, `ecosystem.config.cjs`, `package.json`, `.env.example`, `eslint.config.js`, `vitest.config.ts`, `docs/**`, `README.md`.
+- **Impacto:**
+  - **Comportamiento nuevo:** las aportaciones no suman ni aparecen hasta que la familia las confirma en el backoffice; los mensajes no se publican hasta aprobarlos.
+  - **Antes de desplegar:** añadir `ADMIN_EMAILS` (o el rol) para no quedarse fuera del backoffice; aplicar las migraciones (la de RLS, después del deploy); desactivar el alta libre en Supabase Auth.
+  - Hasta aplicar la migración de broadcast no hay actualizaciones en tiempo real (la página sigue funcionando al recargar).
+  - Layout de producción nuevo (`releases/` + `current`); el primer deploy recrea el proceso PM2.
+
+---
+
 ## [2026-09-22] — Revisión completa + graphify + RTK
 
 - **Qué cambió:** Revisión completa del proyecto (seguridad, correctitud, infra, docs) registrada en `docs/MEJORAS.md` (28 hallazgos nuevos, estado de los 15 anteriores y orden de ataque). Instalado **graphify** (grafo de conocimiento en `graphify-out/`, sección `## graphify` en `CLAUDE.md` y hooks `PreToolUse` en `.claude/settings.json`) e **RTK** (binario `rtk` 0.48 vía winget, instrucciones en `CLAUDE.md`, filtros en `.rtk/filters.toml`).

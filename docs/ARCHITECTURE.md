@@ -2,83 +2,105 @@
 
 ## Patrón arquitectónico
 
-**Monolito modular con Islands Architecture** (patrón nativo de Astro).
+**Monolito modular con Islands Architecture** (patrón nativo de Astro), con una regla añadida desde 2026-09:
+**el navegador solo lee; toda escritura pasa por el servidor.**
 
-- El servidor renderiza HTML completo en cada petición (SSR).
-- Los componentes interactivos se "hidratan" en el cliente como React Islands (`client:load`).
-- No hay separación frontend/backend en repositorios distintos — todo convive en un único proyecto.
+- El servidor renderiza HTML completo en cada petición (SSR, adapter Node standalone).
+- Los componentes interactivos se hidratan en el cliente como React Islands (`client:load`).
+- El cliente usa la clave `anon` de Supabase únicamente para lecturas y para recibir eventos Realtime.
+- Las escrituras (contribuciones, mensajes, backoffice) las hacen endpoints Astro con la clave `service_role`,
+  validando la entrada con Zod.
+- `current_amount` lo mantiene un trigger de Postgres a partir de las contribuciones confirmadas.
 
 ## Capas y responsabilidades
 
 | Capa | Directorio | Responsabilidad |
 |------|-----------|-----------------|
-| **Páginas** | `src/pages/` | Routing, SSR, composición de componentes, fetch de datos inicial |
-| **Layouts** | `src/layouts/` | HTML shell, Header, Footer, modal global de contribución |
-| **Componentes Astro** | `src/components/` | Secciones de la UI (ProductCard, ProgressSection, etc.) |
-| **Islands React** | `src/components/react/` | UI interactiva con estado: lista en tiempo real, mensajes |
-| **UI atómicos** | `src/components/UI/` | Componentes reutilizables (Modal, CloseButton, Spinner) |
-| **Data layer** | `src/lib/supabase.ts` | Toda la lógica de acceso a datos — queries, inserts, realtime |
-| **Helpers** | `src/helpers/` | Utilidades puras (formateo de fechas) |
-| **Assets** | `public/` | CSS global, imágenes estáticas |
+| **Middleware** | `src/middleware.ts` | Cabeceras de seguridad en todas las respuestas; auth + rol de administrador y refresco de sesión en `/admin/*` |
+| **Páginas públicas** | `src/pages/` | Routing, SSR, composición de componentes, fetch inicial de datos (en paralelo) |
+| **Endpoints** | `src/pages/api/` | `POST /api/contributions`, `POST /api/support-messages`: validan con Zod, limitan por IP y escriben con service role |
+| **Backoffice** | `src/pages/admin/` | Login, proyectos, niveles, emojis, confirmación de pagos y moderación de mensajes (formularios `POST` clásicos) |
+| **Layouts** | `src/layouts/` | HTML shell público (`BaseLayout`) y de administración (`AdminLayout`) |
+| **Componentes Astro** | `src/components/` | Secciones de la página de proyecto |
+| **Islands React** | `src/components/react/` | Lista de contribuidores y muro de mensajes; se actualizan por Broadcast |
+| **UI atómicos** | `src/components/UI/` | Modal, CloseButton, Spinner, badge |
+| **Data layer (lectura)** | `src/lib/supabase.ts` | Tipos, consultas públicas y `subscribeToProjectEvents` |
+| **Data layer (escritura)** | `src/lib/contributions-server.ts`, `src/lib/support-messages-server.ts`, `src/lib/supabase-server.ts` | Lógica de servidor con service role |
+| **Límites** | `src/lib/schemas.ts`, `src/lib/env-schema.ts`, `src/lib/project-form.ts` | Esquemas Zod: cuerpos HTTP, formularios y variables de entorno |
+| **Utilidades** | `src/lib/{authz,session-cookies,api,rate-limit,format,html}.ts`, `src/helpers/` | Autorización, cookies, respuestas JSON, rate limit, moneda, escape HTML, fechas |
+| **Base de datos** | `supabase/migrations/` | Triggers, broadcast, defaults, índices y políticas RLS versionadas |
 
 ## Diagrama de componentes
 
 ```mermaid
 graph TD
     subgraph Pages
-        Index["/index.astro<br/>Lista de proyectos"]
-        Slug["/projects/[slug].astro<br/>Detalle del proyecto"]
-        API["/api/data.json.ts<br/>Endpoint JSON legado"]
+        Index["/index.astro"]
+        Slug["/projects/[slug].astro"]
+        NotFound["/404.astro"]
+        Admin["/admin/** (backoffice)"]
+        ApiC["POST /api/contributions"]
+        ApiM["POST /api/support-messages"]
+    end
+
+    subgraph Middleware
+        MW["middleware.ts<br/>cabeceras + auth admin"]
     end
 
     subgraph Layouts
-        BaseLayout["BaseLayout.astro<br/>HTML + Header + ContributionModal"]
-        Header["Header.astro"]
-        Footer["Footer.astro"]
+        BaseLayout["BaseLayout.astro<br/>recibe project + paymentMethods por props"]
+        AdminLayout["AdminLayout.astro"]
     end
 
     subgraph Components_Astro
-        ProductCard["ProductCard.astro"]
-        ProgressSection["ProgressSection.astro"]
-        ContributionLevels["ContributionLevels.astro"]
-        FamilyPhotos["FamilyPhotos.astro"]
-        MessageSection["MessageSection.astro"]
-        ContributionModal["ContributionModal.astro"]
+        ProductCard
+        ProgressSection
+        ContributionLevels
+        FamilyPhotos
+        MessageSection
+        ContributionModal
+        SupportMessageFrom
     end
 
     subgraph React_Islands
-        ContributorsList["ContributorsList.tsx<br/>(client:load)"]
-        SupportMessageSection["SupportMessageSection.tsx<br/>(client:load)"]
-        Spinner["Spinner.tsx"]
+        ContributorsList["ContributorsList.tsx"]
+        SupportMessageSection["SupportMessageSection.tsx"]
     end
 
-    subgraph DataLayer
-        Supabase["src/lib/supabase.ts<br/>Queries + Mutations + Realtime"]
-        DB[(Supabase DB)]
-        RT[Supabase Realtime]
-        Storage[Supabase Storage]
+    subgraph Server_libs
+        SupabaseRead["supabase.ts (anon)<br/>lecturas + broadcast"]
+        SupabaseAdmin["supabase-server.ts (service_role)"]
+        ContribSrv["contributions-server.ts"]
+        MsgSrv["support-messages-server.ts"]
+        Schemas["schemas.ts (Zod)"]
     end
 
+    subgraph Supabase
+        DB[(Postgres + RLS)]
+        Trg["Triggers: recalc current_amount<br/>+ realtime.send"]
+        RT[Realtime Broadcast<br/>topic project:id]
+        Auth[Supabase Auth]
+        Storage[Storage]
+    end
+
+    MW --> Admin
+    MW --> Auth
     Index --> BaseLayout
     Slug --> BaseLayout
-    BaseLayout --> Header
+    Slug --> SupabaseRead
+    Slug --> ProductCard & ProgressSection & ContributionLevels & FamilyPhotos & MessageSection
     BaseLayout --> ContributionModal
-    Slug --> ProductCard
-    Slug --> ProgressSection
-    Slug --> ContributionLevels
-    Slug --> FamilyPhotos
-    Slug --> MessageSection
+    MessageSection --> SupportMessageSection & SupportMessageFrom
     Slug --> ContributorsList
-    MessageSection --> SupportMessageSection
-    SupportMessageSection --> Spinner
-
-    Slug --> Supabase
-    BaseLayout --> Supabase
-    ContributionModal -->|client-side import| Supabase
-    ContributorsList -->|subscribeToContributions| RT
-    Supabase --> DB
-    Supabase --> RT
-    Supabase --> Storage
+    ContributionModal -->|fetch| ApiC
+    SupportMessageFrom -->|fetch| ApiM
+    ApiC --> Schemas & ContribSrv
+    ApiM --> Schemas & MsgSrv
+    Admin --> ContribSrv & MsgSrv
+    ContribSrv & MsgSrv --> SupabaseAdmin --> DB
+    DB --> Trg --> RT
+    RT --> ContributorsList & SupportMessageSection
+    SupabaseRead --> DB & Storage
 ```
 
 ## Flujos principales
@@ -88,82 +110,114 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant Browser
-    participant AstroSSR as Astro SSR [slug].astro
-    participant SupabaseLib as src/lib/supabase.ts
-    participant DB as Supabase DB
+    participant MW as middleware.ts
+    participant Page as [slug].astro
+    participant Lib as supabase.ts (anon)
+    participant DB as Supabase
 
-    Browser->>AstroSSR: GET /projects/mi-proyecto
-    AstroSSR->>SupabaseLib: getProjectBySlug(slug)
-    AstroSSR->>SupabaseLib: getContributionLevels(id)
-    AstroSSR->>SupabaseLib: getPublicContributions(id)
-    AstroSSR->>SupabaseLib: getFamilyMembers(id)
-    AstroSSR->>SupabaseLib: getImagesFromFolder(id)
-    SupabaseLib->>DB: Queries en paralelo
-    DB-->>SupabaseLib: Datos
-    SupabaseLib-->>AstroSSR: Datos tipados
-    AstroSSR-->>Browser: HTML completo
-    Browser->>Browser: Hidratar ContributorsList React Island
-    Browser->>DB: WebSocket Realtime (contributions)
+    Browser->>MW: GET /projects/mi-proyecto
+    MW->>Page: next()
+    Page->>Lib: getProjectBySlug(slug)
+    Lib->>DB: select project_config
+    alt no existe
+        Page-->>Browser: 404 (404.astro)
+    else existe
+        Page->>Lib: Promise.all(levels, contributions, family, photos, paymentMethods)
+        Lib->>DB: 5 consultas en paralelo
+        Page-->>MW: HTML
+        MW-->>Browser: HTML + cabeceras de seguridad
+        Browser->>DB: channel('project:<id>') Broadcast
+    end
 ```
 
-### Flujo 2: Registrar una contribución
+### Flujo 2: Registrar y confirmar una contribución
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant ContribLevels as ContributionLevels.astro
-    participant Modal as ContributionModal.astro (JS client)
-    participant SupabaseLib as supabase.ts (client-side)
-    participant DB as Supabase DB
-    participant ContribList as ContributorsList.tsx
+    participant Modal as ContributionModal (cliente)
+    participant Api as POST /api/contributions
+    participant Srv as contributions-server.ts
+    participant DB as Postgres (service_role)
+    participant Admin as Backoffice /contributions
+    participant Viewers as ContributorsList (todos los visitantes)
 
-    User->>ContribLevels: Clic en nivel (ej. "Paladín")
-    ContribLevels->>Modal: CustomEvent "levelSelected"
-    Modal->>User: Abre modal con formulario
-    User->>Modal: Rellena nombre, email, método de pago
-    User->>Modal: Submit
-    Modal->>SupabaseLib: createContribution(data)
-    SupabaseLib->>DB: INSERT contributions
-    DB-->>SupabaseLib: OK
-    SupabaseLib->>DB: RPC increment_project_current_amount
-    DB-->>SupabaseLib: nuevo current_amount
-    SupabaseLib-->>Modal: { success: true }
-    Modal->>Modal: CustomEvent "contributionCompleted"
-    Modal->>User: Alert + cierre
-    DB-->>ContribList: Realtime INSERT event
-    ContribList->>ContribList: Añade contribuidor a la lista
+    User->>Modal: Elige nivel, rellena datos, método de pago
+    Modal->>Api: fetch JSON { projectId, levelId, nombre, email, emoji, método }
+    Api->>Api: Zod + rate limit por IP
+    Api->>Srv: createPendingContribution
+    Srv->>DB: comprueba proyecto activo, nivel del proyecto, método activo
+    Srv->>DB: INSERT contributions (amount = nivel, payment_status = 'pending')
+    Api-->>Modal: 201 { id, amount, level_name }
+    Modal->>User: Toast "pendiente de confirmación" + confeti
+    Note over User,Admin: El contribuidor paga por Bizum / efectivo
+    Admin->>Srv: setContributionStatus(id, 'completed')
+    Srv->>DB: UPDATE payment_status + recalcProjectAmount
+    DB->>DB: trigger recalc current_amount + realtime.send('contribution_completed')
+    DB-->>Viewers: Broadcast en project:<id>
+    Viewers->>Viewers: Añade la tarjeta (dedupe por id) + celebración
 ```
 
-### Flujo 3: Enviar mensaje de apoyo
+### Flujo 3: Mensaje de apoyo
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant SupportForm as SupportMessageFrom.astro
-    participant SupabaseLib as supabase.ts (client-side)
-    participant DB as Supabase DB
-    participant SupportSection as SupportMessageSection.tsx
+    participant Form as SupportMessageFrom (cliente)
+    participant Api as POST /api/support-messages
+    participant DB as Postgres (service_role)
+    participant Admin as Backoffice /messages
+    participant Wall as SupportMessageSection
 
-    User->>SupportForm: Escribe nombre, email y mensaje
-    User->>SupportForm: Envía
-    SupportForm->>SupabaseLib: createSupportMessage(data)
-    SupabaseLib->>DB: SELECT contributions (findContribution)
-    DB-->>SupabaseLib: ¿es contribuidor?
-    SupabaseLib->>DB: INSERT support_messages (is_approved: true)
-    DB-->>SupabaseLib: OK
-    SupabaseLib-->>SupportForm: { success: true }
-    SupportForm->>SupportSection: CustomEvent "newSupportMessage"
-    SupportSection->>SupportSection: Prepend mensaje a la lista
+    User->>Form: Escribe mensaje (+ nombre y email opcionales)
+    Form->>Api: fetch JSON
+    Api->>DB: ¿el email es de un contribuidor del proyecto? → is_from_contributor
+    Api->>DB: INSERT support_messages (is_approved = false)
+    Api-->>Form: 201
+    Form->>User: "Se publicará en cuanto lo revise la familia"
+    Admin->>DB: is_approved = true
+    DB-->>Wall: Broadcast 'support_message_approved'
+```
+
+### Flujo 4: Acceso al backoffice
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Login as /admin/login
+    participant Auth as Supabase Auth
+    participant MW as middleware.ts
+
+    Admin->>Login: POST email + contraseña
+    Login->>Auth: signInWithPassword
+    Auth-->>Login: sesión (access + refresh)
+    Login->>Login: isAdminUser(user, ADMIN_EMAILS)
+    alt no es admin
+        Login-->>Admin: "Esta cuenta no tiene acceso"
+    else admin
+        Login-->>Admin: cookies HttpOnly sb-access-token / sb-refresh-token → /admin
+    end
+    Admin->>MW: GET /admin/...
+    MW->>Auth: getUser(access_token)
+    alt token caducado
+        MW->>Auth: refreshSession(refresh_token) → reescribe cookies
+    end
+    MW->>MW: isAdminUser → locals.user
 ```
 
 ## Decisiones de diseño
 
 | Decisión | Justificación |
 |----------|---------------|
-| SSR completo (no static) | Los datos (contribuciones, progreso) cambian frecuentemente; no se puede prebuildear |
-| Supabase Realtime en cliente | Actualizaciones instantáneas sin polling; el cliente se subscribe directamente al canal WS |
-| `createContribution` con `payment_status: 'completed'` al insertar | El pago es offline (Bizum/efectivo). La contribución se registra como completada por honor |
-| RPC atómica + fallback JS | `increment_project_current_amount` usa función PL/pgSQL para atomicidad; si falla, cae en read+update JS |
-| `is_approved: true` por defecto en mensajes | Moderación optimista — todos los mensajes se aprueban automáticamente |
-| Sin autenticación de usuario | Plataforma familiar de confianza; no se necesita login |
-| Stripe instalado pero inactivo | Preparación para pagos futuros con tarjeta |
+| SSR completo (no static) | Los datos cambian con frecuencia; no se puede prebuildear. |
+| Escrituras solo en servidor (`/api/*` + backoffice con service role) | Con la clave anon en el bundle, cualquiera podía insertar contribuciones "completadas", fijar el importe o llamar a la RPC que suma al proyecto. Ahora el importe lo fija el nivel y el estado nace `pending`. |
+| `current_amount` mantenido por trigger (y recalculado por el servidor al confirmar) | Idempotente y a prueba de dobles envíos; mientras la migración no está aplicada, el servidor hace el mismo cálculo. |
+| Contribuciones `pending` hasta que la familia confirma el pago | Con pago offline (Bizum/efectivo) el importe público solo debe reflejar dinero recibido. Hay backoffice para confirmar. |
+| Realtime por **Broadcast desde triggers** en el topic `project:<id>` | `postgres_changes` sobre toda la tabla filtraba mal (otros proyectos, anónimos) y enviaba el email. El trigger emite solo campos públicos. |
+| Mensajes de apoyo con `is_approved = false` por defecto | Moderación previa: nada se publica sin revisión. |
+| Admin = `app_metadata.role = 'admin'` **o** email en `ADMIN_EMAILS` | Cualquier usuario de Supabase Auth no debe entrar al backoffice; la lista por env evita bloqueos si aún no se ha puesto el rol. |
+| Cookies HttpOnly + refresco en middleware | Sesiones de 7/30 días sin exponer tokens a JS; el access token (1 h) se renueva solo. |
+| CSP en producción con `script-src 'unsafe-inline'` | Varios componentes usan `onclick` e `is:inline`; la política aún bloquea scripts remotos, iframes y `form-action` externos. Pasar a nonces es la mejora siguiente. |
+| Rate limit en memoria | Un solo proceso PM2 y tráfico familiar; si se escala, sustituir por Redis/Postgres. |
+| Migraciones SQL en `supabase/migrations/` | Los cambios de esquema y permisos quedan revisables y reproducibles (`supabase db push`). |
+| Sin pagos online (Stripe eliminado) | No estaba integrado; se retira hasta que exista un plan real. |

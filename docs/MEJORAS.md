@@ -376,3 +376,39 @@ Hoy no hay forma de marcar una contribución como pagada/pendiente ni de ver la 
 | 4 | N-21, N-18, N-23, N-19 | Red de seguridad: typecheck + CI + deps + despliegue sin caída. |
 | 5 | N-06, N-11, N-14, N-15, N-22, N-28 | Backoffice completo y endurecimiento. |
 | 6 | N-17, N-24, N-25, N-26, N-27 | Limpieza, docs, a11y y rendimiento. |
+
+---
+
+## 4. Estado tras la implementación (2026-09-22, rama `mejoras/2026-09`)
+
+| Ítem | Estado | Nota |
+|------|--------|------|
+| N-01 | ✅ código · ⏳ migraciones | `/api/contributions` + estado `pending`; trigger y `REVOKE` en `supabase/migrations/` pendientes de aplicar |
+| N-02 | ✅ | Notificación y toast con `textContent` |
+| N-03 | ✅ código · ⏳ Supabase | `isAdminUser` en middleware y login; falta desactivar el alta libre y dar el rol / `ADMIN_EMAILS` |
+| N-04 | ✅ código · ⏳ migraciones | Broadcast por proyecto; hasta aplicar la migración no hay tiempo real |
+| N-05 | ✅ | `data.json` eliminado (el historial de git no se ha reescrito) |
+| N-06 | ✅ código · ⏳ migración | `/api/support-messages` + moderación en backoffice |
+| N-07 … N-13 | ✅ | Ver CHANGELOG 2026-09-22 |
+| N-14 | ✅ código · ⏳ migración | `parseProjectForm` + comprobación de slug; índice único pendiente |
+| N-15 | ✅ parcial | Cabeceras y CSP en producción; `script-src` aún con `'unsafe-inline'` (siguiente paso: nonces) |
+| N-16, N-17 | ✅ | Código muerto y páginas heredadas eliminados |
+| N-18 | ✅ parcial | Deps limpias y actualizadas dentro de major; quedan avisos que exigen Astro 7 / sharp |
+| N-19 | ✅ | Releases + symlink + `pm2 startOrReload`; acciones por SHA; `verify` antes del deploy |
+| N-20 | ✅ parcial | Migraciones nuevas versionadas; baseline `supabase db pull` pendiente |
+| N-21 | ✅ | `astro check` 0 errores, ESLint 0 errores (20 warnings), 36 tests, CI en PR |
+| N-22 | ✅ | Refresco de sesión en middleware; logout revoca en Supabase |
+| N-23 | ✅ | `env-schema.ts` + `.env.example` |
+| N-24 | ✅ | Docs reescritas (ARCHITECTURE, API, INFRA, FILE-MAP, COMMANDS, STACK, DATA-MODEL, README) |
+| N-25 | ✅ parcial | Niveles como `<button>`, labels asociados, `role=progressbar`; contraste sin auditar |
+| N-26 | ✅ parcial | Moneda del proyecto en toda la UI; el título "La Tribu…" sigue fijo |
+| N-27 | ⏳ | Rendimiento (fuentes, cache, dimensiones de imagen) sin tocar |
+| N-28 | ✅ | `/admin/projects/:id/contributions` |
+
+### Pendiente manual (no se puede hacer desde el repo)
+
+1. Aplicar las migraciones de `supabase/migrations/` en el orden de `supabase/README.md` (la de RLS, después de desplegar).
+2. Supabase → Authentication: desactivar *Allow new users to sign up*; dar rol admin al usuario o añadir `ADMIN_EMAILS` al `.env` y al secret `ENV_LOCAL`.
+3. Revisar el `select` de `20260922100050_resync_current_amount.sql` antes de ejecutarlo.
+4. Primer deploy con el nuevo `deploy.yml`: comprueba que PM2 arranca desde `current/` y que nginx sigue apuntando a `127.0.0.1:5025`.
+
