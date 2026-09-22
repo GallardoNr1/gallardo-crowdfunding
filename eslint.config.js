@@ -10,6 +10,7 @@ export default [
       'node_modules/**',
       'graphify-out/**',
       'public/**',
+      'ecosystem.config.cjs',
     ],
   },
   js.configs.recommended,

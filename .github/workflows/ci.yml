@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Valores con forma válida para que check/build no fallen; no son credenciales reales.
+      - name: Variables de entorno de prueba
+        run: |
+          {
+            echo "PUBLIC_SUPABASE_URL=https://example.supabase.co"
+            echo "PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-anon-key-0000000000000000"
+            echo "SUPABASE_SERVICE_ROLE_KEY=ci-placeholder-service-key-000000000000"
+          } > .env
+
+      - run: npm run check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      - name: Auditoría de dependencias (informativa)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

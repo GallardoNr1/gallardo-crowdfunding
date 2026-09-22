@@ -4,111 +4,129 @@ on:
   push:
     branches:
       - main
-      - master
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Create .env from secret
-        run: echo "${{ secrets.ENV_LOCAL }}" > .env
-
-      - name: Build application
-        run: npm run build
-
-      - name: Verify dist folder
+          cache: npm
+      - run: npm ci
+      - name: Variables de entorno de prueba
         run: |
-          if [ \! -d "dist" ]; then
-            echo "Error: dist folder not created"
-            exit 1
-          fi
-          echo "dist folder OK"
+          {
+            echo "PUBLIC_SUPABASE_URL=https://example.supabase.co"
+            echo "PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-anon-key-0000000000000000"
+            echo "SUPABASE_SERVICE_ROLE_KEY=ci-placeholder-service-key-000000000000"
+          } > .env
+      - run: npm run check
+      - run: npm run lint
+      - run: npm test
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_BASE: /var/www/gallardo-crowdfunding
+      RELEASE: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Astro incrusta las variables en el build: el .env real tiene que existir aquí.
+      - name: Crear .env desde el secret
+        run: printf '%s\n' "${{ secrets.ENV_LOCAL }}" > .env
+
+      - run: npm run build
+
+      - name: Verificar dist
+        run: |
+          test -f dist/server/entry.mjs || { echo "dist/server/entry.mjs no existe"; exit 1; }
           ls -la dist
 
-      - name: Clean old build on server
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Preparar directorio de release en el servidor
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -euo pipefail
-            DEPLOY_DIR="/var/www/gallardo-crowdfunding"
-            if [ \! -d "$DEPLOY_DIR" ]; then
-              sudo mkdir -p "$DEPLOY_DIR"
-              sudo chown -R "${{ secrets.SERVER_USER }}:${{ secrets.SERVER_USER }}" "$DEPLOY_DIR"
-            fi
-            cd "$DEPLOY_DIR"
-            if [ "$(pwd)" \!= "$DEPLOY_DIR" ]; then
-              echo "ERROR: pwd=$(pwd) no coincide. Abortando."
-              exit 1
-            fi
-            find . -maxdepth 1 \! -name '.' \! -name 'node_modules' \! -name '.env' -exec rm -rf {} +
+            mkdir -p "${{ env.DEPLOY_BASE }}/releases/${{ env.RELEASE }}"
 
-      - name: Deploy dist to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Subir build
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: 'dist/*'
-          target: '/var/www/gallardo-crowdfunding'
+          target: ${{ env.DEPLOY_BASE }}/releases/${{ env.RELEASE }}
           strip_components: 1
 
-      - name: Deploy package files
-        uses: appleboy/scp-action@v0.1.7
+      - name: Subir package.json, lockfile y ecosystem
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: 'package.json,package-lock.json'
-          target: '/var/www/gallardo-crowdfunding'
+          source: 'package.json,package-lock.json,ecosystem.config.cjs'
+          target: ${{ env.DEPLOY_BASE }}/releases/${{ env.RELEASE }}
 
-      - name: Create .env on server
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Activar release y recargar PM2
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cat > /var/www/gallardo-crowdfunding/.env << 'ENVEOF'
-            ${{ secrets.ENV_LOCAL }}
-            ENVEOF
-            chmod 600 /var/www/gallardo-crowdfunding/.env
-
-      - name: Post-deployment tasks
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
+            set -euo pipefail
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             nvm use 22 || nvm install 22
-            cd /var/www/gallardo-crowdfunding
-            echo "Instalando dependencias de produccion..."
-            npm ci --omit=dev --legacy-peer-deps 2>/dev/null || npm install --omit=dev --legacy-peer-deps
-            echo "Reiniciando con PM2..."
-            if pm2 describe gallardo-crowdfunding > /dev/null 2>&1; then
-              pm2 restart gallardo-crowdfunding --update-env
-            else
-              PORT=5025 HOST=127.0.0.1 NODE_ENV=production pm2 start ./server/entry.mjs --name gallardo-crowdfunding --cwd /var/www/gallardo-crowdfunding
+
+            BASE="${{ env.DEPLOY_BASE }}"
+            REL="$BASE/releases/${{ env.RELEASE }}"
+            cd "$REL"
+
+            cat > .env << 'ENVEOF'
+            ${{ secrets.ENV_LOCAL }}
+            ENVEOF
+            chmod 600 .env
+
+            echo "Instalando dependencias de producción..."
+            npm ci --omit=dev --legacy-peer-deps
+
+            # Cambio atómico del symlink: la release anterior sigue sirviendo hasta el reload.
+            ln -sfn "$REL" "$BASE/current.tmp"
+            mv -Tf "$BASE/current.tmp" "$BASE/current"
+
+            # Si PM2 aún apunta al layout antiguo (server/entry.mjs en la raíz), se recrea el proceso.
+            OLD_PATH=$(pm2 jlist 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const a=JSON.parse(d||"[]").find(p=>p.name==="gallardo-crowdfunding");console.log(a?a.pm2_env.pm_exec_path:"")})')
+            if [ -n "$OLD_PATH" ] && [[ "$OLD_PATH" != *"/current/"* ]]; then
+              echo "Eliminando proceso PM2 antiguo ($OLD_PATH)"
+              pm2 delete gallardo-crowdfunding || true
             fi
+
+            pm2 startOrReload "$BASE/current/ecosystem.config.cjs" --update-env
             pm2 save
-            echo "Deploy completado"
-            echo "URL: https://gc.gallardcode.com"
+
+            echo "Limpiando releases antiguas (se conservan 3)..."
+            ls -1dt "$BASE"/releases/* | tail -n +4 | xargs -r rm -rf
+
+            echo "Deploy completado: https://gc.gallardcode.com"
