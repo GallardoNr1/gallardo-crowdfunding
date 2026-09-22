@@ -99,6 +99,8 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       completed={completed}
       icon={content.cta.icon}
       currency={currency}
+      contributeHref={open ? '#contribuir' : undefined}
+      contributeLabel={`${theme.emojis.spark} Quiero aportar`}
     />
 
     {

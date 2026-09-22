@@ -22,7 +22,7 @@ const {
 } = Astro.props;
 ---
 
-<div class='contributors-section' data-currency={currency}>
+<div class='contributors-section' id='contribuir' data-currency={currency}>
   <h3 class='contributors-title'>{titleEmoji} Niveles de Contribución</h3>
 
   <div class='contribution-levels'>
@@ -155,6 +155,10 @@ const {
     position: relative;
     overflow: hidden;
     user-select: none;
+  }
+
+  #contribuir {
+    scroll-margin-top: 24px;
   }
 
   button.level-card {

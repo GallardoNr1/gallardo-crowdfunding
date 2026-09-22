@@ -24,7 +24,9 @@ const pathname = Astro.url.pathname;
   </head>
   <body>
     <div class='admin-shell'>
-      <aside class='sidebar'>
+      <div class='sidebar-backdrop' id='adminSidebarBackdrop' hidden></div>
+      <aside class='sidebar' id='adminSidebar'>
+        <button type='button' class='sidebar-close' id='adminSidebarClose' aria-label='Cerrar menú'>✕</button>
         <a href='/admin' class='sidebar-brand'>
           <svg class='sidebar-logo' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'>
             <defs>
@@ -71,6 +73,16 @@ const pathname = Astro.url.pathname;
       <div class='main-area'>
         <header class='topbar'>
           <h1 class='page-title'>{title}</h1>
+          <button
+            type='button'
+            class='menu-toggle'
+            id='adminMenuToggle'
+            aria-label='Abrir menú'
+            aria-controls='adminSidebar'
+            aria-expanded='false'
+          >
+            <span></span><span></span><span></span>
+          </button>
         </header>
         <main class='content'>
           <slot />
@@ -224,6 +236,74 @@ const pathname = Astro.url.pathname;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--color-admin-text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Menú hamburguesa (solo móvil) ── */
+  .menu-toggle {
+    display: none;
+    margin-left: auto;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0;
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-admin-text);
+    transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+
+  .menu-toggle[aria-expanded='true'] span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .menu-toggle[aria-expanded='true'] span:nth-child(2) {
+    opacity: 0;
+  }
+  .menu-toggle[aria-expanded='true'] span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .sidebar-close {
+    display: none;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 1090;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .sidebar-backdrop.is-visible {
+    opacity: 1;
   }
 
   .content {
@@ -235,11 +315,73 @@ const pathname = Astro.url.pathname;
   }
 
   @media (max-width: 768px) {
-    .sidebar {
-      display: none;
+    .menu-toggle {
+      display: flex;
     }
+
+    .sidebar-close {
+      display: block;
+    }
+
+    /* Cajón lateral: entra desde la derecha */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: auto;
+      height: 100dvh;
+      width: min(300px, 85vw);
+      transform: translateX(105%);
+      transition: transform 0.28s ease;
+      box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+      z-index: 1100;
+    }
+
+    .sidebar.is-open {
+      transform: none;
+    }
+
+    .sidebar-brand {
+      padding-right: 60px;
+    }
+
+    .topbar {
+      padding: 0 16px;
+    }
+
     .content {
       padding: 20px;
     }
   }
 </style>
+
+<script>
+  // Menú lateral en móvil: se abre desde la derecha y se cierra con ✕, el fondo o Escape.
+  const sidebar = document.getElementById('adminSidebar');
+  const toggle = document.getElementById('adminMenuToggle');
+  const backdrop = document.getElementById('adminSidebarBackdrop');
+  const closeBtn = document.getElementById('adminSidebarClose');
+
+  if (sidebar && toggle && backdrop) {
+    const setOpen = (open: boolean) => {
+      sidebar.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+      backdrop.hidden = !open;
+      requestAnimationFrame(() => backdrop.classList.toggle('is-visible', open));
+      document.body.style.overflow = open ? 'hidden' : '';
+    };
+
+    toggle.addEventListener('click', () => setOpen(!sidebar.classList.contains('is-open')));
+    closeBtn?.addEventListener('click', () => setOpen(false));
+    backdrop.addEventListener('click', () => setOpen(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setOpen(false);
+    });
+    sidebar.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    window.matchMedia('(min-width: 769px)').addEventListener('change', (e) => {
+      if (e.matches) setOpen(false);
+    });
+  }
+</script>
