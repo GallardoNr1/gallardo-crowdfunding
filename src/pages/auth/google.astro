@@ -1,0 +1,45 @@
+---
+// Entrar con Google: pide a Supabase la URL de Google, guarda el verificador PKCE y el destino
+// en cookies HttpOnly (10 min) y redirige. La vuelta llega a /auth/callback.
+export const prerender = false;
+
+import { safeNext } from '@/lib/auth-gate';
+import {
+  NEXT_COOKIE,
+  VERIFIER_COOKIE,
+  startGoogleLogin,
+} from '@/lib/oauth-server';
+import { supabasePkceAuth } from '@/lib/oauth-supabase';
+import { siteOrigin } from '@/lib/tenants';
+
+if (Astro.locals.user) {
+  return Astro.redirect('/admin');
+}
+
+const origin = siteOrigin(Astro.request.headers, Astro.url.origin);
+const result = await startGoogleLogin(
+  supabasePkceAuth,
+  `${origin}/auth/callback`
+);
+
+if (!result.ok) {
+  console.warn('[auth] Google no disponible:', result.error);
+  return Astro.redirect('/login?error=google');
+}
+
+const cookie = {
+  path: '/',
+  httpOnly: true,
+  secure: import.meta.env.PROD,
+  sameSite: 'lax' as const,
+  maxAge: 60 * 10,
+};
+Astro.cookies.set(VERIFIER_COOKIE, result.codeVerifier, cookie);
+Astro.cookies.set(
+  NEXT_COOKIE,
+  safeNext(Astro.url.searchParams.get('next')),
+  cookie
+);
+
+return Astro.redirect(result.url);
+---

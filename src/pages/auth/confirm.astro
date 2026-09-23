@@ -1,6 +1,6 @@
 ---
 // Destino de los enlaces de los emails de Supabase Auth (plantillas con {{ .TokenHash }}):
-//   /auth/confirm?token_hash=…&type=signup|recovery|email
+//   /auth/confirm?token_hash=…&type=signup|invite|recovery|email
 // Verifica el token en servidor, guarda la sesión en cookies y redirige según el tipo.
 export const prerender = false;
 
@@ -18,7 +18,7 @@ const result = await handleConfirm(
 if (result.ok) {
   setSessionCookies(Astro.cookies, result.session);
   return Astro.redirect(
-    result.type === 'recovery'
+    result.type === 'recovery' || result.type === 'invite'
       ? '/cuenta/contrasena?recovery=1'
       : '/admin?bienvenida=1'
   );

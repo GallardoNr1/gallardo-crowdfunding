@@ -19,6 +19,7 @@ gallardo-crowdfunding/
 │   └── styles/global.css      # CSS global público
 ├── src/
 │   ├── components/            # Secciones de la página de proyecto (Astro)
+│   │   ├── admin/AiDraftPanel.astro   # Panel de IA del formulario (Rellenar / Ajustar)
 │   │   ├── ProjectsList.astro         # Tarjetas de proyecto (home y portada del espacio)
 │   │   ├── Breadcrumbs.astro          # Migas "Inicio › Espacio › Proyecto"
 │   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
@@ -45,6 +46,9 @@ gallardo-crowdfunding/
 │   │   ├── tenants-server.ts         # getTenantForUser, getTenantByNumberAdmin, requireProjectInTenant (service role)
 │   │   ├── tenant-avatar-server.ts   # Foto del espacio en el bucket `avatars`
 │   │   ├── tenant-delete-server.ts   # Borrado completo de un espacio (hijos → proyectos → archivos → espacio → cuenta)
+│   │   ├── tenant-invite-server.ts   # Superadmin: crear el espacio de otra persona (invitación o contraseña temporal)
+│   │   ├── oauth-server.ts           # Google (PKCE): startGoogleLogin / finishOAuth con storage en memoria (puro)
+│   │   ├── oauth-supabase.ts         # Cliente real de Supabase para el flujo PKCE
 │   │   ├── auth-gate.ts              # authGate (allow/login/forbidden por ruta), safeNext
 │   │   ├── session-server.ts         # verifyAccessToken (jose) + resolveSession (refresco y cookies)
 │   │   ├── auth-routes.ts            # Handlers puros: login, registro, recuperar, confirmar, contraseña
@@ -78,6 +82,7 @@ gallardo-crowdfunding/
 │   │   ├── projects/[slug].astro          # URL antigua → 301 a la nueva
 │   │   ├── login.astro, registro.astro, recuperar.astro, logout.astro, privacidad.astro
 │   │   ├── auth/confirm.astro             # Enlaces de los emails (token_hash)
+│   │   ├── auth/google.astro, auth/callback.astro   # Entrar con Google
 │   │   ├── cuenta/index.astro, cuenta/contrasena.astro
 │   │   ├── api/
 │   │   │   ├── contributions.ts      # POST

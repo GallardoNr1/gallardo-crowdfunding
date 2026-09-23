@@ -19,6 +19,7 @@ export interface AuthSession {
 
 export const OTP_TYPES = [
   'signup',
+  'invite',
   'recovery',
   'email',
   'email_change',

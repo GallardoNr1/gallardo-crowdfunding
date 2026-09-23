@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Ajustar con IA, invitaciones, cambio de email, Google y cabecera móvil
+
+- **Qué cambió:** (1) **Ajustar con IA**: el endpoint del borrador acepta `{ instructions, current }`; el panel (`src/components/admin/AiDraftPanel.astro`, compartido por alta y edición) envía el formulario actual y aplica solo los campos que cambian (`collectFormValues` / `applyDraftToForm` con `current`); en edición los niveles van como contexto y no se tocan. (2) **Invitar** desde `/admin/espacios`: email + nombre del espacio, con invitación por email (`inviteUserByEmail`, plantilla *Invite user* → `/auth/confirm?type=invite`) o cuenta confirmada con contraseña temporal mostrada una vez (`createUser`). (3) **Cambiar email** en "Mi cuenta" confirmando la contraseña actual (`auth.admin.updateUserById`, sin correo de verificación). (4) **Entrar con Google**: `/auth/google` inicia el flujo PKCE en servidor (verificador en cookie HttpOnly) y `/auth/callback` intercambia el código; botones en login y registro. (5) Cabecera en móvil: logo a la izquierda, avatar (solo icono) a la derecha y título/subtítulo debajo centrados.
+- **Por qué:** Peticiones del usuario tras probar la web: refinar el borrador sin rehacerlo, dar de alta a familiares sin que se registren, corregir el email y entrar sin contraseña.
+- **Archivos tocados:** `src/lib/{project-draft,project-draft-route,project-draft-server,auth-routes,auth-supabase,schemas,tenant-invite-server,oauth-server,oauth-supabase}.ts`, `src/lib/client/ai-draft.ts`, `src/components/admin/AiDraftPanel.astro`, `src/pages/admin/projects/{new,[id]/edit}.astro`, `src/pages/admin/espacios/index.astro`, `src/pages/{login,registro}.astro`, `src/pages/auth/{confirm,google,callback}.astro`, `src/pages/cuenta/index.astro`, `src/layouts/{Header,AuthLayout}.astro`, `tests/*`, `docs/*`.
+- **Impacto:** Google necesita el cliente OAuth en Google Cloud y el proveedor activado en Supabase (ver INFRA); hasta entonces el botón lleva a `/login?error=google`. La invitación por email necesita SMTP y la plantilla *Invite user*; la contraseña temporal funciona ya. El cambio de email no verifica el nuevo correo (lo decide el propio usuario con su contraseña).
+
+---
+
 ## [2026-09-23] — Vista previa al compartir (Open Graph)
 
 - **Qué cambió:** `BaseLayout` emite `og:title`, `og:description`, `og:url`, `og:image`, `og:site_name`, `og:locale` y las etiquetas `twitter:*` (`summary_large_image`). La página de proyecto comparte su subtítulo (o descripción) y la imagen del proyecto; la portada del espacio, su nombre y avatar; el resto usa `public/og-default.png` (1200×630, generado con Pillow). La URL y la imagen se hacen absolutas con `siteOrigin` (cabeceras `X-Forwarded-*` detrás de nginx).

@@ -38,6 +38,11 @@ if (Astro.request.method === 'POST') {
 
 const justRegistered = Astro.url.searchParams.get('registro') === 'ok';
 const passwordChanged = Astro.url.searchParams.get('contrasena') === 'ok';
+const googleError = Astro.url.searchParams.get('error') === 'google';
+const googleHref =
+  next === '/admin'
+    ? '/auth/google'
+    : `/auth/google?next=${encodeURIComponent(next)}`;
 ---
 
 <AuthLayout
@@ -51,6 +56,12 @@ const passwordChanged = Astro.url.searchParams.get('contrasena') === 'ok';
   {passwordChanged && (
     <div class='success-banner'>
       ✅ Contraseña cambiada. Entra con la nueva.
+    </div>
+  )}
+  {googleError && (
+    <div class='error-banner'>
+      ⚠️ No se pudo entrar con Google. Inténtalo de nuevo o usa tu email y
+      contraseña.
     </div>
   )}
   {error && <div class='error-banner'>⚠️ {error}</div>}
@@ -91,6 +102,26 @@ const passwordChanged = Astro.url.searchParams.get('contrasena') === 'ok';
       Entrar
     </button>
   </form>
+
+  <div class='auth-divider'>
+    <span>o</span>
+  </div>
+  <a
+    class='google-btn'
+    href={googleHref}
+  >
+    <svg
+      class='google-icon'
+      viewBox='0 0 24 24'
+      aria-hidden='true'
+    >
+      <path
+        fill='#EA4335'
+        d='M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.4 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12S6.7 21.6 12 21.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z'
+      />
+    </svg>
+    Entrar con Google
+  </a>
 
   <p class='auth-links'>
     <a href='/recuperar'>¿Has olvidado la contraseña?</a>

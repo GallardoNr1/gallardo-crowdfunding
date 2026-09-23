@@ -7,17 +7,40 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import { ADMIN_TENANT_COOKIE } from '@/lib/session-cookies';
 import { createAdminClient } from '@/lib/supabase-server';
 import { deleteTenantCompletely } from '@/lib/tenant-delete-server';
+import { inviteTenantOwner } from '@/lib/tenant-invite-server';
+import { siteOrigin } from '@/lib/tenants';
 import { isTenantNumber, tenantUrl } from '@/lib/tenants';
 import type { Tenant } from '@/lib/supabase';
 
 const admin = createAdminClient();
 let error = '';
 let success = '';
+let tempPassword = '';
+let tempEmail = '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const number = String(form.get('tenant_number') ?? '');
   const action = String(form.get('_action') ?? '');
+
+  // Crear un espacio para otra persona: invitación por email o cuenta con contraseña temporal.
+  if (action === 'invite') {
+    const result = await inviteTenantOwner(admin, {
+      email: String(form.get('email') ?? ''),
+      spaceName: String(form.get('space_name') ?? ''),
+      mode: form.get('mode') === 'email' ? 'email' : 'password',
+      redirectTo: `${siteOrigin(Astro.request.headers, Astro.url.origin)}/auth/confirm`,
+    });
+    if (!result.ok) {
+      error = result.error;
+    } else if (result.mode === 'email') {
+      success = `📬 Invitación enviada a ${result.email}. Al abrir el enlace elegirá su contraseña y entrará en su espacio.`;
+    } else {
+      success = `✅ Cuenta creada para ${result.email}. Pásale la contraseña temporal de abajo: solo se muestra una vez.`;
+      tempPassword = result.tempPassword;
+      tempEmail = result.email;
+    }
+  }
 
   // Borrado completo de un espacio ajeno (el propio se borra desde /cuenta).
   if (action === 'delete' && isTenantNumber(number)) {
@@ -105,6 +128,80 @@ const fmtDate = (iso: string) =>
     el backoffice de ese espacio como si fueras su dueño (la franja amarilla te
     lo recuerda).
   </p>
+
+  {tempPassword && (
+    <div class='temp-box'>
+      <strong>Datos de acceso de {tempEmail}</strong>
+      <code>{tempPassword}</code>
+      <span>
+        Que entre en <a href='/login'>/login</a> y cambie la contraseña desde
+        "Mi cuenta".
+      </span>
+    </div>
+  )}
+
+  <details class='invite'>
+    <summary>➕ Invitar a alguien (crear su espacio)</summary>
+    <form
+      method='POST'
+      class='invite-form'
+    >
+      <input
+        type='hidden'
+        name='_action'
+        value='invite'
+      />
+      <label>
+        <span>Email</span>
+        <input
+          type='email'
+          name='email'
+          required
+          autocomplete='off'
+          placeholder='persona@ejemplo.com'
+        />
+      </label>
+      <label>
+        <span>Nombre del espacio</span>
+        <input
+          type='text'
+          name='space_name'
+          required
+          maxlength='80'
+          placeholder='Familia López'
+        />
+      </label>
+      <fieldset class='invite-mode'>
+        <legend>Cómo le damos acceso</legend>
+        <label>
+          <input
+            type='radio'
+            name='mode'
+            value='password'
+            checked
+          />
+          <span>Contraseña temporal (te la muestro aquí y se la pasas tú)</span>
+        </label>
+        <label>
+          <input
+            type='radio'
+            name='mode'
+            value='email'
+          />
+          <span>
+            Invitación por email (requiere SMTP y plantilla "Invite user" en
+            Supabase)
+          </span>
+        </label>
+      </fieldset>
+      <button
+        type='submit'
+        class='btn-primary'
+      >
+        Crear espacio
+      </button>
+    </form>
+  </details>
 
   <div class='table-wrap'>
     <table class='spaces'>
@@ -310,6 +407,109 @@ const fmtDate = (iso: string) =>
     padding: 14px 18px;
     border-radius: var(--radius-sm);
     margin-bottom: 20px;
+  }
+
+  .temp-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #78350f;
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+
+  .temp-box code {
+    font-size: 1.05rem;
+    background: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #fcd34d;
+    letter-spacing: 0.06em;
+  }
+
+  .invite {
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .invite summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-admin-primary);
+  }
+
+  .invite-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .invite-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+  }
+
+  .invite-form input[type='email'],
+  .invite-form input[type='text'] {
+    padding: 9px 13px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.9rem;
+  }
+
+  .invite-mode {
+    grid-column: 1 / -1;
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .invite-mode legend {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    padding: 0 6px;
+  }
+
+  .invite-mode label {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-admin-text);
+  }
+
+  .invite-form .btn-primary {
+    grid-column: 1 / -1;
+    justify-self: start;
+    background: var(--color-admin-primary);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    .invite-form {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 

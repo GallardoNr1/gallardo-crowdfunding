@@ -79,6 +79,9 @@ La sesión va en cookies HttpOnly (`sb-access-token` / `sb-refresh-token`); el m
 | Authentication → Email Templates → *Confirm signup* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup` |
 | Authentication → Email Templates → *Reset password* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery` |
 | Project Settings → Auth → SMTP | SMTP propio (Resend, Brevo…). El SMTP por defecto de Supabase permite unos pocos correos por hora: vale para probar, no para abrir la web |
+| Authentication → Email Templates → *Invite user* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite` (para "Invitar por email" desde `/admin/espacios`) |
+| Authentication → URL Configuration | Añadir también `https://gc.gallardcode.com/auth/callback` a Redirect URLs (vuelta de Google) |
+| Authentication → Providers → Google | Activar y pegar *Client ID* y *Client secret* del cliente OAuth creado en Google Cloud (APIs y servicios → Credenciales → ID de cliente OAuth, tipo *Aplicación web*, URI de redirección autorizado `https://<ref>.supabase.co/auth/v1/callback`; la pantalla de consentimiento puede quedar en "externa" con la web como dominio) |
 | Storage | Bucket `avatars` público (lo crea la migración `20260923110000_avatars_bucket.sql`) |
 
 Los enlaces de los emails llegan a `/auth/confirm`, que verifica el `token_hash` en servidor (`verifyOtp`),

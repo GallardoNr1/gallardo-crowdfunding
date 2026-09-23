@@ -1,0 +1,33 @@
+---
+// Vuelta de Google (Supabase OAuth, PKCE): intercambia el `code` con el verificador guardado en la
+// cookie, deja la sesión en cookies y va al destino pedido (o a /admin). Cualquier fallo → /login.
+export const prerender = false;
+
+import { safeNext } from '@/lib/auth-gate';
+import { NEXT_COOKIE, VERIFIER_COOKIE, finishOAuth } from '@/lib/oauth-server';
+import { supabasePkceAuth } from '@/lib/oauth-supabase';
+import { setSessionCookies } from '@/lib/session-cookies';
+
+const code = Astro.url.searchParams.get('code');
+const verifier = Astro.cookies.get(VERIFIER_COOKIE)?.value;
+const next = safeNext(Astro.cookies.get(NEXT_COOKIE)?.value);
+Astro.cookies.delete(VERIFIER_COOKIE, { path: '/' });
+Astro.cookies.delete(NEXT_COOKIE, { path: '/' });
+
+if (Astro.url.searchParams.get('error')) {
+  console.warn(
+    '[auth] Google devolvió un error:',
+    Astro.url.searchParams.get('error_description')
+  );
+  return Astro.redirect('/login?error=google');
+}
+
+const session =
+  code && verifier ? await finishOAuth(supabasePkceAuth, code, verifier) : null;
+if (!session) {
+  return Astro.redirect('/login?error=google');
+}
+
+setSessionCookies(Astro.cookies, session);
+return Astro.redirect(next);
+---

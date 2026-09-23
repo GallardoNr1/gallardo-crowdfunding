@@ -345,4 +345,56 @@ const { title, heading, subtitle = '', wide = false } = Astro.props;
     text-align: center;
     font-size: 0.85rem;
   }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 14px;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-admin-border);
+  }
+
+  .google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: #1e293b;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-fast);
+  }
+
+  .google-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .google-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .auth-hint {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+  }
 </style>

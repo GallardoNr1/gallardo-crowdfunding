@@ -19,8 +19,9 @@ Supabase en `src/lib/auth-supabase.ts`. Rate limit por IP: login 10/10 min, regi
 | GET/POST | `/login` | Email + contraseña → cookies de sesión → `next` (solo rutas internas) o `/admin`. `/admin/login` redirige aquí | `src/pages/login.astro` |
 | GET/POST | `/registro` | Nombre del espacio, email, contraseña y aceptación de privacidad → `signUp`; con confirmación por email muestra "revisa tu correo" | `src/pages/registro.astro` |
 | GET/POST | `/recuperar` | Email → `resetPasswordForEmail`; respuesta neutra siempre | `src/pages/recuperar.astro` |
-| GET | `/auth/confirm?token_hash=…&type=signup\|recovery\|email` | Verifica el enlace del email (`verifyOtp`), guarda la sesión y redirige | `src/pages/auth/confirm.astro` |
-| GET/POST | `/cuenta` | `update_space` (nombre + foto `avatar`), `remove_avatar`, `delete_account` (con `confirm_email` = email de la cuenta: borra proyectos, archivos, espacio y cuenta; `deleteTenantCompletely`) | `src/pages/cuenta/index.astro` |
+| GET | `/auth/google` (`?next=`) → Google → `/auth/callback?code=…` | Login con Google (PKCE en servidor: verificador en cookie HttpOnly `gc-oauth-verifier`). Error → `/login?error=google` | `src/pages/auth/google.astro`, `src/pages/auth/callback.astro` |
+| GET | `/auth/confirm?token_hash=…&type=signup\|invite\|recovery\|email` | Verifica el enlace del email (`verifyOtp`), guarda la sesión y redirige | `src/pages/auth/confirm.astro` |
+| GET/POST | `/cuenta` | `update_space` (nombre + foto `avatar`), `remove_avatar`, `change_email` (`new_email` + `password` actual), `delete_account` (con `confirm_email` = email de la cuenta: borra proyectos, archivos, espacio y cuenta; `deleteTenantCompletely`) | `src/pages/cuenta/index.astro` |
 | GET/POST | `/cuenta/contrasena` | Contraseña nueva ×2 (`auth.admin.updateUserById`) | `src/pages/cuenta/contrasena.astro` |
 | POST | `/logout` | Revoca la sesión en Supabase y borra cookies → `/` | `src/pages/logout.astro` |
 | GET | `/privacidad` | Aviso de privacidad | `src/pages/privacidad.astro` |
@@ -35,7 +36,7 @@ los proyectos de **su** espacio (`locals.tenant`); abrir un proyecto ajeno devue
 | Método | Ruta | Acciones (`_action`) | Archivo |
 |--------|------|----------------------|---------|
 | GET | `/admin` | Proyectos del espacio con contadores de contribuciones y mensajes pendientes; `?bienvenida=1` muestra la tarjeta de bienvenida | `src/pages/admin/index.astro` |
-| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice; `_action=delete` + `tenant_number` borra un espacio ajeno por completo | `src/pages/admin/espacios/index.astro` |
+| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice; `_action=delete` + `tenant_number` borra un espacio ajeno por completo; `_action=invite` (`email`, `space_name`, `mode=password\|email`) crea el espacio de otra persona | `src/pages/admin/espacios/index.astro` |
 | POST | `/admin/espacios/salir` | Superadmin: deja de gestionar otro espacio (borra la cookie) | `src/pages/admin/espacios/salir.astro` |
 | GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
 | GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |
@@ -98,6 +99,8 @@ Crea un mensaje de apoyo **pendiente de aprobación**. Si `authorEmail` coincide
 **Archivo:** `src/pages/api/support-messages.ts` → `src/lib/support-messages-server.ts`
 
 ### `POST /admin/api/draft-project` (backoffice)
+
+Dos cuerpos: `{ "brief": "…" }` genera un borrador nuevo; `{ "instructions": "…", "current": { "fields": {…}, "levels": [...] } }` ("Ajustar") devuelve el borrador completo cambiando solo lo que pidan las instrucciones sobre el formulario actual. Disponible en el alta y en la edición.
 
 Genera con IA un **borrador** del formulario de alta de proyecto. Vive bajo `/admin/` para que el middleware exija sesión de administrador (sin sesión redirige a `/admin/login`). No escribe en la base de datos: el navegador vuelca la respuesta en el formulario y la persona lo revisa y lo envía. Límite: 20 peticiones por usuario cada 10 minutos.
 
