@@ -100,13 +100,21 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
   .share {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
     margin: -8px 0 18px;
   }
 
-  .share-btn,
   .share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 16px;
     border: none;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1;
     color: #fff;
     background: linear-gradient(
       135deg,
@@ -114,6 +122,10 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
       var(--color-brand-primary)
     );
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .share-btn:hover {
@@ -122,8 +134,10 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
   }
 
   .share-icon {
+    display: block;
     width: 18px;
     height: 18px;
+    flex-shrink: 0;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
@@ -131,12 +145,7 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
     stroke-linejoin: round;
   }
 
-  @media (max-width: 600px) {
-    .share {
-      justify-content: center;
-    }
-  }
-
+  /* Solo icono (tarjetas de la lista): botón redondo con el icono centrado. */
   .share--icon {
     margin: 0;
   }
@@ -145,7 +154,12 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
     width: 40px;
     height: 40px;
     padding: 0;
-    justify-content: center;
     border-radius: 50%;
+  }
+
+  @media (max-width: 600px) {
+    .share:not(.share--icon) {
+      justify-content: center;
+    }
   }
 </style>
