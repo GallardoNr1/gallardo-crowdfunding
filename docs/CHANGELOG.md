@@ -2,7 +2,7 @@
 
 ## [2026-09-23] — Botón Compartir en la página del proyecto
 
-- **Qué cambió:** `ShareButton.astro` bajo las migas: "Compartir" (icono de nodos) abre el menú nativo con la Web Share API (móvil y navegadores compatibles) o copia el enlace y avisa con el toast; al lado, "WhatsApp" abre `wa.me` con el título, el subtítulo y el enlace ya escritos. El enlace es absoluto (`siteOrigin`).
+- **Qué cambió:** `ShareButton.astro`: "Compartir" (icono de nodos) abre el menú nativo con la Web Share API (móvil y navegadores compatibles) o copia el enlace y avisa con el toast. En la página del proyecto va bajo las migas con texto; en las tarjetas de la lista (landing y portada del espacio) solo el icono, abajo a la derecha. Sin botón de WhatsApp (el menú nativo ya lo incluye).
 - **Por qué:** Compartir el proyecto era el paso más habitual y había que copiar la URL a mano.
 - **Archivos tocados:** `src/components/ShareButton.astro`, `src/pages/[tenant]/projects/[slug].astro`, `tests/share-button.test.ts`, `docs/*`.
 - **Impacto:** Solo interfaz; sin cambios de datos.

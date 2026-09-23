@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import ShareButton from '../src/components/ShareButton.astro';
 
 describe('ShareButton', () => {
-  it('renders the share button with its data and a WhatsApp link with the prefilled text', async () => {
+  it('renders the share button with its data and label', async () => {
     const container = await AstroContainer.create();
     const html = await container.renderToString(ShareButton, {
       props: {
@@ -16,11 +16,23 @@ describe('ShareButton', () => {
       'data-share-url="https://gc.example/328614/projects/bici-maximo"'
     );
     expect(html).toContain('data-share-title="🚴 Una bici para Máximo"');
-    expect(html).toContain('aria-label="Compartir este proyecto"');
-    expect(html).toContain('https://wa.me/?text=');
-    expect(html).toContain(
-      encodeURIComponent('https://gc.example/328614/projects/bici-maximo')
-    );
+    expect(html).toContain('aria-label="Compartir 🚴 Una bici para Máximo"');
+    expect(html).toContain('>Compartir</span>');
     expect(html).toContain('<circle');
+  });
+
+  it('renders only the icon when iconOnly is set, with a relative url', async () => {
+    const container = await AstroContainer.create();
+    const html = await container.renderToString(ShareButton, {
+      props: {
+        url: '/328614/projects/bici-maximo',
+        title: 'Bici',
+        iconOnly: true,
+      },
+    });
+    expect(html).toContain('data-share-url="/328614/projects/bici-maximo"');
+    expect(html).toContain('share--icon');
+    expect(html).not.toContain('>Compartir</span>');
+    expect(html).not.toContain('wa.me');
   });
 });

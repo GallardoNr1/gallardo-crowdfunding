@@ -2,6 +2,7 @@
 // Lista de tarjetas de proyecto (home y portada de cada espacio).
 // Cada elemento trae su URL ya resuelta (/<número>/projects/<slug>) y, opcionalmente, "por <espacio>".
 import CompletedBage from '@/components/UI/CompletedBage.astro';
+import ShareButton from '@/components/ShareButton.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
 import {
@@ -139,6 +140,14 @@ const progressPct = (p: ProjectConfig) =>
             </p>
           </div>
         </a>
+        <div class='card-share'>
+          <ShareButton
+            url={href}
+            title={project.project_name}
+            text={project.project_description ?? ''}
+            iconOnly
+          />
+        </div>
       </li>
     ))}
   </ul>
@@ -334,5 +343,12 @@ const progressPct = (p: ProjectConfig) =>
       width: 160px;
       height: 160px;
     }
+  }
+
+  .card-share {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    z-index: 2;
   }
 </style>
