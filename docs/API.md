@@ -4,7 +4,7 @@
 
 | Método | Ruta | Descripción | Archivo |
 |--------|------|-------------|---------|
-| GET | `/` | Lista de proyectos (los cancelados no aparecen) | `src/pages/index.astro` |
+| GET | `/` | Landing (qué es, cómo funciona, qué incluye) y escaparate de proyectos públicos (los cancelados no aparecen) | `src/pages/index.astro` |
 | GET | `/projects/:slug` | Página de detalle; `404` si no existe, redirige a `/` si está cancelado | `src/pages/projects/[slug].astro` |
 | GET | `/design-system` | Showcase del design system, **solo en desarrollo** (404 en producción) | `src/pages/design-system.astro` |
 | GET | `*` | Página 404 | `src/pages/404.astro` |
@@ -35,6 +35,7 @@ los proyectos de **su** espacio (`locals.tenant`); abrir un proyecto ajeno devue
 | Método | Ruta | Acciones (`_action`) | Archivo |
 |--------|------|----------------------|---------|
 | GET | `/admin` | Proyectos del espacio con contadores de contribuciones y mensajes pendientes; `?bienvenida=1` muestra la tarjeta de bienvenida | `src/pages/admin/index.astro` |
+| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice | `src/pages/admin/espacios/index.astro` |
 | POST | `/admin/espacios/salir` | Superadmin: deja de gestionar otro espacio (borra la cookie) | `src/pages/admin/espacios/salir.astro` |
 | GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
 | GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Espacios (fase 3): landing y superadmin
+
+- **Qué cambió:** La home es una landing: hero con "Crea tu crowdfunding" (registro, o alta directa con sesión), "Cómo funciona" en tres pasos, "Qué incluye" (niveles, objetivo o tiempo, temas, mensajes, aportación base, IA), escaparate de proyectos públicos (abiertos primero, máx. 12) y llamada final. `/admin/espacios` (solo superadmin) lista todos los espacios con dueño, nº de proyectos y fecha, y "Gestionar" abre el backoffice de ese espacio.
+- **Por qué:** Tercera y última fase del spec de espacios: la web se presenta a quien llega sin enlace y el administrador conserva la visión global.
+- **Archivos tocados:** `src/pages/index.astro`, `src/pages/admin/espacios/index.astro`, `docs/*`.
+- **Impacto:** Sin cambios de datos. Para desplegar el conjunto (fases 1-3) hay que aplicar las migraciones pendientes (1-6, 8, 9) y configurar Supabase Auth (ver INFRA).
+
+---
+
 ## [2026-09-23] — Espacios (fase 2): cuentas, sesión global y backoffice por espacio
 
 - **Qué cambió:** Registro público (`/registro`: nombre del espacio, email, contraseña, privacidad) con confirmación por email, `/login` (sustituye a `/admin/login`), `/recuperar`, `/auth/confirm` (verifica el `token_hash` de los emails en servidor), `/cuenta` (nombre del espacio y foto de avatar en el bucket `avatars`), `/cuenta/contrasena`, `/logout` y `/privacidad`. El middleware resuelve la sesión en toda la web (`jose` con `SUPABASE_JWT_SECRET` opcional, `getUser` como respaldo, refresco automático) y deja `locals.user`, `locals.tenant`, `locals.isSuperAdmin`; la decisión de acceso por ruta es pura (`auth-gate.ts`). Cabecera pública con menú de avatar (Mi espacio, Administrar, Mi cuenta, Salir) o botones Entrar / Crear cuenta. Backoffice filtrado por espacio: listado, alta, edición, contribuciones y mensajes solo del espacio del usuario (404 en proyectos ajenos); tarjeta de bienvenida tras registrarse; barra lateral con el espacio y accesos; el superadmin puede gestionar otro espacio (cookie `gc-admin-tenant`, `/admin/espacios/salir`). La portada del espacio muestra al dueño también sus proyectos privados (etiqueta 🔒).

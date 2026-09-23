@@ -69,7 +69,7 @@ gallardo-crowdfunding/
 │   │   └── html.ts                   # escapeHtml
 │   ├── middleware.ts          # Cabeceras de seguridad; auth + rol + refresco en /admin/*
 │   ├── pages/
-│   │   ├── index.astro        # Escaparate de proyectos públicos de todos los espacios
+│   │   ├── index.astro        # Landing (hero, cómo funciona, qué incluye) + escaparate de proyectos públicos
 │   │   ├── 404.astro
 │   │   ├── design-system.astro# Showcase de tokens (solo dev)
 │   │   ├── [tenant]/index.astro           # Portada del espacio (/<número>)
@@ -84,6 +84,7 @@ gallardo-crowdfunding/
 │   │   └── admin/
 │   │       ├── index.astro           # Proyectos del espacio (+ bienvenida)
 │   │       ├── login.astro           # Redirige a /login
+│   │       ├── espacios/index.astro  # Superadmin: todos los espacios, "Gestionar"
 │   │       ├── espacios/salir.astro  # Superadmin: volver a su espacio
 │   │       ├── api/draft-project.ts  # POST: borrador de proyecto con IA (requiere sesión)
 │   │       └── projects/

@@ -1,4 +1,5 @@
 ---
+// Landing: qué es la web, cómo funciona, qué incluye y escaparate de proyectos públicos.
 export const prerender = false;
 
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -7,80 +8,462 @@ import ProjectsList, {
   type ProjectListItem,
 } from '@/components/ProjectsList.astro';
 import { getPublicProjects } from '../lib/supabase';
+import { isCampaignOpen } from '@/lib/campaign';
 import { projectUrl } from '@/lib/tenants';
 
-// Escaparate: proyectos públicos de todos los espacios. (La landing completa llega en la fase 3.)
+const MAX_SHOWCASE = 12;
+const user = Astro.locals.user;
+const createHref = user ? '/admin/projects/new' : '/registro';
+
 let items: ProjectListItem[] = [];
 let errorLoadingProjects = false;
 
 try {
   const projects = await getPublicProjects();
-  items = projects.flatMap((project) =>
-    project.tenants
-      ? [
-          {
-            project,
-            href: projectUrl(project.tenants.number, project.slug),
-            by: project.tenants.name,
-          },
-        ]
-      : []
+  // Abiertas primero; el resto por fecha de creación (ya viene ordenado así).
+  const sorted = [...projects].sort(
+    (a, b) => Number(isCampaignOpen(b)) - Number(isCampaignOpen(a))
   );
+  items = sorted
+    .flatMap((project) =>
+      project.tenants
+        ? [
+            {
+              project,
+              href: projectUrl(project.tenants.number, project.slug),
+              by: project.tenants.name,
+            },
+          ]
+        : []
+    )
+    .slice(0, MAX_SHOWCASE);
 } catch (error) {
   console.error('Error loading projects:', error);
   errorLoadingProjects = true;
 }
+
+const steps = [
+  {
+    icon: '📝',
+    title: 'Crea el proyecto',
+    text: 'Cuéntale a la IA de qué va o rellena el formulario: nombre, niveles de aportación, mensaje de la familia y tema visual.',
+  },
+  {
+    icon: '🔗',
+    title: 'Comparte el enlace',
+    text: 'Envíalo por WhatsApp a familia y amigos. Si el proyecto es privado, solo lo ve quien tenga el enlace.',
+  },
+  {
+    icon: '💛',
+    title: 'La familia aporta',
+    text: 'Cada persona elige su nivel, aporta por Bizum y deja un mensaje. Tú confirmas los pagos desde tu panel.',
+  },
+];
+
+const features = [
+  {
+    icon: '🏆',
+    title: 'Niveles de aportación',
+    text: 'Con nombre, emoji y color; y "otra cantidad" si quieres.',
+  },
+  {
+    icon: '🎯',
+    title: 'Por objetivo o por tiempo',
+    text: 'Un precio concreto o recaudar lo máximo hasta una fecha.',
+  },
+  {
+    icon: '🎨',
+    title: 'Seis temas',
+    text: 'Fiesta, aventura, Navidad, fantasía, viaje o tecnología.',
+  },
+  {
+    icon: '💬',
+    title: 'Mensajes de apoyo',
+    text: 'Un muro de ánimos moderado por ti antes de publicarse.',
+  },
+  {
+    icon: '👨‍👩‍👧',
+    title: 'Aportación base',
+    text: 'Lo que pone la familia de partida, separado del resto.',
+  },
+  {
+    icon: '✨',
+    title: 'Asistente con IA',
+    text: 'Describe el regalo y te rellena el proyecto entero para revisarlo.',
+  },
+];
 ---
 
-<BaseLayout title='Gallardo Crowdfunding'>
-  <div class='container'>
-    {errorLoadingProjects ? (
-      <div class='global-error-banner'>
-        <div class='error-content'>
-          <span class='error-icon'>⚠️</span>
-          <div class='error-text'>
-            <strong>Problema cargando proyectos:</strong>
-            Mostrando página sin datos en este momento.
-          </div>
-        </div>
+<BaseLayout
+  title='Gallardo Crowdfunding'
+  subtitle='Regalos en familia, entre todos'
+  description='Crea un crowdfunding para un regalo o proyecto familiar, comparte el enlace y recauda entre familia y amigos por Bizum.'
+>
+  <div class='landing'>
+    <section class='hero'>
+      <p class='hero-kicker'>Crowdfunding familiar</p>
+      <h2 class='hero-title'>Un regalo grande, muchas manos pequeñas</h2>
+      <p class='hero-text'>
+        Una bici, una tablet, un viaje… Crea la página del proyecto en cinco
+        minutos, comparte el enlace con la familia y cada uno aporta lo que
+        quiera por Bizum. Sin comisiones, sin pasarelas: solo organización y
+        cariño.
+      </p>
+      <div class='hero-actions'>
+        <a
+          href={createHref}
+          class='btn btn--primary'
+        >
+          🎁 Crea tu crowdfunding
+        </a>
+        <a
+          href='#proyectos'
+          class='btn btn--ghost'
+        >
+          Ver proyectos
+        </a>
       </div>
-    ) : (
-      <ProjectsList
-        items={items}
-        emptyText='No hay proyectos públicos todavía.'
-      />
-    )}
+      {!user && (
+        <p class='hero-note'>
+          ¿Ya tienes cuenta? <a href='/login'>Entrar</a>
+        </p>
+      )}
+    </section>
+
+    <section
+      class='steps'
+      aria-labelledby='como-funciona'
+    >
+      <h2
+        id='como-funciona'
+        class='section-title'
+      >
+        Cómo funciona
+      </h2>
+      <ol class='steps-list'>
+        {steps.map((step, i) => (
+          <li
+            class='step'
+            style={`--i: ${i}`}
+          >
+            <span
+              class='step-icon'
+              aria-hidden='true'
+            >
+              {step.icon}
+            </span>
+            <span class='step-number'>Paso {i + 1}</span>
+            <h3>{step.title}</h3>
+            <p>{step.text}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section
+      class='features'
+      aria-labelledby='que-incluye'
+    >
+      <h2
+        id='que-incluye'
+        class='section-title'
+      >
+        Qué incluye
+      </h2>
+      <ul class='features-grid'>
+        {features.map((f, i) => (
+          <li
+            class='feature'
+            style={`--i: ${i}`}
+          >
+            <span
+              class='feature-icon'
+              aria-hidden='true'
+            >
+              {f.icon}
+            </span>
+            <h3>{f.title}</h3>
+            <p>{f.text}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section
+      class='showcase'
+      id='proyectos'
+      aria-labelledby='proyectos-titulo'
+    >
+      <h2
+        id='proyectos-titulo'
+        class='section-title'
+      >
+        Proyectos en marcha
+      </h2>
+      <p class='section-hint'>
+        Los que sus familias han hecho públicos. Los privados solo se ven con su
+        enlace.
+      </p>
+      {errorLoadingProjects ? (
+        <div class='global-error-banner'>
+          ⚠️ Problema cargando proyectos. Vuelve a intentarlo en un momento.
+        </div>
+      ) : (
+        <ProjectsList
+          items={items}
+          emptyText='Todavía no hay proyectos públicos. ¡El tuyo puede ser el primero!'
+        />
+      )}
+    </section>
+
+    <section class='cta-final'>
+      <h2>¿Preparamos el próximo regalo?</h2>
+      <p>
+        Crea tu espacio gratis, monta el proyecto y comparte el enlace hoy
+        mismo.
+      </p>
+      <a
+        href={createHref}
+        class='btn btn--primary'
+      >
+        🎁 Crea tu crowdfunding
+      </a>
+    </section>
   </div>
   <Footer slot='footer' />
 
   <style>
-    .container {
-      max-width: 960px;
+    .landing {
+      max-width: 1040px;
       margin: 0 auto;
-      padding: 2rem 1rem 4rem;
+      padding: 1rem 1rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
     }
 
+    .section-title {
+      text-align: center;
+      font-family: var(--font-display, inherit);
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      margin: 0 0 22px;
+      color: var(--color-text-primary, #222);
+    }
+
+    .section-hint {
+      text-align: center;
+      margin: -12px 0 22px;
+      color: var(--color-text-secondary, #555);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 44px 24px 40px;
+      background: var(--color-surface, #fff);
+      border-radius: var(--radius-2xl, 24px);
+      box-shadow: var(--shadow-lg, 0 14px 30px rgba(0, 0, 0, 0.12));
+      border-top: 6px solid var(--color-brand-orange);
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .hero-kicker {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--color-brand-orange);
+    }
+
+    .hero-title {
+      margin: 0 0 16px;
+      font-family: var(--font-display, inherit);
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      line-height: 1.1;
+      color: var(--color-brand-primary);
+    }
+
+    .hero-text {
+      max-width: 640px;
+      margin: 0 auto 26px;
+      font-size: 1.08rem;
+      line-height: 1.6;
+      color: var(--color-text-secondary, #444);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .hero-note {
+      margin: 18px 0 0;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary, #555);
+    }
+
+    .hero-note a {
+      color: var(--color-brand-primary);
+      font-weight: 600;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 26px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1.02rem;
+      text-decoration: none;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .btn--primary {
+      background: linear-gradient(
+        135deg,
+        var(--color-brand-orange),
+        var(--color-brand-primary)
+      );
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(255, 107, 53, 0.35);
+    }
+
+    .btn--primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(255, 107, 53, 0.45);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--color-brand-primary);
+      border: 2px solid var(--color-brand-primary);
+    }
+
+    .btn--ghost:hover {
+      background: var(--color-brand-primary);
+      color: #fff;
+    }
+
+    /* ── Pasos ── */
+    .steps-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      counter-reset: step;
+    }
+
+    .step,
+    .feature {
+      background: var(--color-surface, #fff);
+      border-radius: var(--radius-xl, 16px);
+      box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.06));
+      padding: 24px 22px;
+      animation: fadeInUp 0.5s ease both;
+      animation-delay: calc(var(--i, 0) * 90ms);
+    }
+
+    .step-icon,
+    .feature-icon {
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .step-number {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-brand-orange);
+      margin-bottom: 6px;
+    }
+
+    .step h3,
+    .feature h3 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .step p,
+    .feature p {
+      margin: 0;
+      color: var(--color-text-secondary, #555);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    /* ── Qué incluye ── */
+    .features-grid {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .feature {
+      border-top: 4px solid var(--color-brand-yellow);
+    }
+
+    /* ── Escaparate ── */
     .global-error-banner {
       background: #fff3cd;
       border: 1px solid #ffeeba;
       border-radius: 10px;
-      padding: 10px 15px;
-      margin-bottom: 20px;
-    }
-
-    .error-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .error-icon {
-      font-size: 1.5rem;
-    }
-
-    .error-text {
+      padding: 12px 16px;
+      text-align: center;
       color: #856404;
-      font-size: 0.9rem;
+    }
+
+    /* ── CTA final ── */
+    .cta-final {
+      text-align: center;
+      padding: 40px 24px;
+      border-radius: var(--radius-2xl, 24px);
+      background: linear-gradient(
+        135deg,
+        var(--color-section-progress-from),
+        var(--color-section-progress-to)
+      );
+    }
+
+    .cta-final h2 {
+      margin: 0 0 10px;
+      font-family: var(--font-display, inherit);
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: var(--color-text-primary, #222);
+    }
+
+    .cta-final p {
+      margin: 0 0 22px;
+      color: var(--color-text-secondary, #444);
+    }
+
+    @media (max-width: 600px) {
+      .landing {
+        gap: 40px;
+      }
+
+      .hero {
+        padding: 32px 18px 30px;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </BaseLayout>
