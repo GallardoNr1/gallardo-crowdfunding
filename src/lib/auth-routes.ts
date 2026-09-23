@@ -4,6 +4,7 @@
 import type { AuthUser } from './session-server';
 import {
   LoginInput,
+  EmailChangeInput,
   PasswordInput,
   RecoverInput,
   RegisterInput,
@@ -49,6 +50,7 @@ export interface AuthApi {
     userId: string,
     password: string
   ): Promise<{ error: string | null }>;
+  updateEmail(userId: string, email: string): Promise<{ error: string | null }>;
 }
 
 export interface RateLimiterLike {
@@ -193,4 +195,48 @@ export async function handlePasswordChange(
     };
   }
   return { ok: true };
+}
+
+/** Cambio de email con la contraseña actual como confirmación (Admin API: sin correo de verificación). */
+export async function handleEmailChange(
+  form: FormData,
+  user: { id: string; email: string | null },
+  { auth }: Pick<AuthDeps, 'auth'>
+): Promise<{ ok: true; email: string } | AuthFailure> {
+  const parsed = EmailChangeInput.safeParse(formObject(form));
+  if (!parsed.success)
+    return invalid(parsed.error, 'Revisa el email y la contraseña.');
+  const newEmail = parsed.data.new_email;
+
+  if (!user.email)
+    return { ok: false, status: 400, error: 'Tu cuenta no tiene email.' };
+  if (newEmail === user.email.toLowerCase()) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Ese ya es tu email.',
+      fields: { new_email: 'Escribe un email distinto al actual' },
+    };
+  }
+
+  const { session, error } = await auth.signInWithPassword(
+    user.email,
+    parsed.data.password
+  );
+  if (error || !session)
+    return {
+      ok: false,
+      status: 401,
+      error: 'La contraseña actual no es correcta.',
+    };
+
+  const { error: updateError } = await auth.updateEmail(user.id, newEmail);
+  if (updateError) {
+    return {
+      ok: false,
+      status: 400,
+      error: `No se pudo cambiar el email: ${updateError}`,
+    };
+  }
+  return { ok: true, email: newEmail };
 }

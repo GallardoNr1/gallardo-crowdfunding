@@ -9,6 +9,8 @@ import {
   uploadTenantAvatar,
 } from '@/lib/tenant-avatar-server';
 import { deleteTenantCompletely } from '@/lib/tenant-delete-server';
+import { handleEmailChange } from '@/lib/auth-routes';
+import { supabaseAuthApi } from '@/lib/auth-supabase';
 import { clearSessionCookies } from '@/lib/session-cookies';
 import { getTenantForUser } from '@/lib/tenants-server';
 import { tenantInitials, tenantUrl } from '@/lib/tenants';
@@ -20,6 +22,7 @@ let tenant = await getTenantForUser(admin, user.id);
 
 let error = '';
 let success = '';
+let currentEmail = user.email ?? '';
 
 if (Astro.request.method === 'POST' && tenant) {
   const form = await Astro.request.formData();
@@ -48,6 +51,18 @@ if (Astro.request.method === 'POST' && tenant) {
     const removed = await removeTenantAvatar(admin, tenant);
     if (!removed.ok) error = removed.error;
     else success = '✅ Foto quitada.';
+  }
+
+  if (action === 'change_email') {
+    const result = await handleEmailChange(form, user, {
+      auth: supabaseAuthApi,
+    });
+    if (result.ok) {
+      currentEmail = result.email;
+      success = `✅ Email cambiado a ${result.email}. Úsalo a partir de ahora para entrar.`;
+    } else {
+      error = result.error;
+    }
   }
 
   // Borrado definitivo: hay que escribir el email exacto de la cuenta para confirmar.
@@ -158,12 +173,10 @@ if (Astro.request.method === 'POST' && tenant) {
           <input
             type='email'
             id='email'
-            value={user.email ?? ''}
+            value={currentEmail}
             disabled
           />
-          <small>
-            Para cambiar el email escribe al administrador de la web.
-          </small>
+          <small>Para cambiarlo usa el formulario de más abajo.</small>
         </div>
 
         <button
@@ -199,6 +212,50 @@ if (Astro.request.method === 'POST' && tenant) {
         <a href='/admin'>Administrar mis proyectos</a> ·{' '}
         <a href={tenantUrl(tenant.number)}>Ver mi espacio</a>
       </p>
+
+      <details class='email-change'>
+        <summary>Cambiar el email</summary>
+        <form
+          method='POST'
+          class='auth-form'
+        >
+          <input
+            type='hidden'
+            name='_action'
+            value='change_email'
+          />
+          <div class='field'>
+            <label for='new_email'>Email nuevo</label>
+            <input
+              type='email'
+              id='new_email'
+              name='new_email'
+              required
+              autocomplete='email'
+            />
+          </div>
+          <div class='field'>
+            <label for='current_password'>Tu contraseña actual</label>
+            <input
+              type='password'
+              id='current_password'
+              name='password'
+              required
+              autocomplete='current-password'
+            />
+            <small>
+              Por seguridad: sin la contraseña no se cambia. No enviamos correo
+              de verificación.
+            </small>
+          </div>
+          <button
+            type='submit'
+            class='submit-btn'
+          >
+            Cambiar el email
+          </button>
+        </form>
+      </details>
 
       <details class='danger-zone'>
         <summary>Borrar mi cuenta</summary>
@@ -340,5 +397,23 @@ if (Astro.request.method === 'POST' && tenant) {
 
   .danger-btn:hover {
     background: #b91c1c;
+  }
+
+  .email-change {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+  }
+
+  .email-change summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-admin-primary);
+  }
+
+  .email-change form {
+    margin-top: 14px;
   }
 </style>

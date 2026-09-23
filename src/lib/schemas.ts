@@ -242,3 +242,9 @@ export const PasswordInput = z
     }
   });
 export type PasswordInput = z.infer<typeof PasswordInput>;
+
+export const EmailChangeInput = z.object({
+  new_email: Email,
+  password: z.string().min(1, 'Escribe tu contraseña actual'),
+});
+export type EmailChangeInput = z.infer<typeof EmailChangeInput>;

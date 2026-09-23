@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   handleConfirm,
+  handleEmailChange,
   handleLogin,
   handlePasswordChange,
   handleRecover,
@@ -27,6 +28,7 @@ function fakeAuth(overrides: Partial<AuthApi> = {}): AuthApi {
     resetPasswordForEmail: vi.fn(async () => ({ error: null })),
     verifyOtp: vi.fn(async () => ({ session, error: null })),
     updatePassword: vi.fn(async () => ({ error: null })),
+    updateEmail: vi.fn(async () => ({ error: null })),
     ...overrides,
   };
 }
@@ -313,5 +315,64 @@ describe('handlePasswordChange', () => {
       { auth: fakeAuth() }
     );
     expect(short.ok).toBe(false);
+  });
+});
+
+describe('handleEmailChange', () => {
+  const user = { id: 'u1', email: 'ana@example.com' };
+
+  it('checks the current password and updates the email', async () => {
+    const auth = fakeAuth();
+    const r = await handleEmailChange(
+      form({ new_email: ' Ana.Nueva@Example.com ', password: 'secret123' }),
+      user,
+      { auth }
+    );
+    expect(r).toEqual({ ok: true, email: 'ana.nueva@example.com' });
+    expect(auth.signInWithPassword).toHaveBeenCalledWith(
+      'ana@example.com',
+      'secret123'
+    );
+    expect(auth.updateEmail).toHaveBeenCalledWith(
+      'u1',
+      'ana.nueva@example.com'
+    );
+  });
+
+  it('rejects a wrong password without changing anything', async () => {
+    const auth = fakeAuth({
+      signInWithPassword: vi.fn(async () => ({
+        session: null,
+        error: 'Invalid login credentials',
+      })),
+    });
+    const r = await handleEmailChange(
+      form({ new_email: 'x@y.com', password: 'wrong' }),
+      user,
+      { auth }
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.status).toBe(401);
+    expect(auth.updateEmail).not.toHaveBeenCalled();
+  });
+
+  it('rejects the same email or a malformed one', async () => {
+    const same = await handleEmailChange(
+      form({ new_email: 'ana@example.com', password: 'secret123' }),
+      user,
+      {
+        auth: fakeAuth(),
+      }
+    );
+    expect(same.ok).toBe(false);
+    if (!same.ok) expect(same.fields).toHaveProperty('new_email');
+    const bad = await handleEmailChange(
+      form({ new_email: 'nope', password: 'secret123' }),
+      user,
+      {
+        auth: fakeAuth(),
+      }
+    );
+    expect(bad.ok).toBe(false);
   });
 });

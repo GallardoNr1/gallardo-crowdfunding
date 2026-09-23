@@ -68,6 +68,17 @@ export const supabaseAuthApi: AuthApi = {
     );
     return { error: error?.message ?? null };
   },
+
+  async updateEmail(userId, email) {
+    const { error } = await createAdminClient().auth.admin.updateUserById(
+      userId,
+      {
+        email,
+        email_confirm: true,
+      }
+    );
+    return { error: error?.message ?? null };
+  },
 };
 
 // Un proceso PM2: limitadores en memoria (ver rate-limit.ts).
