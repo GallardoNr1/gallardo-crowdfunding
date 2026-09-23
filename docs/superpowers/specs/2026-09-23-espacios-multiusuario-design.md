@@ -194,5 +194,5 @@ Para aplicar migraciones desde aquí hace falta o bien el **token de acceso pers
 
 ## Fuera de alcance (esta versión)
 
-Invitaciones y roles por espacio, login con Google, cambio de email, borrado de cuenta desde la web, subdominios,
+Invitaciones y roles por espacio, login con Google, cambio de email, subdominios,
 pagos automáticos.

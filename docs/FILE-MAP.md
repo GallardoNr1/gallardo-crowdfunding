@@ -44,6 +44,7 @@ gallardo-crowdfunding/
 │   │   ├── tenants.ts                # Espacios: número de 6 dígitos, URLs (/<n>/projects/<slug>), iniciales, siteOrigin
 │   │   ├── tenants-server.ts         # getTenantForUser, getTenantByNumberAdmin, requireProjectInTenant (service role)
 │   │   ├── tenant-avatar-server.ts   # Foto del espacio en el bucket `avatars`
+│   │   ├── tenant-delete-server.ts   # Borrado completo de un espacio (hijos → proyectos → archivos → espacio → cuenta)
 │   │   ├── auth-gate.ts              # authGate (allow/login/forbidden por ruta), safeNext
 │   │   ├── session-server.ts         # verifyAccessToken (jose) + resolveSession (refresco y cookies)
 │   │   ├── auth-routes.ts            # Handlers puros: login, registro, recuperar, confirmar, contraseña

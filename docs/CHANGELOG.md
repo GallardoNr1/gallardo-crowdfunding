@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Borrar cuenta y borrar espacio
+
+- **Qué cambió:** `src/lib/tenant-delete-server.ts` (`deleteTenantCompletely`): borra en orden mensajes de apoyo, contribuciones, niveles, familiares y proyectos del espacio, los archivos de Storage (`projects/<id>/…` y el avatar), el espacio y por último la cuenta de Supabase Auth. En `/cuenta`, "Borrar mi cuenta" pide escribir el email y confirmar; en `/admin/espacios` el superadmin tiene "Borrar" en cada espacio ajeno. La landing muestra un aviso con `?cuenta=borrada`.
+- **Por qué:** `project_config.tenant_id` es `on delete restrict`, así que borrar el usuario desde Supabase fallaba si tenía proyectos; hacía falta un proceso completo y confirmado.
+- **Archivos tocados:** `src/lib/tenant-delete-server.ts`, `src/pages/cuenta/index.astro`, `src/pages/admin/espacios/index.astro`, `src/pages/index.astro`, `tests/tenant-delete-server.test.ts`, `docs/*`.
+- **Impacto:** Irreversible por diseño; ambas pantallas piden confirmación. La cuenta se borra con `auth.admin.deleteUser`.
+
+---
+
 ## [2026-09-23] — Seed del espacio de pruebas
 
 - **Qué cambió:** `supabase/seeds/2026-09-23_espacio_pruebas.sql`: cuenta confirmada `pruebas@gallardcode.com` (clave `pruebas-2026`) creada en `auth.users` + `auth.identities`, espacio "Familia Pruebas" (nº 926215 en producción) y tres proyectos: `tablet-lucia` (objetivo, público, con una aportación confirmada y otra pendiente y dos mensajes), `viaje-fin-de-curso` (por tiempo, privado, base de los abuelos) y `lego-castillo` (completado, público). Aplicado en producción.

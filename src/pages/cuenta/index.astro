@@ -8,6 +8,8 @@ import {
   removeTenantAvatar,
   uploadTenantAvatar,
 } from '@/lib/tenant-avatar-server';
+import { deleteTenantCompletely } from '@/lib/tenant-delete-server';
+import { clearSessionCookies } from '@/lib/session-cookies';
 import { getTenantForUser } from '@/lib/tenants-server';
 import { tenantInitials, tenantUrl } from '@/lib/tenants';
 
@@ -46,6 +48,29 @@ if (Astro.request.method === 'POST' && tenant) {
     const removed = await removeTenantAvatar(admin, tenant);
     if (!removed.ok) error = removed.error;
     else success = '✅ Foto quitada.';
+  }
+
+  // Borrado definitivo: hay que escribir el email exacto de la cuenta para confirmar.
+  if (action === 'delete_account') {
+    const typed = String(form.get('confirm_email') ?? '')
+      .trim()
+      .toLowerCase();
+    if (!user.email || typed !== user.email.toLowerCase()) {
+      error =
+        'Para borrar la cuenta escribe tu email exactamente como aparece arriba.';
+    } else {
+      const result = await deleteTenantCompletely(admin, {
+        id: tenant.id,
+        owner_user_id: user.id,
+        avatar_url: tenant.avatar_url,
+      });
+      if (!result.ok) {
+        error = result.error;
+      } else {
+        clearSessionCookies(Astro.cookies);
+        return Astro.redirect('/?cuenta=borrada');
+      }
+    }
   }
 
   tenant = await getTenantForUser(admin, user.id);
@@ -174,9 +199,60 @@ if (Astro.request.method === 'POST' && tenant) {
         <a href='/admin'>Administrar mis proyectos</a> ·{' '}
         <a href={tenantUrl(tenant.number)}>Ver mi espacio</a>
       </p>
+
+      <details class='danger-zone'>
+        <summary>Borrar mi cuenta</summary>
+        <p>
+          Se borran <strong>para siempre</strong> tu espacio, todos tus
+          proyectos con sus aportaciones, mensajes, fotos y niveles, y tu
+          cuenta. No se puede deshacer.
+        </p>
+        <form
+          method='POST'
+          class='auth-form'
+          id='deleteAccountForm'
+        >
+          <input
+            type='hidden'
+            name='_action'
+            value='delete_account'
+          />
+          <div class='field'>
+            <label for='confirm_email'>Escribe tu email para confirmar</label>
+            <input
+              type='email'
+              id='confirm_email'
+              name='confirm_email'
+              required
+              autocomplete='off'
+              placeholder={user.email ?? ''}
+            />
+          </div>
+          <button
+            type='submit'
+            class='danger-btn'
+          >
+            Borrar mi cuenta y todo su contenido
+          </button>
+        </form>
+      </details>
     </div>
   )}
 </AuthLayout>
+
+<script>
+  document
+    .getElementById('deleteAccountForm')
+    ?.addEventListener('submit', (ev) => {
+      if (
+        !confirm(
+          '¿Seguro? Se borrará tu cuenta, tu espacio y todos tus proyectos. No se puede deshacer.'
+        )
+      ) {
+        ev.preventDefault();
+      }
+    });
+</script>
 
 <style>
   .avatar-row {
@@ -228,5 +304,41 @@ if (Astro.request.method === 'POST' && tenant) {
       flex-direction: column;
       align-items: flex-start;
     }
+  }
+
+  .danger-zone {
+    margin-top: 28px;
+    padding: 14px 16px;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    background: #fff7f7;
+  }
+
+  .danger-zone summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #b91c1c;
+  }
+
+  .danger-zone p {
+    margin: 12px 0 14px;
+    font-size: 0.9rem;
+    color: #7f1d1d;
+    line-height: 1.5;
+  }
+
+  .danger-btn {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .danger-btn:hover {
+    background: #b91c1c;
   }
 </style>

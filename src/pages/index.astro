@@ -14,6 +14,7 @@ import { projectUrl } from '@/lib/tenants';
 const MAX_SHOWCASE = 12;
 const user = Astro.locals.user;
 const createHref = user ? '/admin/projects/new' : '/registro';
+const accountDeleted = Astro.url.searchParams.get('cuenta') === 'borrada';
 
 let items: ProjectListItem[] = [];
 let errorLoadingProjects = false;
@@ -100,6 +101,11 @@ const features = [
   description='Crea un crowdfunding para un regalo o proyecto familiar, comparte el enlace y recauda entre familia y amigos por Bizum.'
 >
   <div class='landing'>
+    {accountDeleted && (
+      <p class='notice'>
+        ✅ Tu cuenta y tu espacio se han borrado. Gracias por usar la web.
+      </p>
+    )}
     <section class='hero'>
       <p class='hero-kicker'>Crowdfunding familiar</p>
       <h2 class='hero-title'>Un regalo grande, muchas manos pequeñas</h2>
@@ -248,6 +254,16 @@ const features = [
       font-size: clamp(1.6rem, 4vw, 2.2rem);
       margin: 0 0 22px;
       color: var(--color-text-primary, #222);
+    }
+
+    .notice {
+      margin: 0;
+      padding: 14px 18px;
+      text-align: center;
+      border-radius: var(--radius-lg, 12px);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
     }
 
     .section-hint {

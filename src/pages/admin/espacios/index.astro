@@ -6,15 +6,43 @@ export const prerender = false;
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { ADMIN_TENANT_COOKIE } from '@/lib/session-cookies';
 import { createAdminClient } from '@/lib/supabase-server';
+import { deleteTenantCompletely } from '@/lib/tenant-delete-server';
 import { isTenantNumber, tenantUrl } from '@/lib/tenants';
 import type { Tenant } from '@/lib/supabase';
 
 const admin = createAdminClient();
+let error = '';
+let success = '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const number = String(form.get('tenant_number') ?? '');
-  if (form.get('_action') === 'enter' && isTenantNumber(number)) {
+  const action = String(form.get('_action') ?? '');
+
+  // Borrado completo de un espacio ajeno (el propio se borra desde /cuenta).
+  if (action === 'delete' && isTenantNumber(number)) {
+    const { data: target } = await admin
+      .from('tenants')
+      .select('id, number, name, avatar_url, owner_user_id')
+      .eq('number', Number(number))
+      .maybeSingle();
+    if (!target) {
+      error = 'Ese espacio ya no existe.';
+    } else if (target.owner_user_id === Astro.locals.user?.id) {
+      error = 'Tu propio espacio se borra desde "Mi cuenta".';
+    } else {
+      const result = await deleteTenantCompletely(admin, target);
+      if (!result.ok) error = result.error;
+      else {
+        success = `✅ Espacio "${target.name}" (nº ${target.number}) borrado con ${result.deleted.projects} proyecto(s) y ${result.deleted.files} archivo(s).`;
+        if (Astro.cookies.get(ADMIN_TENANT_COOKIE)?.value === number) {
+          Astro.cookies.delete(ADMIN_TENANT_COOKIE, { path: '/' });
+        }
+      }
+    }
+  }
+
+  if (action === 'enter' && isTenantNumber(number)) {
     Astro.cookies.set(ADMIN_TENANT_COOKIE, number, {
       path: '/',
       httpOnly: true,
@@ -28,7 +56,7 @@ if (Astro.request.method === 'POST') {
 
 type TenantRow = Tenant & { owner_user_id: string };
 
-const [{ data: tenants, error }, { data: projects }, usersResult] =
+const [{ data: tenants, error: loadError }, { data: projects }, usersResult] =
   await Promise.all([
     admin
       .from('tenants')
@@ -66,8 +94,10 @@ const fmtDate = (iso: string) =>
 ---
 
 <AdminLayout title='Todos los espacios'>
-  {error && (
-    <div class='alert-error'>Error cargando espacios: {error.message}</div>
+  {success && <div class='alert-success'>{success}</div>}
+  {error && <div class='alert-error'>⚠️ {error}</div>}
+  {loadError && (
+    <div class='alert-error'>Error cargando espacios: {loadError.message}</div>
   )}
 
   <p class='hint'>
@@ -110,7 +140,7 @@ const fmtDate = (iso: string) =>
               <small>({t.projects.publicCount} públicos)</small>
             </td>
             <td>{fmtDate(t.created_at)}</td>
-            <td>
+            <td class='actions'>
               <form method='POST'>
                 <input
                   type='hidden'
@@ -129,6 +159,30 @@ const fmtDate = (iso: string) =>
                   🛠️ Gestionar
                 </button>
               </form>
+              {!t.mine && (
+                <form
+                  method='POST'
+                  class='delete-form'
+                  data-name={t.name}
+                >
+                  <input
+                    type='hidden'
+                    name='_action'
+                    value='delete'
+                  />
+                  <input
+                    type='hidden'
+                    name='tenant_number'
+                    value={t.number}
+                  />
+                  <button
+                    type='submit'
+                    class='btn-danger'
+                  >
+                    🗑️ Borrar
+                  </button>
+                </form>
+              )}
             </td>
           </tr>
         ))}
@@ -228,4 +282,51 @@ const fmtDate = (iso: string) =>
   .btn-secondary:hover {
     background: var(--color-admin-bg);
   }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-danger {
+    background: #fff;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .btn-danger:hover {
+    background: #fef2f2;
+  }
+
+  .alert-success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: var(--color-success);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+  }
 </style>
+
+<script>
+  // Confirmación antes de borrar un espacio (es irreversible).
+  document
+    .querySelectorAll<HTMLFormElement>('form.delete-form')
+    .forEach((form) => {
+      form.addEventListener('submit', (ev) => {
+        const name = form.dataset.name ?? 'este espacio';
+        if (
+          !confirm(
+            `¿Borrar "${name}" con todos sus proyectos, aportaciones, archivos y su cuenta? No se puede deshacer.`
+          )
+        ) {
+          ev.preventDefault();
+        }
+      });
+    });
+</script>

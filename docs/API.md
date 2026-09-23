@@ -20,7 +20,7 @@ Supabase en `src/lib/auth-supabase.ts`. Rate limit por IP: login 10/10 min, regi
 | GET/POST | `/registro` | Nombre del espacio, email, contraseña y aceptación de privacidad → `signUp`; con confirmación por email muestra "revisa tu correo" | `src/pages/registro.astro` |
 | GET/POST | `/recuperar` | Email → `resetPasswordForEmail`; respuesta neutra siempre | `src/pages/recuperar.astro` |
 | GET | `/auth/confirm?token_hash=…&type=signup\|recovery\|email` | Verifica el enlace del email (`verifyOtp`), guarda la sesión y redirige | `src/pages/auth/confirm.astro` |
-| GET/POST | `/cuenta` | `update_space` (nombre + foto `avatar`), `remove_avatar` | `src/pages/cuenta/index.astro` |
+| GET/POST | `/cuenta` | `update_space` (nombre + foto `avatar`), `remove_avatar`, `delete_account` (con `confirm_email` = email de la cuenta: borra proyectos, archivos, espacio y cuenta; `deleteTenantCompletely`) | `src/pages/cuenta/index.astro` |
 | GET/POST | `/cuenta/contrasena` | Contraseña nueva ×2 (`auth.admin.updateUserById`) | `src/pages/cuenta/contrasena.astro` |
 | POST | `/logout` | Revoca la sesión en Supabase y borra cookies → `/` | `src/pages/logout.astro` |
 | GET | `/privacidad` | Aviso de privacidad | `src/pages/privacidad.astro` |
@@ -35,7 +35,7 @@ los proyectos de **su** espacio (`locals.tenant`); abrir un proyecto ajeno devue
 | Método | Ruta | Acciones (`_action`) | Archivo |
 |--------|------|----------------------|---------|
 | GET | `/admin` | Proyectos del espacio con contadores de contribuciones y mensajes pendientes; `?bienvenida=1` muestra la tarjeta de bienvenida | `src/pages/admin/index.astro` |
-| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice | `src/pages/admin/espacios/index.astro` |
+| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice; `_action=delete` + `tenant_number` borra un espacio ajeno por completo | `src/pages/admin/espacios/index.astro` |
 | POST | `/admin/espacios/salir` | Superadmin: deja de gestionar otro espacio (borra la cookie) | `src/pages/admin/espacios/salir.astro` |
 | GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
 | GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |
