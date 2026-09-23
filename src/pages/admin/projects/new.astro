@@ -23,20 +23,30 @@ if (Astro.request.method === 'POST') {
     error = levelRows.error;
   } else {
     const supabase = createAdminClient();
-    const { data: clash } = await supabase
-      .from('project_config')
-      .select('id')
-      .eq('slug', parsed.data.slug)
-      .maybeSingle();
+    // El proyecto nace en el espacio del usuario con sesión (locals.tenant, lo pone el middleware);
+    // el slug solo es único dentro de él.
+    const tenant = Astro.locals.tenant;
+    const { data: clash } = tenant
+      ? await supabase
+          .from('project_config')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('slug', parsed.data.slug)
+          .maybeSingle()
+      : { data: null };
 
-    if (clash) {
-      error = `Ya existe un proyecto con el slug "${parsed.data.slug}".`;
+    if (!tenant) {
+      error =
+        'Tu cuenta no tiene espacio asignado. Aplica la migración de espacios o contacta con el administrador.';
+    } else if (clash) {
+      error = `Ya existe un proyecto con el slug "${parsed.data.slug}" en tu espacio.`;
     } else {
       const { data, error: dbError } = await supabase
         .from('project_config')
         .insert([
           {
             ...parsed.data,
+            tenant_id: tenant.id,
             start_date:
               parsed.data.start_date ?? new Date().toISOString().slice(0, 10),
             current_amount: 0,
@@ -240,6 +250,41 @@ const aiConfigured = isDraftConfigured();
         </div>
 
         <div class='field full'>
+          <span class='field-label'>Visibilidad</span>
+          <div class='mode-options'>
+            <label class='mode-option'>
+              <input
+                type='radio'
+                name='visibility'
+                value='private'
+                checked={true}
+              />
+              <span class='mode-option__body'>
+                <strong>🔒 Privado</strong>
+                <small>
+                  Solo lo ve quien tenga el enlace. No aparece en la portada de
+                  la web.
+                </small>
+              </span>
+            </label>
+            <label class='mode-option'>
+              <input
+                type='radio'
+                name='visibility'
+                value='public'
+                checked={false}
+              />
+              <span class='mode-option__body'>
+                <strong>🌍 Público</strong>
+                <small>
+                  Aparece en la portada de la web y en la página de tu espacio.
+                </small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class='field full'>
           <label for='project_description'>Descripción</label>
           <textarea
             name='project_description'
@@ -417,11 +462,21 @@ const aiConfigured = isDraftConfigured();
           />
         </div>
         <div class='field field--check'>
-          <label class='check-label' for='allow_custom_amount'>
-            <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' />
+          <label
+            class='check-label'
+            for='allow_custom_amount'
+          >
+            <input
+              type='checkbox'
+              name='allow_custom_amount'
+              id='allow_custom_amount'
+            />
             <span>Permitir "otra cantidad"</span>
           </label>
-          <small>Además de los niveles, se puede aportar cualquier importe (a partir del mínimo de al lado).</small>
+          <small>
+            Además de los niveles, se puede aportar cualquier importe (a partir
+            del mínimo de al lado).
+          </small>
         </div>
         <div class='field'>
           <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
@@ -868,6 +923,12 @@ const aiConfigured = isDraftConfigured();
     list-style: disc inside;
     margin: 0 0 16px;
   }
+
+  .field-label {
+    font-size: 0.845rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+  }
   .mode-options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1085,10 +1146,9 @@ const aiConfigured = isDraftConfigured();
   }
   .level-row {
     display: grid;
-    grid-template-columns: 64px minmax(120px, 1.2fr) 110px minmax(
-        140px,
-        2fr
-      ) 48px 36px;
+    grid-template-columns:
+      64px minmax(120px, 1.2fr) 110px minmax(140px, 2fr)
+      48px 36px;
     gap: 8px;
     align-items: center;
   }

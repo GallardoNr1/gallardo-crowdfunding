@@ -1,22 +1,40 @@
 ---
 import '../styles/tokens.css';
+import { tenantInitials, tenantUrl } from '@/lib/tenants';
 
 interface Props {
   title: string;
 }
 const { title } = Astro.props;
 const pathname = Astro.url.pathname;
+const tenant = Astro.locals.tenant ?? null;
+const user = Astro.locals.user ?? null;
+const override = Astro.locals.adminTenantOverride ?? false;
+const isSuperAdmin = Astro.locals.isSuperAdmin ?? false;
 ---
 
 <!doctype html>
 <html lang='es'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta
+      name='viewport'
+      content='width=device-width, initial-scale=1.0'
+    />
     <title>{title} — Backoffice</title>
-    <meta name='robots' content='noindex, nofollow' />
-    <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
-    <link rel='shortcut icon' href='/favicon.svg' />
+    <meta
+      name='robots'
+      content='noindex, nofollow'
+    />
+    <link
+      rel='icon'
+      href='/favicon.svg'
+      type='image/svg+xml'
+    />
+    <link
+      rel='shortcut icon'
+      href='/favicon.svg'
+    />
     <link
       href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
       rel='stylesheet'
@@ -24,24 +42,110 @@ const pathname = Astro.url.pathname;
   </head>
   <body>
     <div class='admin-shell'>
-      <div class='sidebar-backdrop' id='adminSidebarBackdrop' hidden></div>
-      <aside class='sidebar' id='adminSidebar'>
-        <button type='button' class='sidebar-close' id='adminSidebarClose' aria-label='Cerrar menú'>✕</button>
-        <a href='/admin' class='sidebar-brand'>
-          <svg class='sidebar-logo' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <div
+        class='sidebar-backdrop'
+        id='adminSidebarBackdrop'
+        hidden
+      ></div>
+      <aside
+        class='sidebar'
+        id='adminSidebar'
+      >
+        <button
+          type='button'
+          class='sidebar-close'
+          id='adminSidebarClose'
+          aria-label='Cerrar menú'
+        >
+          ✕
+        </button>
+        <a
+          href='/admin'
+          class='sidebar-brand'
+        >
+          <svg
+            class='sidebar-logo'
+            viewBox='0 0 64 64'
+            fill='none'
+            xmlns='http://www.w3.org/2000/svg'
+          >
             <defs>
-              <linearGradient id='gc-admin-grad' x1='0' y1='0' x2='64' y2='64' gradientUnits='userSpaceOnUse'>
-                <stop stop-color='#818cf8'/>
-                <stop offset='1' stop-color='#4338ca'/>
+              <linearGradient
+                id='gc-admin-grad'
+                x1='0'
+                y1='0'
+                x2='64'
+                y2='64'
+                gradientUnits='userSpaceOnUse'
+              >
+                <stop stop-color='#818cf8' />
+                <stop
+                  offset='1'
+                  stop-color='#4338ca'
+                />
               </linearGradient>
             </defs>
-            <rect width='64' height='64' rx='15' fill='url(#gc-admin-grad)'/>
-            <rect x='29' y='0' width='6' height='64' fill='white' opacity='0.10' rx='3'/>
-            <rect x='0' y='29' width='64' height='6' fill='white' opacity='0.10' rx='3'/>
-            <ellipse cx='25' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(-20 25 12)'/>
-            <ellipse cx='39' cy='12' rx='7' ry='3.5' fill='white' opacity='0.22' transform='rotate(20 39 12)'/>
-            <circle cx='32' cy='12' r='3' fill='white' opacity='0.30'/>
-            <text x='32' y='47' font-family="'Arial Black',sans-serif" font-size='26' font-weight='900' fill='white' text-anchor='middle' letter-spacing='-0.5'>GC</text>
+            <rect
+              width='64'
+              height='64'
+              rx='15'
+              fill='url(#gc-admin-grad)'
+            />
+            <rect
+              x='29'
+              y='0'
+              width='6'
+              height='64'
+              fill='white'
+              opacity='0.10'
+              rx='3'
+            />
+            <rect
+              x='0'
+              y='29'
+              width='64'
+              height='6'
+              fill='white'
+              opacity='0.10'
+              rx='3'
+            />
+            <ellipse
+              cx='25'
+              cy='12'
+              rx='7'
+              ry='3.5'
+              fill='white'
+              opacity='0.22'
+              transform='rotate(-20 25 12)'
+            />
+            <ellipse
+              cx='39'
+              cy='12'
+              rx='7'
+              ry='3.5'
+              fill='white'
+              opacity='0.22'
+              transform='rotate(20 39 12)'
+            />
+            <circle
+              cx='32'
+              cy='12'
+              r='3'
+              fill='white'
+              opacity='0.30'
+            />
+            <text
+              x='32'
+              y='47'
+              font-family="'Arial Black',sans-serif"
+              font-size='26'
+              font-weight='900'
+              fill='white'
+              text-anchor='middle'
+              letter-spacing='-0.5'
+            >
+              GC
+            </text>
           </svg>
           <span class='brand-text'>Backoffice</span>
         </a>
@@ -62,8 +166,62 @@ const pathname = Astro.url.pathname;
         </nav>
 
         <div class='sidebar-footer'>
-          <form method='POST' action='/admin/logout'>
-            <button type='submit' class='logout-btn'>
+          {tenant && (
+            <div class='space-card'>
+              {tenant.avatar_url ? (
+                <img
+                  class='space-avatar'
+                  src={tenant.avatar_url}
+                  alt=''
+                  width='36'
+                  height='36'
+                />
+              ) : (
+                <span
+                  class='space-avatar space-avatar--initials'
+                  aria-hidden='true'
+                >
+                  {tenantInitials(tenant.name)}
+                </span>
+              )}
+              <div class='space-info'>
+                <strong>{tenant.name}</strong>
+                <span>
+                  {override ? 'Gestionando este espacio' : (user?.email ?? '')}
+                </span>
+              </div>
+            </div>
+          )}
+          {tenant && (
+            <a
+              href={tenantUrl(tenant.number)}
+              class='footer-link'
+            >
+              <span>🏠</span> Ver el espacio
+            </a>
+          )}
+          <a
+            href='/cuenta'
+            class='footer-link'
+          >
+            <span>👤</span> Mi cuenta
+          </a>
+          {isSuperAdmin && (
+            <a
+              href='/admin/espacios'
+              class='footer-link'
+            >
+              <span>🗂️</span> Todos los espacios
+            </a>
+          )}
+          <form
+            method='POST'
+            action='/logout'
+          >
+            <button
+              type='submit'
+              class='logout-btn'
+            >
               <span>🚪</span> Cerrar sesión
             </button>
           </form>
@@ -81,10 +239,26 @@ const pathname = Astro.url.pathname;
             aria-controls='adminSidebar'
             aria-expanded='false'
           >
-            <span></span><span></span><span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </button>
         </header>
         <main class='content'>
+          {override && tenant && (
+            <div class='override-banner'>
+              <span>
+                🗂️ Estás gestionando el espacio <strong>{tenant.name}</strong>{' '}
+                (nº {tenant.number}) como administrador.
+              </span>
+              <form
+                method='POST'
+                action='/admin/espacios/salir'
+              >
+                <button type='submit'>Volver a mi espacio</button>
+              </form>
+            </div>
+          )}
           <slot />
         </main>
       </div>
@@ -103,7 +277,6 @@ const pathname = Astro.url.pathname;
 </style>
 
 <style>
-
   body {
     font-family: var(--font-admin);
     background: var(--color-admin-bg);
@@ -138,7 +311,9 @@ const pathname = Astro.url.pathname;
     transition: opacity 0.15s;
   }
 
-  .sidebar-brand:hover { opacity: 0.82; }
+  .sidebar-brand:hover {
+    opacity: 0.82;
+  }
 
   .sidebar-logo {
     width: 36px;
@@ -188,6 +363,95 @@ const pathname = Astro.url.pathname;
   .sidebar-footer {
     padding: 16px 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .space-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 12px;
+  }
+
+  .space-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .space-avatar--initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    background: linear-gradient(135deg, #818cf8, #4338ca);
+  }
+
+  .space-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .space-info strong {
+    color: #fff;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .space-info span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .footer-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
+  .footer-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .override-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+
+  .override-banner button {
+    background: #92400e;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
   }
 
   .logout-btn {
@@ -265,7 +529,9 @@ const pathname = Astro.url.pathname;
     height: 2px;
     border-radius: 2px;
     background: var(--color-admin-text);
-    transition: transform 0.25s ease, opacity 0.2s ease;
+    transition:
+      transform 0.25s ease,
+      opacity 0.2s ease;
   }
 
   .menu-toggle[aria-expanded='true'] span:nth-child(1) {
@@ -370,17 +636,24 @@ const pathname = Astro.url.pathname;
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
       backdrop.hidden = !open;
-      requestAnimationFrame(() => backdrop.classList.toggle('is-visible', open));
+      requestAnimationFrame(() =>
+        backdrop.classList.toggle('is-visible', open)
+      );
       document.body.style.overflow = open ? 'hidden' : '';
     };
 
-    toggle.addEventListener('click', () => setOpen(!sidebar.classList.contains('is-open')));
+    toggle.addEventListener('click', () =>
+      setOpen(!sidebar.classList.contains('is-open'))
+    );
     closeBtn?.addEventListener('click', () => setOpen(false));
     backdrop.addEventListener('click', () => setOpen(false));
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setOpen(false);
+      if (e.key === 'Escape' && sidebar.classList.contains('is-open'))
+        setOpen(false);
     });
-    sidebar.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    sidebar
+      .querySelectorAll('a')
+      .forEach((a) => a.addEventListener('click', () => setOpen(false)));
     window.matchMedia('(min-width: 769px)').addEventListener('change', (e) => {
       if (e.matches) setOpen(false);
     });

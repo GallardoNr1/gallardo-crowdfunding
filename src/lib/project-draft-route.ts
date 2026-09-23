@@ -6,7 +6,7 @@ import { fieldErrors } from './schemas';
 
 export interface DraftRouteDeps {
   /** Usuario admin que puso el middleware en `locals.user`; null si no hay sesión. */
-  user: { id: string; email?: string } | null;
+  user: { id: string; email?: string | null } | null;
   /** Hay ANTHROPIC_API_KEY. */
   configured: boolean;
   /** Genera el borrador (llama a la API de Claude). Lanza si falla. */

@@ -1,0 +1,232 @@
+---
+// Mi cuenta: nombre del espacio, foto (avatar) y accesos. El middleware garantiza sesión.
+export const prerender = false;
+
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { createAdminClient } from '@/lib/supabase-server';
+import {
+  removeTenantAvatar,
+  uploadTenantAvatar,
+} from '@/lib/tenant-avatar-server';
+import { getTenantForUser } from '@/lib/tenants-server';
+import { tenantInitials, tenantUrl } from '@/lib/tenants';
+
+const user = Astro.locals.user!;
+const admin = createAdminClient();
+// Siempre el espacio propio (aunque un superadmin esté gestionando otro en /admin).
+let tenant = await getTenantForUser(admin, user.id);
+
+let error = '';
+let success = '';
+
+if (Astro.request.method === 'POST' && tenant) {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? '');
+
+  if (action === 'update_space') {
+    const name = String(form.get('space_name') ?? '')
+      .trim()
+      .slice(0, 80);
+    if (!name) {
+      error = 'El espacio necesita un nombre.';
+    } else {
+      const { error: dbError } = await admin
+        .from('tenants')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', tenant.id);
+      if (dbError) error = dbError.message;
+      else success = '✅ Nombre guardado.';
+    }
+    const upload = await uploadTenantAvatar(admin, tenant, form.get('avatar'));
+    if (!upload.ok) error = upload.error;
+    else if (upload.url) success = '✅ Datos y foto guardados.';
+  }
+
+  if (action === 'remove_avatar') {
+    const removed = await removeTenantAvatar(admin, tenant);
+    if (!removed.ok) error = removed.error;
+    else success = '✅ Foto quitada.';
+  }
+
+  tenant = await getTenantForUser(admin, user.id);
+}
+---
+
+<AuthLayout
+  title='Mi cuenta'
+  heading='Mi cuenta'
+  subtitle={user.email ?? ''}
+  wide
+>
+  {success && <div class='success-banner'>{success}</div>}
+  {error && <div class='error-banner'>⚠️ {error}</div>}
+
+  {!tenant ? (
+    <div class='error-banner'>
+      Tu cuenta no tiene espacio asignado todavía. Contacta con el administrador
+      de la web.
+    </div>
+  ) : (
+    <div>
+      <form
+        method='POST'
+        class='auth-form'
+        enctype='multipart/form-data'
+      >
+        <input
+          type='hidden'
+          name='_action'
+          value='update_space'
+        />
+
+        <div class='avatar-row'>
+          {tenant.avatar_url ? (
+            <img
+              class='avatar'
+              src={tenant.avatar_url}
+              alt=''
+              width='88'
+              height='88'
+            />
+          ) : (
+            <span
+              class='avatar avatar--initials'
+              aria-hidden='true'
+            >
+              {tenantInitials(tenant.name)}
+            </span>
+          )}
+          <div class='field'>
+            <label for='avatar'>Foto del espacio</label>
+            <input
+              type='file'
+              id='avatar'
+              name='avatar'
+              accept='image/jpeg,image/png,image/webp,image/gif'
+            />
+            <small>
+              JPG, PNG, WEBP o GIF, máximo 5 MB. Se ve en tu portada y en el
+              menú.
+            </small>
+          </div>
+        </div>
+
+        <div class='field'>
+          <label for='space_name'>Nombre del espacio</label>
+          <input
+            type='text'
+            id='space_name'
+            name='space_name'
+            required
+            maxlength='80'
+            value={tenant.name}
+          />
+          <small>
+            Tu portada pública:{' '}
+            <a href={tenantUrl(tenant.number)}>{tenantUrl(tenant.number)}</a>{' '}
+            (espacio nº {tenant.number})
+          </small>
+        </div>
+
+        <div class='field'>
+          <label for='email'>Email</label>
+          <input
+            type='email'
+            id='email'
+            value={user.email ?? ''}
+            disabled
+          />
+          <small>
+            Para cambiar el email escribe al administrador de la web.
+          </small>
+        </div>
+
+        <button
+          type='submit'
+          class='submit-btn'
+        >
+          Guardar
+        </button>
+      </form>
+
+      {tenant.avatar_url && (
+        <form
+          method='POST'
+          class='inline-form'
+        >
+          <input
+            type='hidden'
+            name='_action'
+            value='remove_avatar'
+          />
+          <button
+            type='submit'
+            class='link-btn'
+          >
+            Quitar la foto
+          </button>
+        </form>
+      )}
+
+      <p class='auth-links'>
+        <a href='/cuenta/contrasena'>Cambiar la contraseña</a>
+        <br />
+        <a href='/admin'>Administrar mis proyectos</a> ·{' '}
+        <a href={tenantUrl(tenant.number)}>Ver mi espacio</a>
+      </p>
+    </div>
+  )}
+</AuthLayout>
+
+<style>
+  .avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .avatar--initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6b35, #c62828);
+  }
+
+  .avatar-row .field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .inline-form {
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: #b91c1c;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 520px) {
+    .avatar-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

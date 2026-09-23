@@ -4,21 +4,39 @@
 
 | Método | Ruta | Descripción | Archivo |
 |--------|------|-------------|---------|
-| GET | `/` | Lista de proyectos (los cancelados no aparecen) | `src/pages/index.astro` |
+| GET | `/` | Landing (qué es, cómo funciona, qué incluye) y escaparate de proyectos públicos (los cancelados no aparecen) | `src/pages/index.astro` |
 | GET | `/projects/:slug` | Página de detalle; `404` si no existe, redirige a `/` si está cancelado | `src/pages/projects/[slug].astro` |
 | GET | `/design-system` | Showcase del design system, **solo en desarrollo** (404 en producción) | `src/pages/design-system.astro` |
 | GET | `*` | Página 404 | `src/pages/404.astro` |
 
-## Backoffice (`/admin/*`, requiere sesión de administrador)
+## Cuenta (`/login`, `/registro`, …)
 
-El middleware redirige a `/admin/login` sin sesión válida y a `/admin/login?error=forbidden` si el usuario no es admin.
-Todas las acciones son formularios `POST` con un campo oculto `_action`.
+Formularios `POST` clásicos; los handlers puros están en `src/lib/auth-routes.ts` y la implementación con
+Supabase en `src/lib/auth-supabase.ts`. Rate limit por IP: login 10/10 min, registro 5/h, recuperación 5/h.
+
+| Método | Ruta | Qué | Archivo |
+|--------|------|-----|---------|
+| GET/POST | `/login` | Email + contraseña → cookies de sesión → `next` (solo rutas internas) o `/admin`. `/admin/login` redirige aquí | `src/pages/login.astro` |
+| GET/POST | `/registro` | Nombre del espacio, email, contraseña y aceptación de privacidad → `signUp`; con confirmación por email muestra "revisa tu correo" | `src/pages/registro.astro` |
+| GET/POST | `/recuperar` | Email → `resetPasswordForEmail`; respuesta neutra siempre | `src/pages/recuperar.astro` |
+| GET | `/auth/confirm?token_hash=…&type=signup\|recovery\|email` | Verifica el enlace del email (`verifyOtp`), guarda la sesión y redirige | `src/pages/auth/confirm.astro` |
+| GET/POST | `/cuenta` | `update_space` (nombre + foto `avatar`), `remove_avatar` | `src/pages/cuenta/index.astro` |
+| GET/POST | `/cuenta/contrasena` | Contraseña nueva ×2 (`auth.admin.updateUserById`) | `src/pages/cuenta/contrasena.astro` |
+| POST | `/logout` | Revoca la sesión en Supabase y borra cookies → `/` | `src/pages/logout.astro` |
+| GET | `/privacidad` | Aviso de privacidad | `src/pages/privacidad.astro` |
+
+## Backoffice (`/admin/*`, requiere sesión)
+
+El middleware (`src/lib/auth-gate.ts`) redirige a `/login?next=<ruta>` sin sesión. Cada usuario ve solo
+los proyectos de **su** espacio (`locals.tenant`); abrir un proyecto ajeno devuelve **404**
+(`requireProjectInTenant`). El superadmin puede gestionar otro espacio (cookie `gc-admin-tenant`, ver
+`/admin/espacios`). Todas las acciones son formularios `POST` con un campo oculto `_action`.
 
 | Método | Ruta | Acciones (`_action`) | Archivo |
 |--------|------|----------------------|---------|
-| GET/POST | `/admin/login` | Iniciar sesión (email + contraseña de Supabase Auth) | `src/pages/admin/login.astro` |
-| POST | `/admin/logout` | Revoca la sesión en Supabase y borra cookies | `src/pages/admin/logout.astro` |
-| GET | `/admin` | Proyectos con contadores de contribuciones y mensajes pendientes | `src/pages/admin/index.astro` |
+| GET | `/admin` | Proyectos del espacio con contadores de contribuciones y mensajes pendientes; `?bienvenida=1` muestra la tarjeta de bienvenida | `src/pages/admin/index.astro` |
+| GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice | `src/pages/admin/espacios/index.astro` |
+| POST | `/admin/espacios/salir` | Superadmin: deja de gestionar otro espacio (borra la cookie) | `src/pages/admin/espacios/salir.astro` |
 | GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
 | GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |
 | GET/POST | `/admin/projects/:id/contributions` | `set_status` con `status` ∈ `pending` / `completed` / `failed` (recalcula `current_amount`) | `src/pages/admin/projects/[id]/contributions.astro` |

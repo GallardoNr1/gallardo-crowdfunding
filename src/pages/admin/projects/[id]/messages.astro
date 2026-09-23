@@ -8,9 +8,17 @@ import {
   setSupportMessageApproved,
 } from '@/lib/support-messages-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { requireProjectInTenant } from '@/lib/tenants-server';
 
 const { id } = Astro.params;
 const admin = createAdminClient();
+// Solo proyectos del espacio del usuario (o del que gestiona un superadmin): 404 si no es suyo.
+const scopedProject = Astro.locals.tenant
+  ? await requireProjectInTenant(admin, id ?? '', Astro.locals.tenant.id)
+  : null;
+if (!scopedProject) {
+  return new Response(null, { status: 404 });
+}
 
 let error = '';
 let successMsg = '';

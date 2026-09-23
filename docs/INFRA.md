@@ -22,6 +22,7 @@ de GitHub Actions al hacer `npm run build`.
 | `PUBLIC_SUPABASE_ANON_KEY` | Clave anon (se expone al navegador; solo lecturas gracias a RLS) | Sí |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio: endpoints `/api/*` y backoffice. Nunca con prefijo `PUBLIC_` | Sí |
 | `ADMIN_EMAILS` | Emails (coma) con acceso al backoffice además de los usuarios con `app_metadata.role = 'admin'` | No |
+| `SUPABASE_JWT_SECRET` | Secreto JWT del proyecto (Project Settings → API → JWT Settings). Con él la sesión se verifica en local; sin él cada petición con sesión llama a `auth.getUser` (funciona, pero más lento) | No |
 | `ANTHROPIC_API_KEY` | Clave de la API de Anthropic para el panel "Rellenar con IA" del alta de proyectos. Sin ella el panel muestra un aviso y el resto funciona igual. Solo servidor | No |
 | `ANTHROPIC_WORKSPACE_ID` | Solo si la API responde "This API key is not scoped to a workspace": ID del workspace (`wrkspc_…`, Console → Settings → Workspaces). Se envía como cabecera `anthropic-workspace-id` | No |
 
@@ -58,12 +59,30 @@ Las migraciones están en `supabase/migrations/` y se aplican con el SQL Editor 
 - RLS activo: `anon` solo lee lo público y nunca `contributor_email`.
 - `support_messages.is_approved` por defecto `false`; índice único en `project_config.slug`.
 
-## Acceso al backoffice
+## Cuentas y acceso al backoffice
 
-1. Crear el usuario en Supabase → Authentication → Users.
-2. Darle rol admin (`update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = '…'`)
-   **o** añadir su email a `ADMIN_EMAILS` (local y en el secret `ENV_LOCAL`).
-3. Desactivar el alta libre: Authentication → Providers → Email → *Allow new users to sign up* = off.
+Cualquier persona puede crear una cuenta en `/registro` (email + contraseña con confirmación por email).
+Al registrarse, un trigger de Postgres crea su **espacio** (`tenants`) y desde entonces entra en `/admin` y
+ve solo sus proyectos. El **superadmin** (usuario con `app_metadata.role = 'admin'` o email en `ADMIN_EMAILS`)
+ve además todos los espacios en `/admin/espacios` y puede gestionar cualquiera.
+
+La sesión va en cookies HttpOnly (`sb-access-token` / `sb-refresh-token`); el middleware la resuelve en
+**todas** las páginas (menú de avatar) verificando el JWT en local con `SUPABASE_JWT_SECRET` (o con
+`auth.getUser` si no está) y la renueva con el refresh token cuando caduca.
+
+### Supabase Auth: configuración necesaria (dashboard)
+
+| Dónde | Qué |
+|-------|-----|
+| Authentication → Providers → Email | *Allow new users to sign up* **on**; *Confirm email* **on** |
+| Authentication → URL Configuration | Site URL `https://gc.gallardcode.com`; Redirect URLs: `https://gc.gallardcode.com/auth/confirm` (y `http://localhost:4321/auth/confirm` en local) |
+| Authentication → Email Templates → *Confirm signup* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup` |
+| Authentication → Email Templates → *Reset password* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery` |
+| Project Settings → Auth → SMTP | SMTP propio (Resend, Brevo…). El SMTP por defecto de Supabase permite unos pocos correos por hora: vale para probar, no para abrir la web |
+| Storage | Bucket `avatars` público (lo crea la migración `20260923110000_avatars_bucket.sql`) |
+
+Los enlaces de los emails llegan a `/auth/confirm`, que verifica el `token_hash` en servidor (`verifyOtp`),
+guarda la sesión en cookies y redirige (`signup` → `/admin?bienvenida=1`, `recovery` → `/cuenta/contrasena`).
 
 ## Diagrama de despliegue
 
@@ -98,7 +117,7 @@ Las acciones de GitHub están fijadas por SHA (`actions/checkout`, `actions/setu
 
 | Secret | Descripción |
 |--------|-------------|
-| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS`, `ANTHROPIC_API_KEY` y `ANTHROPIC_WORKSPACE_ID` si se usan) |
+| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS`, `SUPABASE_JWT_SECRET`, `ANTHROPIC_API_KEY` y `ANTHROPIC_WORKSPACE_ID` si se usan) |
 | `SERVER_HOST` | IP o hostname del VPS |
 | `SERVER_USER` | Usuario SSH |
 | `SERVER_SSH_KEY` | Clave privada SSH |

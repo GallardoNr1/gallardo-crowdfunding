@@ -4,19 +4,33 @@ export const prerender = false;
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { createAdminClient } from '@/lib/supabase-server';
+import { projectUrl, tenantUrl } from '@/lib/tenants';
 
 const supabase = createAdminClient();
+const tenant = Astro.locals.tenant;
+const welcome = Astro.url.searchParams.get('bienvenida') === '1';
 
-const { data: projects, error } = await supabase
-  .from('project_config')
-  .select('*')
-  .order('created_at', { ascending: false });
+// Solo los proyectos del espacio del usuario (o del que gestiona un superadmin).
+const { data: projects, error } = tenant
+  ? await supabase
+      .from('project_config')
+      .select('*, tenants(number, name)')
+      .eq('tenant_id', tenant.id)
+      .order('created_at', { ascending: false })
+  : { data: [], error: null };
 
 // Pendientes por proyecto (confirmar pagos / aprobar mensajes)
-const [{ data: pendingContribs }, { data: pendingMessages }] = await Promise.all([
-  supabase.from('contributions').select('project_id').eq('payment_status', 'pending'),
-  supabase.from('support_messages').select('project_id').eq('is_approved', false),
-]);
+const [{ data: pendingContribs }, { data: pendingMessages }] =
+  await Promise.all([
+    supabase
+      .from('contributions')
+      .select('project_id')
+      .eq('payment_status', 'pending'),
+    supabase
+      .from('support_messages')
+      .select('project_id')
+      .eq('is_approved', false),
+  ]);
 const countByProject = (rows: { project_id: string }[] | null) =>
   (rows ?? []).reduce<Record<string, number>>((acc, r) => {
     acc[r.project_id] = (acc[r.project_id] ?? 0) + 1;
@@ -42,114 +56,155 @@ const statusColor: Record<string, string> = {
 
 <AdminLayout title='Proyectos'>
   <div class='toolbar'>
-    <a href='/admin/projects/new' class='btn-primary'>➕ Nuevo proyecto</a>
+    <a
+      href='/admin/projects/new'
+      class='btn-primary'
+    >
+      ➕ Nuevo proyecto
+    </a>
   </div>
 
-  {
-    error && (
-      <div class='alert-error'>
-        Error cargando proyectos: {error.message}
-      </div>
-    )
-  }
+  {!tenant && (
+    <div class='alert-error'>
+      Tu cuenta no tiene espacio asignado. Contacta con el administrador de la
+      web.
+    </div>
+  )}
 
-  {
-    !error && projects?.length === 0 && (
-      <div class='empty-state'>
-        <p>No hay proyectos todavía.</p>
-        <a href='/admin/projects/new' class='btn-primary'>
-          Crear el primero
-        </a>
-      </div>
-    )
-  }
+  {welcome && tenant && (
+    <div class='welcome-card'>
+      <h2>🎉 ¡Bienvenido a tu espacio, {tenant.name}!</h2>
+      <p>
+        Crea tu primer proyecto: cuéntale a la IA de qué va o rellena el
+        formulario a mano. Tu portada pública es{' '}
+        <a href={tenantUrl(tenant.number)}>{tenantUrl(tenant.number)}</a>; los
+        proyectos privados solo se ven con su enlace.
+      </p>
+      <a
+        href='/admin/projects/new'
+        class='btn-primary'
+      >
+        ➕ Crear mi primer proyecto
+      </a>
+    </div>
+  )}
 
-  {
-    !error && projects && projects.length > 0 && (
-      <div class='projects-grid'>
-        {projects.map((p) => {
-          const pct = p.target_amount
-            ? Math.min(100, Math.round((p.current_amount / p.target_amount) * 100))
-            : 0;
-          return (
-            <div class='project-card'>
-              <div class='card-header'>
-                <div>
-                  <h2 class='project-name'>{p.project_name}</h2>
-                  <code class='project-slug'>/{p.slug}</code>
-                </div>
-                <span
-                  class='status-badge'
-                  style={`color: ${statusColor[p.project_status] ?? '#666'}; background: ${statusColor[p.project_status] ?? '#666'}18`}
-                >
-                  {statusLabel[p.project_status] ?? p.project_status}
+  {error && (
+    <div class='alert-error'>Error cargando proyectos: {error.message}</div>
+  )}
+
+  {!error && projects?.length === 0 && (
+    <div class='empty-state'>
+      <p>No hay proyectos todavía.</p>
+      <a
+        href='/admin/projects/new'
+        class='btn-primary'
+      >
+        Crear el primero
+      </a>
+    </div>
+  )}
+
+  {!error && projects && projects.length > 0 && (
+    <div class='projects-grid'>
+      {projects.map((p) => {
+        const pct = p.target_amount
+          ? Math.min(
+              100,
+              Math.round((p.current_amount / p.target_amount) * 100)
+            )
+          : 0;
+        return (
+          <div class='project-card'>
+            <div class='card-header'>
+              <div>
+                <h2 class='project-name'>{p.project_name}</h2>
+                <code class='project-slug'>
+                  {projectUrl(p.tenants?.number ?? 0, p.slug)}
+                </code>
+                <span class='vis-badge'>
+                  {p.visibility === 'public' ? '🌍 Público' : '🔒 Privado'}
                 </span>
               </div>
-
-              {p.campaign_mode === 'open' ? (
-                <div class='progress-area'>
-                  <div class='progress-text'>
-                    <span>
-                      Conseguido: {campaignTotals(p).total.toFixed(2)} {p.currency}
-                    </span>
-                    <span>
-                      {isCampaignOpen(p)
-                        ? `⏳ ${daysLeft(p.end_date) ?? '∞'} días`
-                        : '🏁 Cerrada'}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div class='progress-area'>
-                  <div class='progress-bar'>
-                    <div class='progress-fill' style={`width: ${pct}%`} />
-                  </div>
-                  <div class='progress-text'>
-                    <span>
-                      {p.current_amount ?? 0} {p.currency}
-                    </span>
-                    <span>
-                      {pct}% de {p.target_amount} {p.currency}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div class='card-actions'>
-                <a
-                  href={`/projects/${p.slug}`}
-                  target='_blank'
-                  class='btn-ghost'
-                >
-                  👁 Ver
-                </a>
-                <a
-                  href={`/admin/projects/${p.id}/edit`}
-                  class='btn-secondary'
-                >
-                  ✏️ Editar
-                </a>
-                <a
-                  href={`/admin/projects/${p.id}/contributions`}
-                  class={`btn-ghost ${pendingContribCount[p.id] ? 'has-pending' : ''}`}
-                >
-                  💳 Contribuciones
-                  {pendingContribCount[p.id] ? ` (${pendingContribCount[p.id]})` : ''}
-                </a>
-                <a
-                  href={`/admin/projects/${p.id}/messages`}
-                  class={`btn-ghost ${pendingMessageCount[p.id] ? 'has-pending' : ''}`}
-                >
-                  💬 Mensajes
-                  {pendingMessageCount[p.id] ? ` (${pendingMessageCount[p.id]})` : ''}
-                </a>
-              </div>
+              <span
+                class='status-badge'
+                style={`color: ${statusColor[p.project_status] ?? '#666'}; background: ${statusColor[p.project_status] ?? '#666'}18`}
+              >
+                {statusLabel[p.project_status] ?? p.project_status}
+              </span>
             </div>
-          );
-        })}
-      </div>
-    )
-  }
+
+            {p.campaign_mode === 'open' ? (
+              <div class='progress-area'>
+                <div class='progress-text'>
+                  <span>
+                    Conseguido: {campaignTotals(p).total.toFixed(2)}{' '}
+                    {p.currency}
+                  </span>
+                  <span>
+                    {isCampaignOpen(p)
+                      ? `⏳ ${daysLeft(p.end_date) ?? '∞'} días`
+                      : '🏁 Cerrada'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div class='progress-area'>
+                <div class='progress-bar'>
+                  <div
+                    class='progress-fill'
+                    style={`width: ${pct}%`}
+                  />
+                </div>
+                <div class='progress-text'>
+                  <span>
+                    {p.current_amount ?? 0} {p.currency}
+                  </span>
+                  <span>
+                    {pct}% de {p.target_amount} {p.currency}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div class='card-actions'>
+              <a
+                href={projectUrl(p.tenants?.number ?? 0, p.slug)}
+                target='_blank'
+                class='btn-ghost'
+              >
+                👁 Ver
+              </a>
+              <a
+                href={`/admin/projects/${p.id}/edit`}
+                class='btn-secondary'
+              >
+                ✏️ Editar
+              </a>
+              <a
+                href={`/admin/projects/${p.id}/contributions`}
+                class={`btn-ghost ${pendingContribCount[p.id] ? 'has-pending' : ''}`}
+              >
+                💳 Contribuciones
+                {pendingContribCount[p.id]
+                  ? ` (${pendingContribCount[p.id]})`
+                  : ''}
+              </a>
+              <a
+                href={`/admin/projects/${p.id}/messages`}
+                class={`btn-ghost ${pendingMessageCount[p.id] ? 'has-pending' : ''}`}
+              >
+                💬 Mensajes
+                {pendingMessageCount[p.id]
+                  ? ` (${pendingMessageCount[p.id]})`
+                  : ''}
+              </a>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
 </AdminLayout>
 
 <style>
@@ -196,6 +251,13 @@ const statusColor: Record<string, string> = {
     border-radius: 4px;
   }
 
+  .vis-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 0.75rem;
+    color: var(--color-admin-text-muted);
+  }
+
   .status-badge {
     font-size: 0.78rem;
     font-weight: 600;
@@ -219,7 +281,11 @@ const statusColor: Record<string, string> = {
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--color-admin-primary), var(--color-brand-purple));
+    background: linear-gradient(
+      90deg,
+      var(--color-admin-primary),
+      var(--color-brand-purple)
+    );
     border-radius: 4px;
     transition: width 0.3s;
   }
@@ -308,5 +374,30 @@ const statusColor: Record<string, string> = {
     border-color: #f59e0b;
     color: #92400e;
     background: #fffbeb;
+  }
+
+  .welcome-card {
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    border: 1px solid #c7d2fe;
+    border-radius: var(--radius-md);
+    padding: 22px 24px;
+    margin-bottom: 24px;
+  }
+
+  .welcome-card h2 {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    color: #3730a3;
+  }
+
+  .welcome-card p {
+    margin: 0 0 14px;
+    color: #4338ca;
+    line-height: 1.5;
+  }
+
+  .welcome-card a:not(.btn-primary) {
+    color: #3730a3;
+    font-weight: 600;
   }
 </style>

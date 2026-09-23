@@ -16,7 +16,7 @@
 
 | Capa | Directorio | Responsabilidad |
 |------|-----------|-----------------|
-| **Middleware** | `src/middleware.ts` | Cabeceras de seguridad en todas las respuestas; auth + rol de administrador y refresco de sesión en `/admin/*` |
+| **Middleware** | `src/middleware.ts` | Cabeceras de seguridad en todas las respuestas; resuelve la sesión en toda la web (`session-server.ts`: JWT en local o `getUser`, refresco), deja `locals.user` / `locals.tenant` / `locals.isSuperAdmin` y aplica `auth-gate.ts` (login / 403) |
 | **Páginas públicas** | `src/pages/` | Routing, SSR, composición de componentes, fetch inicial de datos (en paralelo) |
 | **Endpoints** | `src/pages/api/` | `POST /api/contributions`, `POST /api/support-messages`: validan con Zod, limitan por IP y escriben con service role |
 | **Backoffice** | `src/pages/admin/` | Login, proyectos, niveles, emojis, confirmación de pagos y moderación de mensajes (formularios `POST` clásicos) |
@@ -36,8 +36,10 @@
 ```mermaid
 graph TD
     subgraph Pages
-        Index["/index.astro"]
-        Slug["/projects/[slug].astro"]
+        Index["/index.astro (escaparate público)"]
+        Tenant["/[tenant]/index.astro (portada del espacio)"]
+        Slug["/[tenant]/projects/[slug].astro"]
+        Legacy["/projects/[slug].astro → 301"]
         NotFound["/404.astro"]
         Admin["/admin/** (backoffice)"]
         ApiC["POST /api/contributions"]
@@ -87,6 +89,8 @@ graph TD
     MW --> Admin
     MW --> Auth
     Index --> BaseLayout
+    Tenant --> BaseLayout
+    Legacy --> SupabaseRead
     Slug --> BaseLayout
     Slug --> SupabaseRead
     Slug --> ProductCard & ProgressSection & ContributionLevels & FamilyPhotos & MessageSection
@@ -116,10 +120,10 @@ sequenceDiagram
     participant Lib as supabase.ts (anon)
     participant DB as Supabase
 
-    Browser->>MW: GET /projects/mi-proyecto
+    Browser->>MW: GET /123456/projects/mi-proyecto
     MW->>Page: next()
-    Page->>Lib: getProjectBySlug(slug)
-    Lib->>DB: select project_config
+    Page->>Lib: getTenantByNumber(123456) + getProjectByTenantAndSlug(tenant.id, slug)
+    Lib->>DB: select tenants, select project_config
     alt no existe
         Page-->>Browser: 404 (404.astro)
     else existe
@@ -216,7 +220,7 @@ sequenceDiagram
 | Contribuciones `pending` hasta que la familia confirma el pago | Con pago offline (Bizum/efectivo) el importe público solo debe reflejar dinero recibido. Hay backoffice para confirmar. |
 | Realtime por **Broadcast desde triggers** en el topic `project:<id>` | `postgres_changes` sobre toda la tabla filtraba mal (otros proyectos, anónimos) y enviaba el email. El trigger emite solo campos públicos. |
 | Mensajes de apoyo con `is_approved = false` por defecto | Moderación previa: nada se publica sin revisión. |
-| Admin = `app_metadata.role = 'admin'` **o** email en `ADMIN_EMAILS` | Cualquier usuario de Supabase Auth no debe entrar al backoffice; la lista por env evita bloqueos si aún no se ha puesto el rol. |
+| Superadmin = `app_metadata.role = 'admin'` **o** email en `ADMIN_EMAILS`; cualquier usuario registrado entra a **su** `/admin` | Desde la fase 2 de espacios el backoffice es multiusuario: el espacio del usuario filtra todo (`requireProjectInTenant`); el superadmin conserva la vista global. |
 | Cookies HttpOnly + refresco en middleware | Sesiones de 7/30 días sin exponer tokens a JS; el access token (1 h) se renueva solo. |
 | CSP en producción con `script-src 'unsafe-inline'` | Varios componentes usan `onclick` e `is:inline`; la política aún bloquea scripts remotos, iframes y `form-action` externos. Pasar a nonces es la mejora siguiente. |
 | Rate limit en memoria | Un solo proceso PM2 y tráfico familiar; si se escala, sustituir por Redis/Postgres. |
@@ -224,3 +228,8 @@ sequenceDiagram
 | Sin pagos online (Stripe eliminado) | No estaba integrado; se retira hasta que exista un plan real. |
 | Temas por proyecto en código (`src/lib/themes.ts`) guardados en `page_content.theme` | Seis paletas + juegos de emojis sin migración: el tema sobrescribe los tokens CSS vía `html[data-theme]` y los componentes reciben los emojis por props. Los emojis escritos por el administrador (títulos, niveles, modal) no cambian. |
 | Campañas por tiempo como **modo** del mismo proyecto (`campaign_mode = 'open'`) | La bici de Máximo no tiene objetivo: se recauda hasta una fecha y la familia pone una base. Un flag más cuatro campos reutilizan niveles, modal, backoffice y broadcast; la lógica de apertura/cierre y totales está en `src/lib/campaign.ts`. `end_date` pasa a ser vinculante para todos los proyectos. |
+| Espacios (tenants) por **ruta con número** (`/<número de 6 dígitos>/projects/<slug>`) | Cada usuario tiene un espacio con sus proyectos y su `/admin`. El número aleatorio evita colisiones de slug entre familias y no requiere subdominios ni DNS. Los enlaces antiguos `/projects/<slug>` redirigen con 301 (ya circulan por WhatsApp). Ver `docs/superpowers/specs/2026-09-23-espacios-multiusuario-design.md`. |
+| Proyecto **privado = no listado** | Se ve y se aporta con el enlace, sin cuenta, como hasta ahora; solo desaparece de la portada de la web y de la del espacio. Así RLS y Realtime no cambian. |
+| Sesión verificada en local (`jose`, HS256 con `SUPABASE_JWT_SECRET`) con `getUser` como respaldo | El menú de avatar exige conocer la sesión en todas las páginas; una llamada a Supabase por petición sería lenta. Sin secreto configurado sigue funcionando (más lento). |
+| Flujo de emails con `token_hash` verificado en servidor (`/auth/confirm` → `verifyOtp`) | Es el flujo recomendado para SSR: el navegador nunca ve tokens y las cookies se fijan en servidor. |
+| Handlers de cuenta puros e inyectables (`auth-routes.ts`) | Se prueban sin Supabase ni red (mismo patrón que `project-draft-route.ts`). |

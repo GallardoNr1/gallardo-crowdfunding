@@ -1,0 +1,80 @@
+---
+// Recuperar contraseña: pide el email y Supabase envía un enlace a /auth/confirm (type=recovery).
+// La respuesta es la misma exista o no la cuenta.
+export const prerender = false;
+
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { clientIp } from '@/lib/api';
+import { handleRecover } from '@/lib/auth-routes';
+import { authLimiters, supabaseAuthApi } from '@/lib/auth-supabase';
+import { siteOrigin } from '@/lib/tenants';
+
+let error = '';
+let sent = false;
+let email = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  email = String(form.get('email') ?? '').trim();
+  const result = await handleRecover(
+    form,
+    clientIp(Astro.request, Astro.clientAddress),
+    siteOrigin(Astro.request.headers, Astro.url.origin),
+    { auth: supabaseAuthApi, limiter: authLimiters.recover }
+  );
+  if (result.ok) {
+    sent = true;
+  } else {
+    error = result.error;
+    Astro.response.status = result.status;
+  }
+}
+---
+
+<AuthLayout
+  title='Recuperar contraseña'
+  heading='Recuperar contraseña'
+  subtitle='Te enviamos un enlace para poner una contraseña nueva'
+>
+  {sent ? (
+    <div>
+      <div class='success-banner'>
+        📬 Si existe una cuenta con el email <strong>{email}</strong>, te hemos
+        enviado un enlace. Ábrelo para elegir una contraseña nueva.
+      </div>
+      <p class='auth-links'>
+        <a href='/login'>Volver al acceso</a>
+      </p>
+    </div>
+  ) : (
+    <div>
+      {error && <div class='error-banner'>⚠️ {error}</div>}
+      <form
+        method='POST'
+        class='auth-form'
+      >
+        <div class='field'>
+          <label for='email'>Email de tu cuenta</label>
+          <input
+            type='email'
+            id='email'
+            name='email'
+            required
+            autocomplete='email'
+            value={email}
+            placeholder='tu@email.com'
+          />
+        </div>
+        <button
+          type='submit'
+          class='submit-btn'
+        >
+          Enviarme el enlace
+        </button>
+      </form>
+      <p class='auth-links'>
+        <a href='/login'>Volver al acceso</a>
+      </p>
+    </div>
+  )}
+</AuthLayout>

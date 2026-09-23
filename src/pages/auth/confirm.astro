@@ -1,0 +1,41 @@
+---
+// Destino de los enlaces de los emails de Supabase Auth (plantillas con {{ .TokenHash }}):
+//   /auth/confirm?token_hash=…&type=signup|recovery|email
+// Verifica el token en servidor, guarda la sesión en cookies y redirige según el tipo.
+export const prerender = false;
+
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { handleConfirm } from '@/lib/auth-routes';
+import { supabaseAuthApi } from '@/lib/auth-supabase';
+import { setSessionCookies } from '@/lib/session-cookies';
+
+const params = Astro.url.searchParams;
+const result = await handleConfirm(
+  { token_hash: params.get('token_hash'), type: params.get('type') },
+  { auth: supabaseAuthApi }
+);
+
+if (result.ok) {
+  setSessionCookies(Astro.cookies, result.session);
+  return Astro.redirect(
+    result.type === 'recovery'
+      ? '/cuenta/contrasena?recovery=1'
+      : '/admin?bienvenida=1'
+  );
+}
+
+Astro.response.status = result.status;
+---
+
+<AuthLayout
+  title='Enlace no válido'
+  heading='Este enlace no funciona'
+  subtitle=''
+>
+  <div class='error-banner'>⚠️ {result.error}</div>
+  <p class='auth-links'>
+    Los enlaces caducan pasado un rato. Puedes{' '}
+    <a href='/recuperar'>pedir uno nuevo</a> o<a href='/login'>entrar</a> si tu
+    cuenta ya está confirmada.
+  </p>
+</AuthLayout>

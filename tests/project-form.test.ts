@@ -36,6 +36,7 @@ describe('parseProjectForm', () => {
       stats: [],
     });
     expect(r.data.page_content.theme).toBe('fiesta');
+    expect(r.data.visibility).toBe('private');
     expect(r.data.page_content.mainMessage).toEqual({
       message: '',
       signature: '',
@@ -99,6 +100,13 @@ describe('parseProjectForm', () => {
     expect(Object.keys(r.fields)).toEqual(
       expect.arrayContaining(['project_name', 'target_amount'])
     );
+  });
+});
+
+describe('parseProjectForm visibility', () => {
+  it('keeps a public visibility', () => {
+    const r = parseProjectForm(formWith({ ...minimal, visibility: 'public' }));
+    expect(r.ok && r.data.visibility).toBe('public');
   });
 });
 

@@ -10,6 +10,11 @@ const EnvSchema = z.object({
     (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
     z.string().min(20).optional()
   ),
+  /** Secreto JWT del proyecto Supabase (Settings → API). Permite verificar la sesión sin llamada de red. */
+  SUPABASE_JWT_SECRET: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().min(20).optional()
+  ),
   /** Solo si la clave de Anthropic no está asociada a un workspace (la API lo exige entonces). */
   ANTHROPIC_WORKSPACE_ID: z.preprocess(
     (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
@@ -25,6 +30,8 @@ export interface AppEnv {
   adminEmails: string[];
   /** Clave de la API de Anthropic; null desactiva el panel "Rellenar con IA" del alta. */
   anthropicApiKey: string | null;
+  /** Secreto JWT de Supabase; null → la sesión se verifica con getUser (una llamada por petición). */
+  supabaseJwtSecret: string | null;
   /** Workspace de Anthropic (cabecera anthropic-workspace-id) para claves sin workspace. */
   anthropicWorkspaceId: string | null;
 }
@@ -49,6 +56,7 @@ export function parseEnv(raw: Record<string, unknown>): AppEnv {
     adminEmails: env.ADMIN_EMAILS.split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
+    supabaseJwtSecret: env.SUPABASE_JWT_SECRET ?? null,
     anthropicApiKey: env.ANTHROPIC_API_KEY ?? null,
     anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID ?? null,
   };

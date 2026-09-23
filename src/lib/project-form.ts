@@ -3,6 +3,7 @@ import {
   fieldErrors,
   type CampaignMode,
   type ProjectStatus,
+  type ProjectVisibility,
 } from './schemas';
 import type { ThemeId } from './themes';
 
@@ -51,6 +52,7 @@ export interface ProjectRowInput {
   base_label: string | null;
   allow_custom_amount: boolean;
   min_custom_amount: number;
+  visibility: ProjectVisibility;
   page_content: ProjectPageContentRow;
 }
 
@@ -87,6 +89,7 @@ export function parseProjectForm(
       base_label: d.base_label,
       allow_custom_amount: d.allow_custom_amount,
       min_custom_amount: d.min_custom_amount,
+      visibility: d.visibility,
       page_content: {
         pageTitle: d.pageTitle ?? '',
         pageSubtitle: d.pageSubtitle ?? '',

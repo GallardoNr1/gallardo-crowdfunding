@@ -1,0 +1,231 @@
+---
+// Superadmin: todos los espacios de la web. "Gestionar" fija la cookie gc-admin-tenant y el
+// middleware carga ese espacio en /admin. El middleware ya exige superadmin para esta ruta.
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { ADMIN_TENANT_COOKIE } from '@/lib/session-cookies';
+import { createAdminClient } from '@/lib/supabase-server';
+import { isTenantNumber, tenantUrl } from '@/lib/tenants';
+import type { Tenant } from '@/lib/supabase';
+
+const admin = createAdminClient();
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const number = String(form.get('tenant_number') ?? '');
+  if (form.get('_action') === 'enter' && isTenantNumber(number)) {
+    Astro.cookies.set(ADMIN_TENANT_COOKIE, number, {
+      path: '/',
+      httpOnly: true,
+      secure: import.meta.env.PROD,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 8,
+    });
+    return Astro.redirect('/admin');
+  }
+}
+
+type TenantRow = Tenant & { owner_user_id: string };
+
+const [{ data: tenants, error }, { data: projects }, usersResult] =
+  await Promise.all([
+    admin
+      .from('tenants')
+      .select('id, number, name, avatar_url, created_at, owner_user_id')
+      .order('created_at', { ascending: false }),
+    admin.from('project_config').select('tenant_id, visibility'),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+  ]);
+
+const emailByUser = new Map(
+  (usersResult.data?.users ?? []).map((u) => [u.id, u.email ?? '—'] as const)
+);
+const projectCount = (
+  (projects ?? []) as { tenant_id: string; visibility: string }[]
+).reduce<Record<string, { total: number; publicCount: number }>>((acc, p) => {
+  const entry = (acc[p.tenant_id] ??= { total: 0, publicCount: 0 });
+  entry.total += 1;
+  if (p.visibility === 'public') entry.publicCount += 1;
+  return acc;
+}, {});
+
+const rows = ((tenants ?? []) as TenantRow[]).map((t) => ({
+  ...t,
+  email: emailByUser.get(t.owner_user_id) ?? '—',
+  projects: projectCount[t.id] ?? { total: 0, publicCount: 0 },
+  mine: t.owner_user_id === Astro.locals.user?.id,
+}));
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+---
+
+<AdminLayout title='Todos los espacios'>
+  {error && (
+    <div class='alert-error'>Error cargando espacios: {error.message}</div>
+  )}
+
+  <p class='hint'>
+    {rows.length} {rows.length === 1 ? 'espacio' : 'espacios'}. "Gestionar" abre
+    el backoffice de ese espacio como si fueras su dueño (la franja amarilla te
+    lo recuerda).
+  </p>
+
+  <div class='table-wrap'>
+    <table class='spaces'>
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Espacio</th>
+          <th>Dueño</th>
+          <th>Proyectos</th>
+          <th>Alta</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((t) => (
+          <tr class={t.mine ? 'is-mine' : ''}>
+            <td>
+              <code>{t.number}</code>
+            </td>
+            <td>
+              <a
+                href={tenantUrl(t.number)}
+                target='_blank'
+                class='space-link'
+              >
+                {t.name}
+              </a>
+              {t.mine && <span class='mine-badge'>tuyo</span>}
+            </td>
+            <td>{t.email}</td>
+            <td>
+              {t.projects.total}{' '}
+              <small>({t.projects.publicCount} públicos)</small>
+            </td>
+            <td>{fmtDate(t.created_at)}</td>
+            <td>
+              <form method='POST'>
+                <input
+                  type='hidden'
+                  name='_action'
+                  value='enter'
+                />
+                <input
+                  type='hidden'
+                  name='tenant_number'
+                  value={t.number}
+                />
+                <button
+                  type='submit'
+                  class='btn-secondary'
+                >
+                  🛠️ Gestionar
+                </button>
+              </form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</AdminLayout>
+
+<style>
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: var(--color-error);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+  }
+
+  .hint {
+    color: var(--color-admin-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+  }
+
+  .spaces {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .spaces th,
+  .spaces td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-admin-border);
+    white-space: nowrap;
+  }
+
+  .spaces th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-admin-text-muted);
+    background: var(--color-admin-bg);
+  }
+
+  .spaces tr:last-child td {
+    border-bottom: none;
+  }
+
+  .spaces tr.is-mine td {
+    background: #f5f3ff;
+  }
+
+  .space-link {
+    color: var(--color-admin-primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .space-link:hover {
+    text-decoration: underline;
+  }
+
+  .mine-badge {
+    margin-left: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ede9fe;
+    color: #5b21b6;
+  }
+
+  .spaces small {
+    color: var(--color-admin-text-muted);
+  }
+
+  .btn-secondary {
+    background: var(--color-surface);
+    border: 1px solid var(--color-admin-border);
+    color: var(--color-admin-text);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-admin-bg);
+  }
+</style>

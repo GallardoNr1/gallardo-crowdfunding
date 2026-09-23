@@ -1,0 +1,23 @@
+---
+// Cerrar sesión (POST desde el menú de avatar o el backoffice). Revoca la sesión en Supabase
+// y borra las cookies. Un GET simplemente vuelve al inicio.
+export const prerender = false;
+
+import { ACCESS_COOKIE, clearSessionCookies } from '@/lib/session-cookies';
+import { createAdminClient } from '@/lib/supabase-server';
+
+if (Astro.request.method === 'POST') {
+  const accessToken = Astro.cookies.get(ACCESS_COOKIE)?.value;
+  if (accessToken) {
+    const { error } = await createAdminClient().auth.admin.signOut(
+      accessToken,
+      'local'
+    );
+    if (error) console.warn('[auth] signOut falló:', error.message);
+  }
+  clearSessionCookies(Astro.cookies);
+  return Astro.redirect('/');
+}
+
+return Astro.redirect('/');
+---

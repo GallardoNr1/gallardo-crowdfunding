@@ -1,0 +1,12 @@
+---
+// Superadmin: deja de gestionar otro espacio (borra la cookie gc-admin-tenant) y vuelve al suyo.
+// El middleware ya exige superadmin para todo /admin/espacios/*.
+export const prerender = false;
+
+import { ADMIN_TENANT_COOKIE } from '@/lib/session-cookies';
+
+if (Astro.request.method === 'POST') {
+  Astro.cookies.delete(ADMIN_TENANT_COOKIE, { path: '/' });
+}
+return Astro.redirect('/admin');
+---
