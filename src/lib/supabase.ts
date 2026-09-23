@@ -186,7 +186,10 @@ export async function getProjectsConfig(): Promise<ProjectConfig[] | null> {
   return data;
 }
 
-export async function getProjectBySlug(slug: string): Promise<ProjectConfig | null> {
+/** @deprecated Solo para la redirección de URLs antiguas; usa getProjectByTenantAndSlug. */
+export async function getProjectBySlug(
+  slug: string
+): Promise<ProjectConfig | null> {
   if (!slug) return null;
   const { data, error } = await supabase
     .from('project_config')
@@ -201,7 +204,105 @@ export async function getProjectBySlug(slug: string): Promise<ProjectConfig | nu
   return data;
 }
 
-export async function getContributionLevels(projectId: string): Promise<ContributionLevel[]> {
+const TENANT_COLUMNS = 'id, number, name, avatar_url, created_at';
+
+/** Espacio por su número público (URL /<number>). */
+export async function getTenantByNumber(
+  number: number
+): Promise<Tenant | null> {
+  if (!Number.isInteger(number)) return null;
+  const { data, error } = await supabase
+    .from('tenants')
+    .select(TENANT_COLUMNS)
+    .eq('number', number)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching tenant by number:', error.message);
+    return null;
+  }
+  return data as Tenant | null;
+}
+
+/** Proyecto por espacio + slug (el slug solo es único dentro del espacio). */
+export async function getProjectByTenantAndSlug(
+  tenantId: string,
+  slug: string
+): Promise<ProjectConfig | null> {
+  if (!tenantId || !slug) return null;
+  const { data, error } = await supabase
+    .from('project_config')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching project by tenant and slug:', error.message);
+    return null;
+  }
+  return data;
+}
+
+/** Proyectos de un espacio (públicos; con includePrivate también los privados). Nunca cancelados. */
+export async function getTenantProjects(
+  tenantId: string,
+  { includePrivate = false }: { includePrivate?: boolean } = {}
+): Promise<ProjectConfig[]> {
+  let query = supabase
+    .from('project_config')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .neq('project_status', 'cancelled')
+    .order('created_at', { ascending: false });
+  if (!includePrivate) query = query.eq('visibility', 'public');
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching tenant projects:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Escaparate de la home: proyectos públicos de todos los espacios, con su espacio embebido. */
+export async function getPublicProjects(): Promise<ProjectConfig[]> {
+  const { data, error } = await supabase
+    .from('project_config')
+    .select('*, tenants(number, name)')
+    .eq('visibility', 'public')
+    .neq('project_status', 'cancelled')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching public projects:', error.message);
+    return [];
+  }
+  return (data ?? []) as ProjectConfig[];
+}
+
+/** URL antigua /projects/<slug>: el proyecto más antiguo con ese slug, con el número de su espacio. */
+export async function findLegacyProjectBySlug(
+  slug: string
+): Promise<(ProjectConfig & { tenants: { number: number } }) | null> {
+  if (!slug) return null;
+  const { data, error } = await supabase
+    .from('project_config')
+    .select('*, tenants(number)')
+    .eq('slug', slug)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching legacy project by slug:', error.message);
+    return null;
+  }
+  return (
+    data as (ProjectConfig & { tenants: { number: number } | null }) | null
+  )?.tenants
+    ? (data as ProjectConfig & { tenants: { number: number } })
+    : null;
+}
+
+export async function getContributionLevels(
+  projectId: string
+): Promise<ContributionLevel[]> {
   const { data, error } = await supabase
     .from('contribution_levels')
     .select('*')
@@ -235,7 +336,9 @@ export async function getPublicContributions(
   return data ?? [];
 }
 
-export async function getFamilyMembers(projectId: string): Promise<FamilyMember[]> {
+export async function getFamilyMembers(
+  projectId: string
+): Promise<FamilyMember[]> {
   const { data, error } = await supabase
     .from('family_members')
     .select('*')
@@ -270,7 +373,9 @@ export async function getSupportMessages(
 }
 
 export async function getPaymentMethods(): Promise<PaymentMethodConfig[]> {
-  const { data, error } = await supabase.from('payment_instructions').select('*');
+  const { data, error } = await supabase
+    .from('payment_instructions')
+    .select('*');
   if (error) {
     console.error('Error fetching payment methods:', error.message);
     return [];
@@ -278,7 +383,9 @@ export async function getPaymentMethods(): Promise<PaymentMethodConfig[]> {
   return data ?? [];
 }
 
-export async function getImagesFromFolder(projectId: string): Promise<string[]> {
+export async function getImagesFromFolder(
+  projectId: string
+): Promise<string[]> {
   const folderPath = `projects/${projectId}/fotoFami`;
   const { data, error } = await supabase.storage
     .from('project-assets')
@@ -290,19 +397,27 @@ export async function getImagesFromFolder(projectId: string): Promise<string[]> 
     .filter((item) => item.name)
     .map(
       (item) =>
-        supabase.storage.from('project-assets').getPublicUrl(`${folderPath}/${item.name}`).data
-          .publicUrl
+        supabase.storage
+          .from('project-assets')
+          .getPublicUrl(`${folderPath}/${item.name}`).data.publicUrl
     );
 }
 
-export function normalizeProjectPageContent(raw: unknown): Required<ProjectPageContent> {
+export function normalizeProjectPageContent(
+  raw: unknown
+): Required<ProjectPageContent> {
   const c = (raw ?? {}) as ProjectPageContent;
 
   return {
     pageTitle: c.pageTitle ?? '',
     pageSubtitle: c.pageSubtitle ?? '',
     productUrl: c.productUrl ?? '',
-    mainMessage: c.mainMessage ?? { message: '', signature: '', familyName: '', date: '' },
+    mainMessage: c.mainMessage ?? {
+      message: '',
+      signature: '',
+      familyName: '',
+      date: '',
+    },
     progressTitle: c.progressTitle ?? '🎯 Progreso',
     contributorsTitle: c.contributorsTitle ?? '✨ Contribuidores',
     photoSectionTitle: c.photoSectionTitle ?? '📸 Fotos',
@@ -360,14 +475,22 @@ export function subscribeToProjectEvents(
   const channel = supabase.channel(`project:${projectId}`);
 
   if (handlers.onContribution) {
-    channel.on('broadcast', { event: 'contribution_completed' }, ({ payload }) => {
-      handlers.onContribution?.(payload as ProjectContributionEvent);
-    });
+    channel.on(
+      'broadcast',
+      { event: 'contribution_completed' },
+      ({ payload }) => {
+        handlers.onContribution?.(payload as ProjectContributionEvent);
+      }
+    );
   }
   if (handlers.onSupportMessage) {
-    channel.on('broadcast', { event: 'support_message_approved' }, ({ payload }) => {
-      handlers.onSupportMessage?.(payload as ProjectSupportMessageEvent);
-    });
+    channel.on(
+      'broadcast',
+      { event: 'support_message_approved' },
+      ({ payload }) => {
+        handlers.onSupportMessage?.(payload as ProjectSupportMessageEvent);
+      }
+    );
   }
 
   channel.subscribe();
