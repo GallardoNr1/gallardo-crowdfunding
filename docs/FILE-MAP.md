@@ -32,8 +32,9 @@ gallardo-crowdfunding/
 │   ├── helpers/timeFormating.ts   # Tiempo relativo ("hace 2 días")
 │   ├── layouts/
 │   │   ├── BaseLayout.astro   # Shell público; recibe project + paymentMethods por props
-│   │   ├── AdminLayout.astro  # Shell del backoffice (noindex)
-│   │   ├── Header.astro, Footer.astro
+│   │   ├── AdminLayout.astro  # Shell del backoffice (noindex); espacio y accesos en la barra lateral
+│   │   ├── AuthLayout.astro   # Tarjeta centrada de las páginas de cuenta
+│   │   ├── Header.astro, Footer.astro   # Header: menú de avatar (locals.user / locals.tenant)
 │   ├── lib/
 │   │   ├── supabase.ts               # Cliente anon: tipos, LECTURAS y subscribeToProjectEvents
 │   │   ├── supabase-server.ts        # Cliente service_role (solo servidor)
@@ -41,7 +42,12 @@ gallardo-crowdfunding/
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
 │   │   ├── themes.ts                 # Temas: colores (tokens) + emojis + textos de sección; getTheme, themeCss
 │   │   ├── tenants.ts                # Espacios: número de 6 dígitos, URLs (/<n>/projects/<slug>), iniciales, siteOrigin
-│   │   ├── tenants-server.ts         # getTenantForUser (service role)
+│   │   ├── tenants-server.ts         # getTenantForUser, getTenantByNumberAdmin, requireProjectInTenant (service role)
+│   │   ├── tenant-avatar-server.ts   # Foto del espacio en el bucket `avatars`
+│   │   ├── auth-gate.ts              # authGate (allow/login/forbidden por ruta), safeNext
+│   │   ├── session-server.ts         # verifyAccessToken (jose) + resolveSession (refresco y cookies)
+│   │   ├── auth-routes.ts            # Handlers puros: login, registro, recuperar, confirmar, contraseña
+│   │   ├── auth-supabase.ts          # AuthApi con Supabase + limitadores por IP
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
 │   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
@@ -56,7 +62,7 @@ gallardo-crowdfunding/
 │   │   ├── project-form.ts           # FormData del backoffice → fila de project_config; parseLevelRows
 │   │   ├── env-schema.ts, env.ts     # Validación de variables de entorno al arrancar
 │   │   ├── authz.ts                  # isAdminUser
-│   │   ├── session-cookies.ts        # Cookies HttpOnly de la sesión admin
+│   │   ├── session-cookies.ts        # Cookies HttpOnly de la sesión y cookie del espacio gestionado (superadmin)
 │   │   ├── api.ts                    # json(), clientIp(), readJson()
 │   │   ├── rate-limit.ts             # Limitador en memoria por IP
 │   │   ├── format.ts                 # currencySymbol, formatAmount
@@ -69,12 +75,17 @@ gallardo-crowdfunding/
 │   │   ├── [tenant]/index.astro           # Portada del espacio (/<número>)
 │   │   ├── [tenant]/projects/[slug].astro # Página del proyecto (/<número>/projects/<slug>)
 │   │   ├── projects/[slug].astro          # URL antigua → 301 a la nueva
+│   │   ├── login.astro, registro.astro, recuperar.astro, logout.astro, privacidad.astro
+│   │   ├── auth/confirm.astro             # Enlaces de los emails (token_hash)
+│   │   ├── cuenta/index.astro, cuenta/contrasena.astro
 │   │   ├── api/
 │   │   │   ├── contributions.ts      # POST
 │   │   │   └── support-messages.ts   # POST
 │   │   └── admin/
-│   │       ├── login.astro, logout.astro, index.astro
-│   │       ├── api/draft-project.ts  # POST: borrador de proyecto con IA (requiere sesión admin)
+│   │       ├── index.astro           # Proyectos del espacio (+ bienvenida)
+│   │       ├── login.astro           # Redirige a /login
+│   │       ├── espacios/salir.astro  # Superadmin: volver a su espacio
+│   │       ├── api/draft-project.ts  # POST: borrador de proyecto con IA (requiere sesión)
 │   │       └── projects/
 │   │           ├── new.astro
 │   │           └── [id]/edit.astro, contributions.astro, messages.astro
@@ -83,7 +94,7 @@ gallardo-crowdfunding/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, breadcrumbs, rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── .env.example
 ├── astro.config.mjs
 ├── ecosystem.config.cjs       # PM2 en producción (cwd = current/, modo cluster)
@@ -103,7 +114,7 @@ gallardo-crowdfunding/
 | Campañas por tiempo (cierre, cuenta atrás, base, cantidad libre) | `src/lib/`, `src/components/` | `campaign.ts`, `OpenCampaignSection.astro`, `ContributionLevels.astro` |
 | Temas (colores y emojis de la página de un proyecto) | `src/lib/`, `src/styles/` | `themes.ts` (añadir/editar temas), `tokens.css` (tokens que sobrescriben) |
 | Crear/editar proyectos, niveles, emojis | `src/pages/admin/projects/` | `new.astro`, `[id]/edit.astro`, `src/lib/project-form.ts` |
-| Quién puede entrar al backoffice | `src/` | `middleware.ts`, `lib/authz.ts`, `.env` (`ADMIN_EMAILS`) |
+| Quién puede entrar al backoffice y qué ve | `src/` | `middleware.ts`, `lib/auth-gate.ts`, `lib/session-server.ts`, `lib/tenants-server.ts`, `lib/authz.ts` (superadmin), `.env` (`ADMIN_EMAILS`, `SUPABASE_JWT_SECRET`) |
 | Cabeceras de seguridad / CSP | `src/` | `middleware.ts` |
 | El modal de contribución | `src/components/` | `ContributionModal.astro` (script cliente) |
 | Lista de contribuidores en tiempo real | `src/components/react/ContributorsList/` | `ContributorsList.tsx`, `src/lib/supabase.ts` (`subscribeToProjectEvents`) |

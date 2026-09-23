@@ -17,6 +17,7 @@ En orden, una a una. Cada archivo lleva su bloque `-- down` comentado.
 | 6 | `20260922100400_rls_lockdown.sql` | RLS: anon solo lee; sin acceso a `contributor_email` | **Después** de desplegar el código nuevo |
 | 7 | `20260922110000_open_campaigns.sql` | Campañas por tiempo: `campaign_mode`, aportación base, cantidad libre; recrea `public_contributions` con LEFT JOIN | Antes de crear el proyecto de la bici |
 | 8 | `20260923100000_tenants.sql` | Espacios: tabla `tenants`, trigger que crea el espacio de cada usuario nuevo, backfill del usuario actual, `tenant_id` + `visibility` en `project_config`, slug único **por espacio** (sustituye a la 5) | Después de la 5; **antes** de desplegar la fase 1 de espacios (compatible con el código anterior) |
+| 9 | `20260923110000_avatars_bucket.sql` | Bucket público `avatars` (foto de cada espacio) con política de lectura | Antes de desplegar la fase 2 (cuentas) |
 
 **Opción A — SQL Editor:** pegar y ejecutar cada archivo en el dashboard (Database → SQL Editor).
 
@@ -43,15 +44,17 @@ Revisar el archivo generado y commitearlo antes que las migraciones anteriores (
 
 ## Acceso al backoffice
 
-Solo entran usuarios con `app_metadata.role = 'admin'` o cuyo email esté en `ADMIN_EMAILS` (`.env`).
+Desde la fase 2 de espacios cualquier persona registrada entra en `/admin` y ve **su** espacio.
+Los usuarios con `app_metadata.role = 'admin'` o cuyo email esté en `ADMIN_EMAILS` (`.env`) son
+**superadmin**: además gestionan cualquier espacio desde `/admin/espacios`.
 Para dar el rol desde SQL:
 ```sql
 update auth.users
    set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
  where email = 'tu-email@dominio.com';
 ```
-Y en el dashboard → Authentication → Providers → Email: desactivar **Allow new users to sign up**
-para que nadie pueda registrarse por su cuenta.
+En el dashboard → Authentication → Providers → Email: **activar** *Allow new users to sign up* y
+*Confirm email* (el registro es público desde la fase 2; ver `docs/INFRA.md` → "Supabase Auth").
 
 ## Comprobar las políticas
 
