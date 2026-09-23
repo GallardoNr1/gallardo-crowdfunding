@@ -36,6 +36,37 @@ describe('parseEnv', () => {
     ).toBe('s'.repeat(40));
   });
 
+  it('builds the SMTP config only when a host is given', () => {
+    expect(parseEnv(valid).smtp).toBeNull();
+    const env = parseEnv({
+      ...valid,
+      SMTP_HOST: 'smtp.example.com',
+      SMTP_USER: 'u',
+      SMTP_PASS: 'p',
+    });
+    expect(env.smtp).toEqual({
+      host: 'smtp.example.com',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      secure: false,
+      from: 'Gallardo Crowdfunding <no-reply@smtp.example.com>',
+    });
+    expect(
+      parseEnv({
+        ...valid,
+        SMTP_HOST: 'h',
+        SMTP_PORT: '465',
+        SMTP_SECURE: 'true',
+        MAIL_FROM: 'GC <a@b.co>',
+      }).smtp
+    ).toMatchObject({
+      port: 465,
+      secure: true,
+      from: 'GC <a@b.co>',
+    });
+  });
+
   it('leaves the Anthropic key null when missing or blank', () => {
     expect(parseEnv(valid).anthropicApiKey).toBeNull();
     expect(

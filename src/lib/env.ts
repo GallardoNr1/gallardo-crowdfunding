@@ -11,6 +11,12 @@ export const env = parseEnv({
   SUPABASE_SERVICE_ROLE_KEY: import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
   ADMIN_EMAILS: import.meta.env.ADMIN_EMAILS,
   SUPABASE_JWT_SECRET: import.meta.env.SUPABASE_JWT_SECRET,
+  SMTP_HOST: import.meta.env.SMTP_HOST,
+  SMTP_PORT: import.meta.env.SMTP_PORT,
+  SMTP_USER: import.meta.env.SMTP_USER,
+  SMTP_PASS: import.meta.env.SMTP_PASS,
+  SMTP_SECURE: import.meta.env.SMTP_SECURE,
+  MAIL_FROM: import.meta.env.MAIL_FROM,
   ANTHROPIC_API_KEY: import.meta.env.ANTHROPIC_API_KEY,
   ANTHROPIC_WORKSPACE_ID: import.meta.env.ANTHROPIC_WORKSPACE_ID,
 });

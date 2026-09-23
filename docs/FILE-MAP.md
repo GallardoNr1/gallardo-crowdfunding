@@ -56,6 +56,10 @@ gallardo-crowdfunding/
 │   │   ├── auth-supabase.ts          # AuthApi con Supabase + limitadores por IP
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
+│   │   ├── project-photos-server.ts  # Fotos de la familia (projects/<id>/fotoFami): listar, subir, borrar
+│   │   ├── notifications.ts          # Emails al organizador (textos + orquestación, puro)
+│   │   ├── notifications-server.ts   # Avisos con Supabase (dueño del espacio) + SMTP
+│   │   ├── mailer.ts                 # Transporte SMTP (nodemailer) según env.smtp
 │   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
 │   │   ├── client/level-rows.ts      # Backoffice (alta): filas de niveles clonando un <template>
 │   │   ├── client/ai-draft.ts        # Backoffice (alta): panel "Rellenar con IA" → vuelca el borrador

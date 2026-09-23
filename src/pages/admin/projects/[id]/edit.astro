@@ -9,6 +9,11 @@ import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
 import { projectUrl, siteOrigin } from '@/lib/tenants';
 import { requireProjectInTenant } from '@/lib/tenants-server';
+import {
+  deleteProjectPhoto,
+  listProjectPhotos,
+  uploadProjectPhotos,
+} from '@/lib/project-photos-server';
 import { DEFAULT_THEME_ID, THEMES, THEME_IDS, isThemeId } from '@/lib/themes';
 
 const { id } = Astro.params;
@@ -86,6 +91,30 @@ if (Astro.request.method === 'POST') {
         }
       }
     }
+  }
+
+  // Fotos de la familia (sección "Fotos" de la página pública)
+  if (action === 'add_photos') {
+    const upload = await uploadProjectPhotos(
+      supabase,
+      id!,
+      form.getAll('photos')
+    );
+    if (upload.uploaded > 0)
+      successMsg = `✅ ${upload.uploaded} ${upload.uploaded === 1 ? 'foto subida' : 'fotos subidas'}.`;
+    if (upload.errors.length > 0) error = upload.errors.join(' · ');
+    if (upload.uploaded === 0 && upload.errors.length === 0)
+      error = 'No has seleccionado ninguna foto.';
+  }
+
+  if (action === 'delete_photo') {
+    const removed = await deleteProjectPhoto(
+      supabase,
+      id!,
+      String(form.get('photo_name') ?? '')
+    );
+    if (removed.ok) successMsg = '✅ Foto borrada.';
+    else error = removed.error;
   }
 
   // Añadir nivel de contribución
@@ -219,6 +248,7 @@ const publicPath = projectUrl(project.tenants?.number ?? 0, project.slug);
 const publicHref =
   siteOrigin(Astro.request.headers, Astro.url.origin) + publicPath;
 const aiConfigured = isDraftConfigured();
+const photos = await listProjectPhotos(supabase, id!);
 // Niveles actuales como contexto para "Ajustar con IA" (no los modifica: se editan en su sección).
 const levelsForAi = (levels ?? []).map((l) => ({
   name: l.name,
@@ -809,6 +839,79 @@ const levelsForAi = (levels ?? []).map((l) => ({
   </form>
 
   <!-- ── Niveles de contribución ─────────────────────────────────────────── -->
+  <section class='form-section photos-section'>
+    <h2 class='section-title'>Fotos de la familia</h2>
+    <p class='section-hint'>
+      Se muestran en la sección "{pc.photoSectionTitle ?? '📸 Fotos'}" de la
+      página pública, en el orden en que se suben.
+    </p>
+    {photos.length > 0 ? (
+      <ul class='photos-grid'>
+        {photos.map((photo) => (
+          <li class='photo-item'>
+            <img
+              src={photo.url}
+              alt=''
+              loading='lazy'
+            />
+            <form
+              method='POST'
+              class='delete-form photo-delete'
+              onsubmit="return confirm('¿Borrar esta foto?')"
+            >
+              <input
+                type='hidden'
+                name='_action'
+                value='delete_photo'
+              />
+              <input
+                type='hidden'
+                name='photo_name'
+                value={photo.name}
+              />
+              <button
+                type='submit'
+                class='photo-delete-btn'
+                aria-label='Borrar foto'
+              >
+                ✕
+              </button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class='photos-empty'>Todavía no hay fotos.</p>
+    )}
+    <form
+      method='POST'
+      class='photos-upload'
+      enctype='multipart/form-data'
+    >
+      <input
+        type='hidden'
+        name='_action'
+        value='add_photos'
+      />
+      <label for='photos'>Subir fotos (puedes elegir varias)</label>
+      <input
+        type='file'
+        name='photos'
+        id='photos'
+        accept='image/jpeg,image/png,image/webp,image/gif'
+        multiple
+        required
+      />
+      <small>JPG, PNG, WEBP o GIF, máximo 5 MB cada una y 12 por vez.</small>
+      <button
+        type='submit'
+        class='btn-secondary'
+      >
+        📸 Subir
+      </button>
+    </form>
+  </section>
+
   <section class='form-section levels-section'>
     <h2 class='section-title'>Niveles de contribución</h2>
 
@@ -1619,6 +1722,72 @@ const levelsForAi = (levels ?? []).map((l) => ({
   label.ai-filled {
     border-color: #8b5cf6 !important;
     background: #faf5ff !important;
+  }
+
+  /* ── Fotos de la familia ── */
+  .photos-grid {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .photo-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--color-admin-bg);
+    border: 1px solid var(--color-admin-border);
+  }
+
+  .photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .photo-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+
+  .photo-delete-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(17, 24, 39, 0.75);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+
+  .photo-delete-btn:hover {
+    background: var(--color-error);
+  }
+
+  .photos-empty {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0 0 14px;
+  }
+
+  .photos-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 480px;
+  }
+
+  .photos-upload .btn-secondary {
+    align-self: flex-start;
+    margin-top: 6px;
   }
 </style>
 

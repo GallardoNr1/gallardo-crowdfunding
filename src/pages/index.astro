@@ -21,10 +21,11 @@ let errorLoadingProjects = false;
 
 try {
   const projects = await getPublicProjects();
-  // Abiertas primero; el resto por fecha de creación (ya viene ordenado así).
-  const sorted = [...projects].sort(
-    (a, b) => Number(isCampaignOpen(b)) - Number(isCampaignOpen(a))
-  );
+  // Escaparate: solo proyectos activos (los completados o pausados se ven en la portada de su espacio).
+  // Abiertos por fecha primero; el resto por fecha de creación (ya viene ordenado así).
+  const sorted = projects
+    .filter((p) => p.project_status === 'active')
+    .sort((a, b) => Number(isCampaignOpen(b)) - Number(isCampaignOpen(a)));
   items = sorted
     .flatMap((project) =>
       project.tenants
@@ -217,7 +218,7 @@ const features = [
       ) : (
         <ProjectsList
           items={items}
-          emptyText='Todavía no hay proyectos públicos. ¡El tuyo puede ser el primero!'
+          emptyText='Ahora mismo no hay proyectos activos. ¡El tuyo puede ser el siguiente!'
         />
       )}
     </section>

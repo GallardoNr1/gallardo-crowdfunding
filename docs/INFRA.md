@@ -23,6 +23,7 @@ de GitHub Actions al hacer `npm run build`.
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio: endpoints `/api/*` y backoffice. Nunca con prefijo `PUBLIC_` | Sí |
 | `ADMIN_EMAILS` | Emails (coma) con acceso al backoffice además de los usuarios con `app_metadata.role = 'admin'` | No |
 | `SUPABASE_JWT_SECRET` | Secreto JWT del proyecto (Project Settings → API → JWT Settings). Con él la sesión se verifica en local; sin él cada petición con sesión llama a `auth.getUser` (funciona, pero más lento) | No |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` (`true` para 465), `MAIL_FROM` | SMTP de los avisos por email al organizador (nueva aportación pendiente, mensaje de apoyo pendiente). Sin `SMTP_HOST` no se envía nada. Se puede usar el mismo proveedor que en Supabase Auth (Resend, Brevo…) | No |
 | `ANTHROPIC_API_KEY` | Clave de la API de Anthropic para el panel "Rellenar con IA" del alta de proyectos. Sin ella el panel muestra un aviso y el resto funciona igual. Solo servidor | No |
 | `ANTHROPIC_WORKSPACE_ID` | Solo si la API responde "This API key is not scoped to a workspace": ID del workspace (`wrkspc_…`, Console → Settings → Workspaces). Se envía como cabecera `anthropic-workspace-id` | No |
 

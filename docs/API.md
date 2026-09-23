@@ -39,7 +39,7 @@ los proyectos de **su** espacio (`locals.tenant`); abrir un proyecto ajeno devue
 | GET/POST | `/admin/espacios` | Superadmin: todos los espacios (dueño, nº de proyectos); `_action=enter` + `tenant_number` fija la cookie `gc-admin-tenant` y abre ese backoffice; `_action=delete` + `tenant_number` borra un espacio ajeno por completo; `_action=invite` (`email`, `space_name`, `mode=password\|email`) crea el espacio de otra persona | `src/pages/admin/espacios/index.astro` |
 | POST | `/admin/espacios/salir` | Superadmin: deja de gestionar otro espacio (borra la cookie) | `src/pages/admin/espacios/salir.astro` |
 | GET/POST | `/admin/projects/new` | Crear proyecto (validado con `parseProjectForm`; slug único). `multipart/form-data`; campo `project_image` opcional (JPG/PNG/WEBP/GIF ≤ 5 MB) | `src/pages/admin/projects/new.astro` |
-| GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji` | `src/pages/admin/projects/[id]/edit.astro` |
+| GET/POST | `/admin/projects/:id/edit` | `update_project`, `add_level`, `delete_level`, `add_emoji`, `delete_emoji`, `add_photos` (campo `photos`, varias), `delete_photo` (`photo_name`) | `src/pages/admin/projects/[id]/edit.astro` |
 | GET/POST | `/admin/projects/:id/contributions` | `set_status` con `status` ∈ `pending` / `completed` / `failed` (recalcula `current_amount`) | `src/pages/admin/projects/[id]/contributions.astro` |
 | GET/POST | `/admin/projects/:id/messages` | `approve`, `unapprove`, `delete` | `src/pages/admin/projects/[id]/messages.astro` |
 
@@ -71,7 +71,7 @@ Crea una contribución **pendiente**. El importe lo decide el servidor: del nive
 
 | Código | Cuándo |
 |--------|--------|
-| `201` | `{ "id", "amount", "level_name", "payment_status": "pending" }` |
+| `201` | `{ "id", "amount", "level_name", "payment_status": "pending" }`. Además avisa por email al organizador si hay SMTP configurado (sin bloquear la respuesta) |
 | `400` | Datos no válidos (`fields`) |
 | `404` | Proyecto inexistente |
 | `409` | Proyecto no activo o campaña cerrada por fecha |

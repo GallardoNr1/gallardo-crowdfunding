@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Avisos por email al organizador, fotos de la familia y escaparate solo con activos
+
+- **Qué cambió:** (1) Cuando llega una aportación (queda pendiente) o un mensaje de apoyo (pendiente de moderar), el dueño del espacio recibe un email con los datos y el enlace a la pantalla de confirmación/moderación (`notifications.ts` + `mailer.ts` con nodemailer; variables `SMTP_*` y `MAIL_FROM`, opcionales). Se envía sin bloquear la respuesta y nunca falla la operación por el email. (2) Sección "Fotos de la familia" en la edición del proyecto: subir varias fotos (JPG/PNG/WEBP/GIF ≤ 5 MB, 12 por vez) y borrarlas; van a `projects/<id>/fotoFami/`, la carpeta que ya lee la página pública. (3) El escaparate de la landing solo muestra proyectos activos.
+- **Por qué:** Hasta ahora había que entrar al panel para enterarse de una aportación, las fotos solo se podían subir a mano en Supabase y los proyectos terminados llenaban la portada.
+- **Archivos tocados:** `src/lib/{notifications,notifications-server,mailer,project-photos-server,env-schema,env}.ts`, `src/pages/api/{contributions,support-messages}.ts`, `src/pages/admin/projects/[id]/edit.astro`, `src/pages/index.astro`, `.env.example`, `tests/{notifications,project-photos,env-schema}.test.ts`, `docs/*`, `package.json` (`nodemailer`).
+- **Impacto:** Los avisos requieren `SMTP_HOST` (y el resto de `SMTP_*`) en `.env` y en `ENV_LOCAL`; sin ellos no se envía nada y todo lo demás funciona igual.
+
+---
+
 ## [2026-09-23] — Botón Compartir en la página del proyecto
 
 - **Qué cambió:** `ShareButton.astro`: "Compartir" (icono de nodos) abre el menú nativo con la Web Share API (móvil y navegadores compatibles) o copia el enlace y avisa con el toast. En la página del proyecto va dentro de la tarjeta, bajo la descripción (prop `share` de `ProductCard`); en las tarjetas de la lista (landing y portada del espacio) solo el icono, abajo a la derecha. Sin botón de WhatsApp (el menú nativo ya lo incluye).
