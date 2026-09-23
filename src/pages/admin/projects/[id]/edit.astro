@@ -1,7 +1,9 @@
 ---
 export const prerender = false;
 
+import AiDraftPanel from '@/components/admin/AiDraftPanel.astro';
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { isDraftConfigured } from '@/lib/project-draft-server';
 import { parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
@@ -52,8 +54,11 @@ if (Astro.request.method === 'POST') {
         error = `Ya existe otro proyecto con el slug "${parsed.data.slug}" en este espacio.`;
       } else {
         const existingStats =
-          (current.page_content as { cta?: { stats?: { number: string; label: string }[] } } | null)
-            ?.cta?.stats ?? [];
+          (
+            current.page_content as {
+              cta?: { stats?: { number: string; label: string }[] };
+            } | null
+          )?.cta?.stats ?? [];
         const { error: dbErr } = await supabase
           .from('project_config')
           .update({
@@ -70,9 +75,14 @@ if (Astro.request.method === 'POST') {
           error = dbErr.message;
         } else {
           successMsg = '✅ Proyecto actualizado correctamente.';
-          const upload = await uploadProjectImage(supabase, id!, form.get('project_image'));
+          const upload = await uploadProjectImage(
+            supabase,
+            id!,
+            form.get('project_image')
+          );
           if (!upload.ok) error = `La imagen no se ha subido: ${upload.error}`;
-          else if (upload.url) successMsg = '✅ Proyecto e imagen actualizados.';
+          else if (upload.url)
+            successMsg = '✅ Proyecto e imagen actualizados.';
         }
       }
     }
@@ -85,19 +95,21 @@ if (Astro.request.method === 'POST') {
     if (!name || !Number.isFinite(amount) || amount <= 0) {
       error = 'El nivel necesita un nombre y un importe mayor que 0.';
     } else {
-      const { error: dbErr } = await supabase.from('contribution_levels').insert([
-        {
-          project_id: id,
-          name,
-          amount,
-          emoji: (form.get('level_emoji') as string) || '⭐',
-          description: (form.get('level_description') as string) || '',
-          color: (form.get('level_color') as string) || '#6366f1',
-          rewards: [],
-          is_active: true,
-          sort_order: parseInt(form.get('level_sort_order') as string) || 0,
-        },
-      ]);
+      const { error: dbErr } = await supabase
+        .from('contribution_levels')
+        .insert([
+          {
+            project_id: id,
+            name,
+            amount,
+            emoji: (form.get('level_emoji') as string) || '⭐',
+            description: (form.get('level_description') as string) || '',
+            color: (form.get('level_color') as string) || '#6366f1',
+            rewards: [],
+            is_active: true,
+            sort_order: parseInt(form.get('level_sort_order') as string) || 0,
+          },
+        ]);
 
       if (dbErr) error = dbErr.message;
       else successMsg = '✅ Nivel añadido.';
@@ -122,10 +134,18 @@ if (Astro.request.method === 'POST') {
     const emojiValue = (form.get('emoji_value') as string).trim();
     const emojiLabel = (form.get('emoji_label') as string).trim();
     if (emojiValue && emojiLabel) {
-      const currentOptions = (current.emoji_options ?? []) as { value: string; label: string }[];
+      const currentOptions = (current.emoji_options ?? []) as {
+        value: string;
+        label: string;
+      }[];
       const { error: dbErr } = await supabase
         .from('project_config')
-        .update({ emoji_options: [...currentOptions, { value: emojiValue, label: emojiLabel }] })
+        .update({
+          emoji_options: [
+            ...currentOptions,
+            { value: emojiValue, label: emojiLabel },
+          ],
+        })
         .eq('id', id);
       if (dbErr) error = dbErr.message;
       else successMsg = '✅ Emoji añadido.';
@@ -135,7 +155,10 @@ if (Astro.request.method === 'POST') {
   // Eliminar emoji option
   if (action === 'delete_emoji') {
     const idx = parseInt(form.get('emoji_index') as string);
-    const currentOptions = (current.emoji_options ?? []) as { value: string; label: string }[];
+    const currentOptions = (current.emoji_options ?? []) as {
+      value: string;
+      label: string;
+    }[];
     const updated = currentOptions.filter((_, i) => i !== idx);
     const { error: dbErr } = await supabase
       .from('project_config')
@@ -147,10 +170,19 @@ if (Astro.request.method === 'POST') {
 }
 
 // ── Cargar datos actuales (tras el POST) ─────────────────────────────────────
-const [{ data: project, error: projectErr }, { data: levels }] = await Promise.all([
-  supabase.from('project_config').select('*, tenants(number, name)').eq('id', id).single(),
-  supabase.from('contribution_levels').select('*').eq('project_id', id).order('sort_order'),
-]);
+const [{ data: project, error: projectErr }, { data: levels }] =
+  await Promise.all([
+    supabase
+      .from('project_config')
+      .select('*, tenants(number, name)')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('contribution_levels')
+      .select('*')
+      .eq('project_id', id)
+      .order('sort_order'),
+  ]);
 
 if (projectErr || !project) {
   return Astro.redirect('/admin');
@@ -161,7 +193,10 @@ const pc = (project.page_content ?? {}) as Record<string, any>;
 const mm = pc.mainMessage ?? {};
 const cta = pc.cta ?? {};
 
-const emojiOptions = (project.emoji_options ?? []) as { value: string; label: string }[];
+const emojiOptions = (project.emoji_options ?? []) as {
+  value: string;
+  label: string;
+}[];
 
 const createdParam = Astro.url.searchParams.get('created');
 const createdLevels = Number(Astro.url.searchParams.get('levels')) || 0;
@@ -174,54 +209,117 @@ if (createdParam) {
 const imageErrorParam = Astro.url.searchParams.get('image_error');
 if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
 const levelsErrorParam = Astro.url.searchParams.get('levels_error');
-if (levelsErrorParam) error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos abajo.`;
+if (levelsErrorParam)
+  error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos abajo.`;
 const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
-const currentVisibility = project.visibility === 'public' ? 'public' : 'private';
+const currentVisibility =
+  project.visibility === 'public' ? 'public' : 'private';
 // URL pública nueva (/<número>/projects/<slug>); absoluta para el botón de copiar.
 const publicPath = projectUrl(project.tenants?.number ?? 0, project.slug);
-const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicPath;
+const publicHref =
+  siteOrigin(Astro.request.headers, Astro.url.origin) + publicPath;
+const aiConfigured = isDraftConfigured();
+// Niveles actuales como contexto para "Ajustar con IA" (no los modifica: se editan en su sección).
+const levelsForAi = (levels ?? []).map((l) => ({
+  name: l.name,
+  amount: Number(l.amount) || 0,
+  emoji: l.emoji ?? '',
+  description: l.description ?? '',
+  color: l.color ?? '',
+}));
 ---
 
 <AdminLayout title={`Editar: ${project.project_name}`}>
   {successMsg && <div class='alert-success'>{successMsg}</div>}
   {error && <div class='alert-error'>⚠️ {error}</div>}
-  {
-    Object.keys(fieldErrors).length > 0 && (
-      <ul class='alert-error field-errors'>
-        {Object.entries(fieldErrors).map(([field, message]) => (
-          <li>
-            <code>{field}</code>: {message}
-          </li>
-        ))}
-      </ul>
-    )
-  }
+  {Object.keys(fieldErrors).length > 0 && (
+    <ul class='alert-error field-errors'>
+      {Object.entries(fieldErrors).map(([field, message]) => (
+        <li>
+          <code>{field}</code>: {message}
+        </li>
+      ))}
+    </ul>
+  )}
 
   <nav class='subnav'>
-    <a href={`/admin/projects/${id}/contributions`} class='subnav-link'>💳 Contribuciones</a>
-    <a href={`/admin/projects/${id}/messages`} class='subnav-link'>💬 Mensajes de apoyo</a>
-    <a href={publicPath} target='_blank' class='subnav-link'>👁 Ver página</a>
+    <a
+      href={`/admin/projects/${id}/contributions`}
+      class='subnav-link'
+    >
+      💳 Contribuciones
+    </a>
+    <a
+      href={`/admin/projects/${id}/messages`}
+      class='subnav-link'
+    >
+      💬 Mensajes de apoyo
+    </a>
+    <a
+      href={publicPath}
+      target='_blank'
+      class='subnav-link'
+    >
+      👁 Ver página
+    </a>
   </nav>
 
+  <AiDraftPanel
+    mode='edit'
+    configured={aiConfigured}
+  />
+
   <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
-  <form method='POST' class='project-form' enctype='multipart/form-data'>
-    <input type='hidden' name='_action' value='update_project' />
+  <form
+    method='POST'
+    class='project-form'
+    enctype='multipart/form-data'
+  >
+    <script
+      type='application/json'
+      data-level-json
+      set:html={JSON.stringify(levelsForAi)}
+    ></script>
+    <input
+      type='hidden'
+      name='_action'
+      value='update_project'
+    />
 
     <section class='form-section'>
       <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
       <div class='mode-options'>
         <label class='mode-option'>
-          <input type='radio' name='campaign_mode' value='target' checked={project.campaign_mode !== 'open'} />
+          <input
+            type='radio'
+            name='campaign_mode'
+            value='target'
+            checked={project.campaign_mode !== 'open'}
+          />
           <span class='mode-option__body'>
             <strong>🎯 Al alcanzar un objetivo de dinero</strong>
-            <small>Hay un producto concreto con precio. Barra de progreso y porcentaje. La fecha de cierre es opcional.</small>
+            <small>
+              Hay un producto concreto con precio. Barra de progreso y
+              porcentaje. La fecha de cierre es opcional.
+            </small>
           </span>
         </label>
         <label class='mode-option'>
-          <input type='radio' name='campaign_mode' value='open' checked={project.campaign_mode === 'open'} />
+          <input
+            type='radio'
+            name='campaign_mode'
+            value='open'
+            checked={project.campaign_mode === 'open'}
+          />
           <span class='mode-option__body'>
-            <strong>⏳ En una fecha de cierre (recaudar lo máximo posible)</strong>
-            <small>Sin objetivo ni producto fijo: lo que se compre depende de lo recaudado. Se muestra lo conseguido, la aportación base y una cuenta atrás.</small>
+            <strong>
+              ⏳ En una fecha de cierre (recaudar lo máximo posible)
+            </strong>
+            <small>
+              Sin objetivo ni producto fijo: lo que se compre depende de lo
+              recaudado. Se muestra lo conseguido, la aportación base y una
+              cuenta atrás.
+            </small>
           </span>
         </label>
       </div>
@@ -232,28 +330,50 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
       <div class='form-grid'>
         <div class='field full'>
           <label for='project_name'>Nombre del proyecto *</label>
-          <input type='text' name='project_name' id='project_name' required value={project.project_name} />
+          <input
+            type='text'
+            name='project_name'
+            id='project_name'
+            required
+            value={project.project_name}
+          />
         </div>
 
         <div class='field'>
           <label for='slug'>Slug (URL) *</label>
           <div class='input-prefix'>
             <span class='prefix'>/projects/</span>
-            <input type='text' name='slug' id='slug' required value={project.slug}
-              pattern='[a-z0-9\-]+' title='Solo letras minúsculas, números y guiones' />
+            <input
+              type='text'
+              name='slug'
+              id='slug'
+              required
+              value={project.slug}
+              pattern='[a-z0-9\-]+'
+              title='Solo letras minúsculas, números y guiones'
+            />
           </div>
           <small>Solo minúsculas, números y guiones.</small>
         </div>
 
         <div class='field'>
           <label for='project_status'>Estado</label>
-          <select name='project_status' id='project_status'>
+          <select
+            name='project_status'
+            id='project_status'
+          >
             {['active', 'paused', 'completed', 'cancelled'].map((s) => (
-              <option value={s} selected={project.project_status === s}>
-                {s === 'active' ? 'Activo'
-                  : s === 'paused' ? 'Pausado'
-                  : s === 'completed' ? 'Completado'
-                  : 'Cancelado'}
+              <option
+                value={s}
+                selected={project.project_status === s}
+              >
+                {s === 'active'
+                  ? 'Activo'
+                  : s === 'paused'
+                    ? 'Pausado'
+                    : s === 'completed'
+                      ? 'Completado'
+                      : 'Cancelado'}
               </option>
             ))}
           </select>
@@ -263,17 +383,32 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
           <span class='field-label'>Visibilidad</span>
           <div class='mode-options'>
             <label class='mode-option'>
-              <input type='radio' name='visibility' value='private' checked={currentVisibility === 'private'} />
+              <input
+                type='radio'
+                name='visibility'
+                value='private'
+                checked={currentVisibility === 'private'}
+              />
               <span class='mode-option__body'>
                 <strong>🔒 Privado</strong>
-                <small>Solo lo ve quien tenga el enlace. No aparece en la portada de la web.</small>
+                <small>
+                  Solo lo ve quien tenga el enlace. No aparece en la portada de
+                  la web.
+                </small>
               </span>
             </label>
             <label class='mode-option'>
-              <input type='radio' name='visibility' value='public' checked={currentVisibility === 'public'} />
+              <input
+                type='radio'
+                name='visibility'
+                value='public'
+                checked={currentVisibility === 'public'}
+              />
               <span class='mode-option__body'>
                 <strong>🌍 Público</strong>
-                <small>Aparece en la portada de la web y en la página de tu espacio.</small>
+                <small>
+                  Aparece en la portada de la web y en la página de tu espacio.
+                </small>
               </span>
             </label>
           </div>
@@ -281,104 +416,216 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
 
         <div class='field full'>
           <label for='project_description'>Descripción</label>
-          <textarea name='project_description' id='project_description' rows='3'>{project.project_description ?? ''}</textarea>
+          <textarea
+            name='project_description'
+            id='project_description'
+            rows='3'
+          >{project.project_description ?? ''}</textarea>
         </div>
 
-        <div class='field' data-mode='target'>
+        <div
+          class='field'
+          data-mode='target'
+        >
           <label for='target_amount'>Meta (importe) *</label>
-          <input type='number' name='target_amount' id='target_amount' min='1' step='0.01'
-            value={project.target_amount || ''} data-required-in='target' />
+          <input
+            type='number'
+            name='target_amount'
+            id='target_amount'
+            min='1'
+            step='0.01'
+            value={project.target_amount || ''}
+            data-required-in='target'
+          />
         </div>
 
         <div class='field'>
           <label for='currency'>Moneda</label>
-          <input type='text' name='currency' id='currency' value={project.currency ?? 'EUR'} maxlength='5' />
+          <input
+            type='text'
+            name='currency'
+            id='currency'
+            value={project.currency ?? 'EUR'}
+            maxlength='5'
+          />
         </div>
 
         <div class='field full'>
           <label for='project_image'>Imagen (subir desde el dispositivo)</label>
-          <input type='file' name='project_image' id='project_image' accept='image/jpeg,image/png,image/webp,image/gif' />
-          <small>JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, sustituye a la imagen actual.</small>
+          <input
+            type='file'
+            name='project_image'
+            id='project_image'
+            accept='image/jpeg,image/png,image/webp,image/gif'
+          />
+          <small>
+            JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, sustituye a
+            la imagen actual.
+          </small>
           {project.project_image_url && (
-            <img src={project.project_image_url} alt='Imagen actual del proyecto' class='image-preview' />
+            <img
+              src={project.project_image_url}
+              alt='Imagen actual del proyecto'
+              class='image-preview'
+            />
           )}
         </div>
 
         <div class='field full'>
           <label for='project_image_url'>… o URL de la imagen</label>
-          <input type='url' name='project_image_url' id='project_image_url' value={project.project_image_url ?? ''} />
-          <small data-mode='open'>En campañas por tiempo es solo ilustrativa (no enlaza a ningún producto).</small>
+          <input
+            type='url'
+            name='project_image_url'
+            id='project_image_url'
+            value={project.project_image_url ?? ''}
+          />
+          <small data-mode='open'>
+            En campañas por tiempo es solo ilustrativa (no enlaza a ningún
+            producto).
+          </small>
         </div>
 
         <div class='field'>
           <label for='start_date'>Fecha de inicio</label>
-          <input type='date' name='start_date' id='start_date'
-            value={project.start_date ? project.start_date.split('T')[0] : ''} />
+          <input
+            type='date'
+            name='start_date'
+            id='start_date'
+            value={project.start_date ? project.start_date.split('T')[0] : ''}
+          />
         </div>
 
         <div class='field'>
           <label for='end_date'>Fecha de cierre</label>
-          <input type='date' name='end_date' id='end_date'
-            value={project.end_date ? project.end_date.split('T')[0] : ''} data-required-in='open' />
-          <small data-mode='open'>Obligatoria: la campaña se cierra sola al terminar ese día.</small>
-          <small data-mode='target'>Opcional: si se indica, la campaña se cierra sola al terminar ese día.</small>
+          <input
+            type='date'
+            name='end_date'
+            id='end_date'
+            value={project.end_date ? project.end_date.split('T')[0] : ''}
+            data-required-in='open'
+          />
+          <small data-mode='open'>
+            Obligatoria: la campaña se cierra sola al terminar ese día.
+          </small>
+          <small data-mode='target'>
+            Opcional: si se indica, la campaña se cierra sola al terminar ese
+            día.
+          </small>
         </div>
 
         <div class='field full'>
           <label for='redirect_url'>URL de redirección al finalizar</label>
-          <input type='text' name='redirect_url' id='redirect_url' value={project.redirect_url ?? '/'} />
+          <input
+            type='text'
+            name='redirect_url'
+            id='redirect_url'
+            value={project.redirect_url ?? '/'}
+          />
         </div>
       </div>
     </section>
 
     <section class='form-section'>
       <h2 class='section-title'>Aspecto</h2>
-      <p class='section-hint'>Colores y emojis decorativos de la página del proyecto (no cambia los emojis que escribes tú).</p>
+      <p class='section-hint'>
+        Colores y emojis decorativos de la página del proyecto (no cambia los
+        emojis que escribes tú).
+      </p>
       <div class='theme-options'>
-        {
-          THEME_IDS.map((id) => {
-            const t = THEMES[id];
-            return (
-              <label class='theme-option'>
-                <input type='radio' name='theme' value={id} checked={currentTheme === id} />
-                <span class='theme-option__body'>
-                  <span class='theme-swatch' aria-hidden='true'>
-                    {t.swatch.map((c) => <i style={`background:${c}`} />)}
-                  </span>
-                  <strong>{t.name}</strong>
-                  <small>{t.description}</small>
-                  <span class='theme-emojis' aria-hidden='true'>
-                    {t.emojis.levels} {t.emojis.message} {t.emojis.support} {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
-                  </span>
+        {THEME_IDS.map((id) => {
+          const t = THEMES[id];
+          return (
+            <label class='theme-option'>
+              <input
+                type='radio'
+                name='theme'
+                value={id}
+                checked={currentTheme === id}
+              />
+              <span class='theme-option__body'>
+                <span
+                  class='theme-swatch'
+                  aria-hidden='true'
+                >
+                  {t.swatch.map((c) => (
+                    <i style={`background:${c}`} />
+                  ))}
                 </span>
-              </label>
-            );
-          })
-        }
+                <strong>{t.name}</strong>
+                <small>{t.description}</small>
+                <span
+                  class='theme-emojis'
+                  aria-hidden='true'
+                >
+                  {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
+                  {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
+                </span>
+              </span>
+            </label>
+          );
+        })}
       </div>
     </section>
 
     <section class='form-section'>
       <h2 class='section-title'>Aportaciones</h2>
       <div class='form-grid'>
-        <div class='field' data-mode='open'>
+        <div
+          class='field'
+          data-mode='open'
+        >
           <label for='base_amount'>Aportación base (la pone la familia)</label>
-          <input type='number' name='base_amount' id='base_amount' min='0' step='0.01' value={project.base_amount ?? 0} />
+          <input
+            type='number'
+            name='base_amount'
+            id='base_amount'
+            min='0'
+            step='0.01'
+            value={project.base_amount ?? 0}
+          />
         </div>
-        <div class='field' data-mode='open'>
+        <div
+          class='field'
+          data-mode='open'
+        >
           <label for='base_label'>Etiqueta de la aportación base</label>
-          <input type='text' name='base_label' id='base_label' placeholder='Papá y mamá' maxlength='60' value={project.base_label ?? ''} />
+          <input
+            type='text'
+            name='base_label'
+            id='base_label'
+            placeholder='Papá y mamá'
+            maxlength='60'
+            value={project.base_label ?? ''}
+          />
         </div>
         <div class='field field--check'>
-          <label class='check-label' for='allow_custom_amount'>
-            <input type='checkbox' name='allow_custom_amount' id='allow_custom_amount' checked={!!project.allow_custom_amount} />
+          <label
+            class='check-label'
+            for='allow_custom_amount'
+          >
+            <input
+              type='checkbox'
+              name='allow_custom_amount'
+              id='allow_custom_amount'
+              checked={!!project.allow_custom_amount}
+            />
             <span>Permitir "otra cantidad"</span>
           </label>
-          <small>Además de los niveles, se puede aportar cualquier importe (a partir del mínimo de al lado).</small>
+          <small>
+            Además de los niveles, se puede aportar cualquier importe (a partir
+            del mínimo de al lado).
+          </small>
         </div>
         <div class='field'>
           <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
-          <input type='number' name='min_custom_amount' id='min_custom_amount' min='1' step='0.01' value={project.min_custom_amount ?? 5} />
+          <input
+            type='number'
+            name='min_custom_amount'
+            id='min_custom_amount'
+            min='1'
+            step='0.01'
+            value={project.min_custom_amount ?? 5}
+          />
         </div>
       </div>
     </section>
@@ -388,11 +635,21 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
       <div class='form-grid'>
         <div class='field'>
           <label for='bizum_phone'>Número de Bizum</label>
-          <input type='text' name='bizum_phone' id='bizum_phone' value={project.bizum_phone ?? ''} />
+          <input
+            type='text'
+            name='bizum_phone'
+            id='bizum_phone'
+            value={project.bizum_phone ?? ''}
+          />
         </div>
         <div class='field'>
           <label for='bizum_concept'>Concepto Bizum</label>
-          <input type='text' name='bizum_concept' id='bizum_concept' value={project.bizum_concept ?? ''} />
+          <input
+            type='text'
+            name='bizum_concept'
+            id='bizum_concept'
+            value={project.bizum_concept ?? ''}
+          />
         </div>
       </div>
     </section>
@@ -402,28 +659,61 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
       <div class='form-grid'>
         <div class='field full'>
           <label for='pageTitle'>Título de la página</label>
-          <input type='text' name='pageTitle' id='pageTitle' value={pc.pageTitle ?? ''} />
+          <input
+            type='text'
+            name='pageTitle'
+            id='pageTitle'
+            value={pc.pageTitle ?? ''}
+          />
         </div>
         <div class='field full'>
           <label for='pageSubtitle'>Subtítulo</label>
-          <input type='text' name='pageSubtitle' id='pageSubtitle' value={pc.pageSubtitle ?? ''} />
+          <input
+            type='text'
+            name='pageSubtitle'
+            id='pageSubtitle'
+            value={pc.pageSubtitle ?? ''}
+          />
         </div>
-        <div class='field full' data-mode='target'>
+        <div
+          class='field full'
+          data-mode='target'
+        >
           <label for='productUrl'>URL del producto</label>
-          <input type='url' name='productUrl' id='productUrl' value={pc.productUrl ?? ''} />
+          <input
+            type='url'
+            name='productUrl'
+            id='productUrl'
+            value={pc.productUrl ?? ''}
+          />
         </div>
 
         <div class='field'>
           <label for='progressTitle'>Título sección progreso</label>
-          <input type='text' name='progressTitle' id='progressTitle' value={pc.progressTitle ?? '🎯 Progreso'} />
+          <input
+            type='text'
+            name='progressTitle'
+            id='progressTitle'
+            value={pc.progressTitle ?? '🎯 Progreso'}
+          />
         </div>
         <div class='field'>
           <label for='contributorsTitle'>Título sección contribuidores</label>
-          <input type='text' name='contributorsTitle' id='contributorsTitle' value={pc.contributorsTitle ?? '✨ Contribuidores'} />
+          <input
+            type='text'
+            name='contributorsTitle'
+            id='contributorsTitle'
+            value={pc.contributorsTitle ?? '✨ Contribuidores'}
+          />
         </div>
         <div class='field full'>
           <label for='photoSectionTitle'>Título sección fotos</label>
-          <input type='text' name='photoSectionTitle' id='photoSectionTitle' value={pc.photoSectionTitle ?? '📸 Fotos'} />
+          <input
+            type='text'
+            name='photoSectionTitle'
+            id='photoSectionTitle'
+            value={pc.photoSectionTitle ?? '📸 Fotos'}
+          />
         </div>
       </div>
     </section>
@@ -433,19 +723,38 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
       <div class='form-grid'>
         <div class='field full'>
           <label for='mainMessage_message'>Mensaje</label>
-          <textarea name='mainMessage_message' id='mainMessage_message' rows='5'>{mm.message ?? ''}</textarea>
+          <textarea
+            name='mainMessage_message'
+            id='mainMessage_message'
+            rows='5'
+          >{mm.message ?? ''}</textarea>
         </div>
         <div class='field'>
           <label for='mainMessage_signature'>Firma</label>
-          <input type='text' name='mainMessage_signature' id='mainMessage_signature' value={mm.signature ?? ''} />
+          <input
+            type='text'
+            name='mainMessage_signature'
+            id='mainMessage_signature'
+            value={mm.signature ?? ''}
+          />
         </div>
         <div class='field'>
           <label for='mainMessage_familyName'>Nombre de familia</label>
-          <input type='text' name='mainMessage_familyName' id='mainMessage_familyName' value={mm.familyName ?? ''} />
+          <input
+            type='text'
+            name='mainMessage_familyName'
+            id='mainMessage_familyName'
+            value={mm.familyName ?? ''}
+          />
         </div>
         <div class='field'>
           <label for='mainMessage_date'>Fecha del mensaje</label>
-          <input type='text' name='mainMessage_date' id='mainMessage_date' value={mm.date ?? ''} />
+          <input
+            type='text'
+            name='mainMessage_date'
+            id='mainMessage_date'
+            value={mm.date ?? ''}
+          />
         </div>
       </div>
     </section>
@@ -455,22 +764,47 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
       <div class='form-grid'>
         <div class='field'>
           <label for='cta_icon'>Icono (emoji)</label>
-          <input type='text' name='cta_icon' id='cta_icon' value={cta.icon ?? '🎁'} maxlength='4' />
+          <input
+            type='text'
+            name='cta_icon'
+            id='cta_icon'
+            value={cta.icon ?? '🎁'}
+            maxlength='4'
+          />
         </div>
         <div class='field'>
           <label for='cta_title'>Título del CTA</label>
-          <input type='text' name='cta_title' id='cta_title' value={cta.title ?? ''} />
+          <input
+            type='text'
+            name='cta_title'
+            id='cta_title'
+            value={cta.title ?? ''}
+          />
         </div>
         <div class='field full'>
           <label for='cta_text'>Texto del CTA</label>
-          <textarea name='cta_text' id='cta_text' rows='3'>{cta.text ?? ''}</textarea>
+          <textarea
+            name='cta_text'
+            id='cta_text'
+            rows='3'
+          >{cta.text ?? ''}</textarea>
         </div>
       </div>
     </section>
 
     <div class='form-actions'>
-      <a href='/admin' class='btn-ghost'>← Volver</a>
-      <button type='submit' class='btn-primary'>Guardar cambios</button>
+      <a
+        href='/admin'
+        class='btn-ghost'
+      >
+        ← Volver
+      </a>
+      <button
+        type='submit'
+        class='btn-primary'
+      >
+        Guardar cambios
+      </button>
     </div>
   </form>
 
@@ -485,18 +819,39 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
             <span class='level-emoji'>{level.emoji}</span>
             <div class='level-info'>
               <strong>{level.name}</strong>
-              <span class='level-amount'>{level.amount} {project.currency}</span>
-              {level.description && <span class='level-desc'>{level.description}</span>}
+              <span class='level-amount'>
+                {level.amount} {project.currency}
+              </span>
+              {level.description && (
+                <span class='level-desc'>{level.description}</span>
+              )}
             </div>
             <div class='level-meta'>
-              <span class='color-dot' style={`background: ${level.color}`} />
+              <span
+                class='color-dot'
+                style={`background: ${level.color}`}
+              />
               <span class='sort-badge'>#{level.sort_order}</span>
             </div>
-            <form method='POST' class='delete-form'>
-              <input type='hidden' name='_action' value='delete_level' />
-              <input type='hidden' name='level_id' value={level.id} />
-              <button type='submit' class='btn-delete'
-                onclick="return confirm('¿Eliminar este nivel?')">
+            <form
+              method='POST'
+              class='delete-form'
+            >
+              <input
+                type='hidden'
+                name='_action'
+                value='delete_level'
+              />
+              <input
+                type='hidden'
+                name='level_id'
+                value={level.id}
+              />
+              <button
+                type='submit'
+                class='btn-delete'
+                onclick="return confirm('¿Eliminar este nivel?')"
+              >
                 🗑
               </button>
             </form>
@@ -509,35 +864,82 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
 
     <details class='add-level-details'>
       <summary class='add-level-summary'>➕ Añadir nivel</summary>
-      <form method='POST' class='add-level-form'>
-        <input type='hidden' name='_action' value='add_level' />
+      <form
+        method='POST'
+        class='add-level-form'
+      >
+        <input
+          type='hidden'
+          name='_action'
+          value='add_level'
+        />
         <div class='form-grid'>
           <div class='field'>
             <label for='level_name'>Nombre *</label>
-            <input type='text' name='level_name' id='level_name' required placeholder='Paladín' />
+            <input
+              type='text'
+              name='level_name'
+              id='level_name'
+              required
+              placeholder='Paladín'
+            />
           </div>
           <div class='field'>
             <label for='level_amount'>Importe (€) *</label>
-            <input type='number' name='level_amount' id='level_amount' required min='1' step='0.01' placeholder='25' />
+            <input
+              type='number'
+              name='level_amount'
+              id='level_amount'
+              required
+              min='1'
+              step='0.01'
+              placeholder='25'
+            />
           </div>
           <div class='field'>
             <label for='level_emoji'>Emoji</label>
-            <input type='text' name='level_emoji' id='level_emoji' value='⭐' maxlength='4' />
+            <input
+              type='text'
+              name='level_emoji'
+              id='level_emoji'
+              value='⭐'
+              maxlength='4'
+            />
           </div>
           <div class='field'>
             <label for='level_color'>Color</label>
-            <input type='color' name='level_color' id='level_color' value='#6366f1' />
+            <input
+              type='color'
+              name='level_color'
+              id='level_color'
+              value='#6366f1'
+            />
           </div>
           <div class='field'>
             <label for='level_sort_order'>Orden</label>
-            <input type='number' name='level_sort_order' id='level_sort_order' value={levels ? levels.length : 0} min='0' />
+            <input
+              type='number'
+              name='level_sort_order'
+              id='level_sort_order'
+              value={levels ? levels.length : 0}
+              min='0'
+            />
           </div>
           <div class='field full'>
             <label for='level_description'>Descripción (opcional)</label>
-            <input type='text' name='level_description' id='level_description' placeholder='Para los más generosos...' />
+            <input
+              type='text'
+              name='level_description'
+              id='level_description'
+              placeholder='Para los más generosos...'
+            />
           </div>
         </div>
-        <button type='submit' class='btn-primary' style='margin-top: 12px;'>
+        <button
+          type='submit'
+          class='btn-primary'
+          style='margin-top: 12px;'
+        >
           Añadir nivel
         </button>
       </form>
@@ -549,7 +951,8 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
     <h2 class='section-title'>Emojis del modal de contribución</h2>
     <p class='section-hint'>
       Los contribuidores eligen uno al registrar su aportación.
-      {emojiOptions.length === 0 && ' Sin emojis propios se usará el fallback del sistema.'}
+      {emojiOptions.length === 0 &&
+        ' Sin emojis propios se usará el fallback del sistema.'}
     </p>
 
     {emojiOptions.length > 0 ? (
@@ -560,11 +963,25 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
             <div class='emoji-info'>
               <strong>{opt.label}</strong>
             </div>
-            <form method='POST' class='delete-form'>
-              <input type='hidden' name='_action' value='delete_emoji' />
-              <input type='hidden' name='emoji_index' value={i} />
-              <button type='submit' class='btn-delete'
-                onclick="return confirm('¿Eliminar este emoji?')">
+            <form
+              method='POST'
+              class='delete-form'
+            >
+              <input
+                type='hidden'
+                name='_action'
+                value='delete_emoji'
+              />
+              <input
+                type='hidden'
+                name='emoji_index'
+                value={i}
+              />
+              <button
+                type='submit'
+                class='btn-delete'
+                onclick="return confirm('¿Eliminar este emoji?')"
+              >
                 🗑
               </button>
             </form>
@@ -577,21 +994,45 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
 
     <details class='add-level-details'>
       <summary class='add-level-summary'>➕ Añadir emoji</summary>
-      <form method='POST' class='add-level-form'>
-        <input type='hidden' name='_action' value='add_emoji' />
+      <form
+        method='POST'
+        class='add-level-form'
+      >
+        <input
+          type='hidden'
+          name='_action'
+          value='add_emoji'
+        />
         <div class='form-grid'>
           <div class='field'>
             <label for='emoji_value'>Emoji *</label>
-            <input type='text' name='emoji_value' id='emoji_value' required maxlength='4' placeholder='🙂' />
+            <input
+              type='text'
+              name='emoji_value'
+              id='emoji_value'
+              required
+              maxlength='4'
+              placeholder='🙂'
+            />
             <small>Un solo emoji</small>
           </div>
           <div class='field'>
             <label for='emoji_label'>Etiqueta *</label>
-            <input type='text' name='emoji_label' id='emoji_label' required placeholder='Amigo de la familia' />
+            <input
+              type='text'
+              name='emoji_label'
+              id='emoji_label'
+              required
+              placeholder='Amigo de la familia'
+            />
             <small>Texto que verá el contribuidor</small>
           </div>
         </div>
-        <button type='submit' class='btn-primary' style='margin-top: 12px;'>
+        <button
+          type='submit'
+          class='btn-primary'
+          style='margin-top: 12px;'
+        >
           Añadir emoji
         </button>
       </form>
@@ -601,10 +1042,21 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
   <!-- ── Enlace a la página pública ─────────────────────────────────────── -->
   <div class='public-link'>
     <span>Enlace público:</span>
-    <a href={publicPath} target='_blank' class='public-url'>
+    <a
+      href={publicPath}
+      target='_blank'
+      class='public-url'
+    >
       {publicHref} ↗
     </a>
-    <button type='button' class='copy-link' data-copy={publicHref} id='copyPublicLink'>📋 Copiar enlace</button>
+    <button
+      type='button'
+      class='copy-link'
+      data-copy={publicHref}
+      id='copyPublicLink'
+    >
+      📋 Copiar enlace
+    </button>
   </div>
 </AdminLayout>
 
@@ -851,7 +1303,7 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    border: 2px solid rgba(0,0,0,0.1);
+    border: 2px solid rgba(0, 0, 0, 0.1);
   }
 
   .sort-badge {
@@ -1157,6 +1609,17 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
   .copy-link:hover {
     background: var(--color-admin-bg);
   }
+
+  /* Campos cambiados por la IA: resaltados hasta que se revisan. */
+  .ai-filled {
+    border-color: #8b5cf6 !important;
+    background: #faf5ff !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16) !important;
+  }
+  label.ai-filled {
+    border-color: #8b5cf6 !important;
+    background: #faf5ff !important;
+  }
 </style>
 
 <script>
@@ -1178,4 +1641,15 @@ const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicP
     }
     setTimeout(() => (copyButton.textContent = original), 2000);
   });
+</script>
+
+<script>
+  import { initAiDraftPanel } from '@/lib/client/ai-draft';
+
+  const form = document.querySelector<HTMLFormElement>('form.project-form');
+  if (form)
+    initAiDraftPanel(document.getElementById('aiDraftPanel'), {
+      form,
+      levels: null,
+    });
 </script>

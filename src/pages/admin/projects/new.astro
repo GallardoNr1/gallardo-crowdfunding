@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 
+import AiDraftPanel from '@/components/admin/AiDraftPanel.astro';
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { isDraftConfigured } from '@/lib/project-draft-server';
 import { parseLevelRows, parseProjectForm } from '@/lib/project-form';
@@ -108,57 +109,10 @@ const aiConfigured = isDraftConfigured();
     </ul>
   )}
 
-  <section
-    class='ai-panel'
-    id='aiDraftPanel'
-  >
-    <h2 class='section-title'>✨ Rellenar con IA</h2>
-    <p class='section-hint'>
-      Cuéntame a grandes rasgos de qué va el crowdfunding (para quién, qué se
-      quiere comprar, precio o fecha límite, si la familia pone una base, el
-      tono...) y preparo un borrador de todos los campos de abajo. No se guarda
-      nada: revisas, corriges lo que quieras y pulsas "Crear proyecto".
-    </p>
-    {aiConfigured ? (
-      <>
-        <textarea
-          data-ai-brief
-          rows='4'
-          maxlength='4000'
-          aria-label='Descripción del crowdfunding para la IA'
-          placeholder='Ej.: Una bici para mi hijo Máximo por su cumple, el 5 de noviembre. Mi mujer y yo ponemos 100 € de base y queremos recaudar todo lo posible hasta una semana antes. Tono divertido, rollo aventura.'
-        ></textarea>
-        <div class='ai-panel__actions'>
-          <button
-            type='button'
-            class='btn-ai'
-            data-ai-generate
-          >
-            ✨ Rellenar con IA
-          </button>
-          <span
-            class='ai-status'
-            data-ai-status
-            aria-live='polite'
-          />
-        </div>
-        <div
-          class='ai-notes'
-          data-ai-notes
-          hidden
-        >
-          <strong>Lo que la IA ha supuesto o no ha podido rellenar:</strong>
-          <ul />
-        </div>
-      </>
-    ) : (
-      <p class='ai-panel__off'>
-        La IA no está configurada en este servidor: añade{' '}
-        <code>ANTHROPIC_API_KEY</code> al <code>.env</code> (y al secret{' '}
-        <code>ENV_LOCAL</code> del despliegue) para activarla.
-      </p>
-    )}
-  </section>
+  <AiDraftPanel
+    mode='new'
+    configured={aiConfigured}
+  />
 
   <form
     method='POST'
@@ -1031,101 +985,6 @@ const aiConfigured = isDraftConfigured();
     outline-offset: 2px;
   }
 
-  /* ── Panel "Rellenar con IA" ── */
-  .ai-panel {
-    background: linear-gradient(135deg, #f5f3ff, #eef2ff);
-    border: 1px solid #c7d2fe;
-    border-radius: var(--radius-md);
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  .ai-panel .section-title {
-    border-bottom-color: #c7d2fe;
-    color: #4338ca;
-  }
-  .ai-panel textarea {
-    background: #fff;
-    border-color: #c7d2fe;
-    min-height: 110px;
-  }
-  .ai-panel__actions {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-  }
-  .btn-ai {
-    border: none;
-    cursor: pointer;
-    font: inherit;
-    font-weight: var(--font-weight-semibold);
-    color: #fff;
-    padding: 10px 22px;
-    border-radius: var(--radius-sm);
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
-    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
-    transition: var(--transition-fast);
-  }
-  .btn-ai:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.38);
-  }
-  .btn-ai:disabled {
-    opacity: 0.7;
-    cursor: progress;
-  }
-  .ai-status {
-    font-size: 0.88rem;
-    color: #4338ca;
-  }
-  .ai-status[data-kind='busy']::before {
-    content: '';
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-right: 8px;
-    border-radius: 50%;
-    border: 2px solid #c7d2fe;
-    border-top-color: #4f46e5;
-    vertical-align: -2px;
-    animation: aiSpin 0.8s linear infinite;
-  }
-  .ai-status[data-kind='error'] {
-    color: var(--color-error);
-  }
-  .ai-status[data-kind='ok'] {
-    color: #15803d;
-  }
-  @keyframes aiSpin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  .ai-notes {
-    margin-top: 14px;
-    padding: 12px 16px;
-    background: #fff;
-    border: 1px dashed #a5b4fc;
-    border-radius: var(--radius-sm);
-    font-size: 0.88rem;
-    color: var(--color-admin-text);
-  }
-  .ai-notes ul {
-    margin: 6px 0 0;
-    padding-left: 18px;
-  }
-  .ai-panel__off {
-    margin: 0;
-    color: #64748b;
-    font-size: 0.9rem;
-  }
-  .ai-panel__off code {
-    background: #fff;
-    padding: 1px 6px;
-    border-radius: 4px;
-    border: 1px solid #c7d2fe;
-  }
   /* Campos rellenados por la IA: resaltados hasta que se revisan. */
   .ai-filled {
     border-color: #8b5cf6 !important;

@@ -2,7 +2,10 @@
 // Scripts del navegador del alta de proyecto: filas de niveles, volcado del borrador de IA
 // y recuperación del formulario tras un error del servidor.
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyDraftToForm } from '../src/lib/client/ai-draft';
+import {
+  applyDraftToForm,
+  collectFormValues,
+} from '../src/lib/client/ai-draft';
 import { initCampaignForm } from '../src/lib/client/campaign-form';
 import {
   restoreFormAfterError,
@@ -271,5 +274,95 @@ describe('form restore after a server error', () => {
     restoreFormAfterError(second.form, second.levels);
     expect(field(second.form, 'project_name').value).toBe('');
     expect(sessionStorage.getItem('gc:new-project-form')).toBeNull();
+  });
+});
+
+describe('collectFormValues', () => {
+  it('reads text, number, checkbox, the selected radios and the level rows', () => {
+    const { form, levels } = mount();
+    field(form, 'project_name').value = 'Bici';
+    field(form, 'base_amount').value = '100';
+    field(form, 'allow_custom_amount').checked = true;
+    levels.add({
+      name: 'Timbre',
+      amount: 10,
+      emoji: '🔔',
+      description: 'x',
+      color: '#ff0000',
+    });
+
+    const current = collectFormValues(form);
+    expect(current.fields.project_name).toBe('Bici');
+    expect(current.fields.base_amount).toBe('100');
+    expect(current.fields.allow_custom_amount).toBe(true);
+    expect(current.fields.campaign_mode).toBe('target');
+    expect(current.fields.theme).toBe('fiesta');
+    expect(current.fields).not.toHaveProperty('level_name');
+    expect(current.fields).not.toHaveProperty('project_image');
+    expect(current.levels).toEqual([
+      {
+        name: 'Timbre',
+        amount: 10,
+        emoji: '🔔',
+        description: 'x',
+        color: '#ff0000',
+      },
+    ]);
+  });
+
+  it('takes the levels from data-level-json when the form has no rows (edit page)', () => {
+    document.body.innerHTML = `<form class="project-form"><input name="project_name" value="A">
+      <script type="application/json" data-level-json>[{"name":"Rey","amount":45,"emoji":"👑","description":"","color":"#f59e0b"}]</script></form>`;
+    const form = document.querySelector<HTMLFormElement>('form')!;
+    expect(collectFormValues(form).levels).toEqual([
+      {
+        name: 'Rey',
+        amount: 45,
+        emoji: '👑',
+        description: '',
+        color: '#f59e0b',
+      },
+    ]);
+  });
+});
+
+describe('applyDraftToForm with the current values (ajustar)', () => {
+  it('only writes and marks the fields that differ, and keeps identical level rows', () => {
+    const { form, levels } = mount();
+    applyDraftToForm(form, draft, levels);
+    const current = collectFormValues(form);
+
+    const changed = { ...draft, project_name: 'Bici nueva', notes: [] };
+    const n = applyDraftToForm(form, changed, levels, { current });
+
+    expect(field(form, 'project_name').value).toBe('Bici nueva');
+    expect(field(form, 'project_name').classList.contains('ai-filled')).toBe(
+      true
+    );
+    expect(field(form, 'slug').classList.contains('ai-filled')).toBe(false);
+    expect(n).toBe(1);
+    expect(levels.count()).toBe(2);
+  });
+
+  it('replaces the level rows only when the draft levels differ', () => {
+    const { form, levels } = mount();
+    applyDraftToForm(form, draft, levels);
+    const current = collectFormValues(form);
+    const withNewLevel = {
+      ...draft,
+      levels: [
+        ...draft.levels,
+        {
+          name: 'Casco',
+          amount: 25,
+          emoji: '🪖',
+          description: '',
+          color: '#3b82f6',
+        },
+      ],
+    };
+    const n = applyDraftToForm(form, withNewLevel, levels, { current });
+    expect(levels.count()).toBe(3);
+    expect(n).toBe(3);
   });
 });

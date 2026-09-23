@@ -183,7 +183,7 @@ const menuName = tenant?.name ?? user?.email ?? '';
 <style>
   .header-bg {
     /* Por encima del contenido (que usa position: relative; z-index: 1) para que el menú
-       desplegable del avatar no quede tapado por tarjetas ni partículas. */
+         desplegable del avatar no quede tapado por tarjetas ni partículas. */
     position: relative;
     z-index: 30;
     background: var(--color-header-bg);
@@ -409,41 +409,70 @@ const menuName = tenant?.name ?? user?.email ?? '';
     animation: fadeInUp 0.6s 0.15s ease both;
   }
 
+  /* Móvil: logo a la izquierda, avatar (solo icono) a la derecha y título + subtítulo debajo, centrados. */
   @media (max-width: 768px) {
     .header {
-      flex-direction: column;
-      padding: 25px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        'left . right'
+        'center center center';
+      align-items: center;
+      row-gap: 14px;
+      padding: 18px 16px 22px;
+      margin-bottom: 28px;
     }
 
-    /* En móvil el logo y el menú vuelven al flujo, encima y debajo del título. */
     .left,
     .right {
       position: static;
       transform: none;
     }
 
+    .left {
+      grid-area: left;
+    }
+
     .right {
-      margin-top: 14px;
-    }
-
-    .menu-name {
-      max-width: 200px;
-    }
-
-    .user-menu__panel {
-      right: auto;
-      left: 50%;
-      transform: translateX(-50%);
+      grid-area: right;
     }
 
     .center {
+      grid-area: center;
       text-align: center;
       padding: 0;
     }
 
     .logo-svg {
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
+    }
+
+    .title {
+      font-size: var(--text-2xl, 1.7rem);
+    }
+
+    /* El botón del menú se queda en el avatar. */
+    .menu-name,
+    .menu-caret {
+      display: none;
+    }
+
+    .user-menu summary {
+      padding: 3px;
+      gap: 0;
+    }
+
+    .user-menu__panel {
+      right: 0;
+      left: auto;
+      transform: none;
+      min-width: 190px;
+    }
+
+    .auth-link {
+      padding: 7px 11px;
+      font-size: 0.82rem;
     }
   }
 </style>

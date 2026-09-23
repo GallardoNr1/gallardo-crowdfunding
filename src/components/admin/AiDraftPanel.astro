@@ -1,0 +1,260 @@
+---
+// Panel de IA del formulario de proyecto (alta y edición). Lo controla src/lib/client/ai-draft.ts.
+//   mode='new'  → "Rellenar con IA" (descripción libre) + bloque "Ajustar" tras el primer borrador
+//   mode='edit' → solo "Ajustar" (la IA recibe el formulario actual y cambia lo que le pidas)
+export interface Props {
+  mode: 'new' | 'edit';
+  /** Hay ANTHROPIC_API_KEY en el servidor. */
+  configured: boolean;
+}
+
+const { mode, configured } = Astro.props;
+---
+
+<section
+  class='ai-panel'
+  id='aiDraftPanel'
+  data-mode={mode}
+>
+  <h2 class='section-title'>
+    ✨ {mode === 'new' ? 'Rellenar con IA' : 'Ajustar con IA'}
+  </h2>
+  {!configured ? (
+    <p class='ai-panel__off'>
+      La IA no está configurada en este servidor: añade{' '}
+      <code>ANTHROPIC_API_KEY</code> al <code>.env</code> (y al secret{' '}
+      <code>ENV_LOCAL</code> del despliegue) para activarla.
+    </p>
+  ) : (
+    <div>
+      {mode === 'new' && (
+        <div class='ai-block'>
+          <p class='section-hint'>
+            Cuéntame a grandes rasgos de qué va el crowdfunding (para quién, qué
+            se quiere comprar, precio o fecha límite, si la familia pone una
+            base, el tono...) y preparo un borrador de todos los campos de
+            abajo. No se guarda nada: revisas, corriges lo que quieras y pulsas
+            "Crear proyecto".
+          </p>
+          <textarea
+            data-ai-brief
+            rows='4'
+            maxlength='4000'
+            aria-label='Descripción del crowdfunding para la IA'
+            placeholder='Ej.: Una bici para mi hijo Máximo por su cumple, el 5 de noviembre. Mi mujer y yo ponemos 100 € de base y queremos recaudar todo lo posible hasta una semana antes. Tono divertido, rollo aventura.'
+          ></textarea>
+          <div class='ai-panel__actions'>
+            <button
+              type='button'
+              class='btn-ai'
+              data-ai-generate
+            >
+              ✨ Rellenar con IA
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div
+        class='ai-block ai-block--refine'
+        data-ai-refine-block
+        hidden={mode === 'new'}
+      >
+        <p class='section-hint'>
+          {mode === 'new'
+            ? 'Responde a sus notas o pide cambios concretos: la IA parte de lo que hay en el formulario y solo toca lo necesario.'
+            : 'Pide cambios concretos ("acorta el mensaje", "sube el objetivo a 250 €", "tono más formal"): la IA parte de lo que hay en el formulario y solo toca lo necesario. Los niveles se editan en su sección.'}
+        </p>
+        <textarea
+          data-ai-instructions
+          rows='3'
+          maxlength='2000'
+          aria-label='Qué quieres cambiar'
+          placeholder='Ej.: Es para Hugo, cumple el 12/12 y el set cuesta 179,99 €. Pon el tono más navideño.'
+        ></textarea>
+        <div class='ai-panel__actions'>
+          <button
+            type='button'
+            class='btn-ai btn-ai--secondary'
+            data-ai-refine
+          >
+            🪄 Ajustar
+          </button>
+        </div>
+      </div>
+
+      <div class='ai-panel__actions'>
+        <span
+          class='ai-status'
+          data-ai-status
+          aria-live='polite'
+        />
+      </div>
+      <div
+        class='ai-notes'
+        data-ai-notes
+        hidden
+      >
+        <strong>Lo que la IA ha supuesto o no ha podido rellenar:</strong>
+        <ul />
+      </div>
+    </div>
+  )}
+</section>
+
+<style>
+  .ai-panel {
+    background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+    border: 1px solid #c7d2fe;
+    border-radius: var(--radius-md);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .ai-panel .section-title {
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-bold);
+    color: #4338ca;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #c7d2fe;
+  }
+
+  .section-hint {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0 0 12px;
+    line-height: 1.5;
+  }
+
+  .ai-block + .ai-block {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed #c7d2fe;
+  }
+
+  .ai-panel textarea {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1.5px solid #c7d2fe;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--color-admin-text);
+    background: #fff;
+    min-height: 90px;
+    resize: vertical;
+  }
+
+  .ai-panel textarea:focus {
+    outline: none;
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+
+  .ai-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .btn-ai {
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+    transition: var(--transition-fast);
+  }
+
+  .btn-ai--secondary {
+    background: #fff;
+    color: #4338ca;
+    border: 1.5px solid #a5b4fc;
+    box-shadow: none;
+  }
+
+  .btn-ai:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.38);
+  }
+
+  .btn-ai:disabled {
+    opacity: 0.7;
+    cursor: progress;
+  }
+
+  .ai-status {
+    font-size: 0.88rem;
+    color: #4338ca;
+  }
+
+  .ai-status:empty {
+    display: none;
+  }
+
+  .ai-status[data-kind='busy']::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    border-radius: 50%;
+    border: 2px solid #c7d2fe;
+    border-top-color: #4f46e5;
+    vertical-align: -2px;
+    animation: aiSpin 0.8s linear infinite;
+  }
+
+  .ai-status[data-kind='error'] {
+    color: var(--color-error);
+  }
+
+  .ai-status[data-kind='ok'] {
+    color: #15803d;
+  }
+
+  @keyframes aiSpin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .ai-notes {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px dashed #a5b4fc;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    color: var(--color-admin-text);
+  }
+
+  .ai-notes ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+
+  .ai-panel__off {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .ai-panel__off code {
+    background: #fff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #c7d2fe;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>
