@@ -25,6 +25,17 @@ describe('parseEnv', () => {
     expect(env.adminEmails).toEqual([]);
   });
 
+  it('keeps the optional Supabase JWT secret and nulls it when blank', () => {
+    expect(parseEnv(valid).supabaseJwtSecret).toBeNull();
+    expect(
+      parseEnv({ ...valid, SUPABASE_JWT_SECRET: ' ' }).supabaseJwtSecret
+    ).toBeNull();
+    expect(
+      parseEnv({ ...valid, SUPABASE_JWT_SECRET: 's'.repeat(40) })
+        .supabaseJwtSecret
+    ).toBe('s'.repeat(40));
+  });
+
   it('leaves the Anthropic key null when missing or blank', () => {
     expect(parseEnv(valid).anthropicApiKey).toBeNull();
     expect(
