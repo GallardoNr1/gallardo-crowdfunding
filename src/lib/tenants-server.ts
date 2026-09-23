@@ -23,3 +23,23 @@ export async function getTenantForUser(
   }
   return data as Tenant | null;
 }
+
+/** Espacio por número (con service role; para el superadmin que gestiona otro espacio). */
+export async function getTenantByNumberAdmin(
+  admin: SupabaseClient,
+  number: number
+): Promise<Tenant | null> {
+  const { data, error } = await admin
+    .from('tenants')
+    .select(TENANT_COLUMNS)
+    .eq('number', number)
+    .maybeSingle();
+  if (error) {
+    console.error(
+      '[tenants] error leyendo el espacio por número:',
+      error.message
+    );
+    return null;
+  }
+  return data as Tenant | null;
+}

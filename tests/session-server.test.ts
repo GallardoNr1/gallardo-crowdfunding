@@ -70,16 +70,16 @@ describe('verifyAccessToken', () => {
   });
 });
 
-function store(initial: Record<string, string>): SessionCookieStore & {
-  set: ReturnType<typeof vi.fn>;
-  clear: ReturnType<typeof vi.fn>;
-} {
+function store(initial: Record<string, string>) {
   const values = { ...initial };
-  return {
+  const set = vi.fn<SessionCookieStore['set']>();
+  const clear = vi.fn<SessionCookieStore['clear']>();
+  const cookies: SessionCookieStore = {
     get: (name) => values[name],
-    set: vi.fn(),
-    clear: vi.fn(),
+    set,
+    clear,
   };
+  return Object.assign(cookies, { set, clear });
 }
 
 describe('resolveSession', () => {

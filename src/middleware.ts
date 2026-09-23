@@ -1,14 +1,18 @@
 import type { APIContext } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
-import { createClient } from '@supabase/supabase-js';
-import { env } from '@/lib/env';
+import { createClient, type User } from '@supabase/supabase-js';
+import { authGate } from '@/lib/auth-gate';
 import { isAdminUser } from '@/lib/authz';
+import { env } from '@/lib/env';
 import {
-  ACCESS_COOKIE,
-  REFRESH_COOKIE,
+  ADMIN_TENANT_COOKIE,
   clearSessionCookies,
   setSessionCookies,
 } from '@/lib/session-cookies';
+import { resolveSession, type AuthUser } from '@/lib/session-server';
+import { createAdminClient } from '@/lib/supabase-server';
+import { isTenantNumber } from '@/lib/tenants';
+import { getTenantByNumberAdmin, getTenantForUser } from '@/lib/tenants-server';
 
 const supabaseWs = env.supabaseUrl.replace(/^http/, 'ws');
 
@@ -28,7 +32,11 @@ const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
 ].join('; ');
 
-function applySecurityHeaders(response: Response, adminArea: boolean) {
+// Páginas que no deben indexarse ni cachearse: backoffice, cuenta y flujos de acceso.
+const PRIVATE_AREA =
+  /^\/(admin|cuenta|auth|login|registro|recuperar|logout)(\/|$)/;
+
+function applySecurityHeaders(response: Response, privateArea: boolean) {
   const h = response.headers;
   h.set('X-Content-Type-Options', 'nosniff');
   h.set('X-Frame-Options', 'DENY');
@@ -37,66 +45,114 @@ function applySecurityHeaders(response: Response, adminArea: boolean) {
   if (import.meta.env.PROD) {
     h.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
   }
-  if (adminArea) {
+  if (privateArea) {
     h.set('X-Robots-Tag', 'noindex, nofollow');
     h.set('Cache-Control', 'no-store');
   }
   return response;
 }
 
-/**
- * Comprueba la sesión de administrador. Devuelve una Response (redirección) si hay que
- * denegar, o null si el usuario es admin (y deja `locals.user` relleno).
- * Si el access token ha caducado, intenta renovarlo con el refresh token y reescribe las cookies.
- */
-async function requireAdmin(context: APIContext): Promise<Response | null> {
-  const accessToken = context.cookies.get(ACCESS_COOKIE)?.value;
-  const refreshToken = context.cookies.get(REFRESH_COOKIE)?.value;
-
-  const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+const authClient = () =>
+  createClient(env.supabaseUrl, env.supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  let user = null;
-  if (accessToken) {
-    const { data } = await supabase.auth.getUser(accessToken);
-    user = data.user ?? null;
-  }
+const toAuthUser = (u: User): AuthUser => ({
+  id: u.id,
+  email: u.email ?? null,
+  app_metadata: u.app_metadata ?? {},
+  user_metadata: u.user_metadata ?? {},
+});
 
-  if (!user && refreshToken) {
-    const { data } = await supabase.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
-    if (data.session) {
-      setSessionCookies(context.cookies, data.session);
-      user = data.session.user;
+/** Usuario según las cookies: verificación local (o getUser) y refresco si ha caducado. */
+function loadUser(context: APIContext): Promise<AuthUser | null> {
+  const { cookies } = context;
+  return resolveSession(
+    {
+      get: (name) => cookies.get(name)?.value,
+      set: (session) => setSessionCookies(cookies, session),
+      clear: () => clearSessionCookies(cookies),
+    },
+    {
+      secret: env.supabaseJwtSecret,
+      getUser: async (token) => {
+        const { data } = await authClient().auth.getUser(token);
+        return data.user ? toAuthUser(data.user) : null;
+      },
+      refresh: async (refreshToken) => {
+        const { data } = await authClient().auth.refreshSession({
+          refresh_token: refreshToken,
+        });
+        if (!data.session) return null;
+        return {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          user: toAuthUser(data.session.user),
+        };
+      },
     }
-  }
-
-  if (!user) {
-    clearSessionCookies(context.cookies);
-    return context.redirect('/admin/login');
-  }
-
-  if (!isAdminUser(user, env.adminEmails)) {
-    console.warn(`[auth] acceso a /admin denegado para ${user.email ?? user.id}`);
-    clearSessionCookies(context.cookies);
-    return context.redirect('/admin/login?error=forbidden');
-  }
-
-  context.locals.user = user;
-  return null;
+  );
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
-  const adminArea = pathname === '/admin' || pathname.startsWith('/admin/');
+  const privateArea = PRIVATE_AREA.test(pathname);
 
-  if (adminArea && pathname !== '/admin/login') {
-    const denied = await requireAdmin(context);
-    if (denied) return applySecurityHeaders(denied, true);
+  // Acceso antiguo al backoffice.
+  if (pathname === '/admin/login') {
+    return applySecurityHeaders(context.redirect('/login'), true);
+  }
+
+  const user = await loadUser(context);
+  const isSuperAdmin = isAdminUser(user, env.adminEmails);
+  context.locals.user = user;
+  context.locals.isSuperAdmin = isSuperAdmin;
+  context.locals.tenant = null;
+  context.locals.adminTenantOverride = false;
+
+  const decision = authGate({
+    pathname,
+    method: context.request.method,
+    hasUser: !!user,
+    isSuperAdmin,
+  });
+  if (decision === 'login') {
+    const nextParam = encodeURIComponent(pathname + context.url.search);
+    return applySecurityHeaders(
+      context.redirect(`/login?next=${nextParam}`),
+      true
+    );
+  }
+  if (decision === 'forbidden') {
+    return applySecurityHeaders(
+      new Response('Solo el administrador de la web puede ver esta página.', {
+        status: 403,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      }),
+      true
+    );
+  }
+
+  if (user) {
+    const admin = createAdminClient();
+    // Un superadmin puede gestionar otro espacio dentro de /admin (cookie puesta en /admin/espacios).
+    const override = context.cookies.get(ADMIN_TENANT_COOKIE)?.value;
+    if (
+      isSuperAdmin &&
+      pathname.startsWith('/admin') &&
+      isTenantNumber(override)
+    ) {
+      const tenant = await getTenantByNumberAdmin(admin, Number(override));
+      if (tenant) {
+        context.locals.tenant = tenant;
+        context.locals.adminTenantOverride = true;
+      }
+    }
+    if (!context.locals.tenant) {
+      context.locals.tenant = await getTenantForUser(admin, user.id);
+    }
   }
 
   const response = await next();
-  return applySecurityHeaders(response, adminArea);
+  return applySecurityHeaders(response, privateArea);
 });
