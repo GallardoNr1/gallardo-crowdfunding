@@ -34,6 +34,11 @@ npx supabase db push          # aplica las migraciones pendientes
 cantidad libre, cierre 29/10/2026) con sus niveles y emojis. Ejecútalo en el SQL Editor **después** de la migración 7
 (idempotente: no duplica el slug). La imagen (subida desde el dispositivo) y el número de Bizum se ponen luego desde el backoffice.
 
+`supabase/seeds/2026-09-23_espacio_pruebas.sql` crea una cuenta de pruebas confirmada
+(`pruebas@gallardcode.com` / `pruebas-2026`), su espacio "Familia Pruebas" y tres proyectos (uno por objetivo con una
+aportación pendiente, uno por tiempo privado y uno completado) con niveles, aportaciones y mensajes. Requiere la
+migración 8. Idempotente; aplicado en producción el 2026-09-23 (espacio nº 926215).
+
 ## Capturar el esquema actual (baseline)
 
 Para que el repo contenga también las tablas, vistas y la RPC existentes:

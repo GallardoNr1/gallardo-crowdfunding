@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Seed del espacio de pruebas
+
+- **Qué cambió:** `supabase/seeds/2026-09-23_espacio_pruebas.sql`: cuenta confirmada `pruebas@gallardcode.com` (clave `pruebas-2026`) creada en `auth.users` + `auth.identities`, espacio "Familia Pruebas" (nº 926215 en producción) y tres proyectos: `tablet-lucia` (objetivo, público, con una aportación confirmada y otra pendiente y dos mensajes), `viaje-fin-de-curso` (por tiempo, privado, base de los abuelos) y `lego-castillo` (completado, público). Aplicado en producción.
+- **Por qué:** Probar registro/login, el backoffice por espacio, la visibilidad privada y el flujo de confirmación de pagos sin tocar los proyectos reales.
+- **Archivos tocados:** `supabase/seeds/2026-09-23_espacio_pruebas.sql`, `supabase/README.md`.
+- **Impacto:** Datos de prueba visibles en la landing (los dos proyectos públicos). Para retirarlos: borrar el usuario `pruebas@gallardcode.com` desde Supabase → Authentication (el espacio y sus proyectos caen en cascada) o marcar los proyectos como privados.
+
+---
+
 ## [2026-09-23] — Espacios (fase 3): landing y superadmin
 
 - **Qué cambió:** La home es una landing: hero con "Crea tu crowdfunding" (registro, o alta directa con sesión), "Cómo funciona" en tres pasos, "Qué incluye" (niveles, objetivo o tiempo, temas, mensajes, aportación base, IA), escaparate de proyectos públicos (abiertos primero, máx. 12) y llamada final. `/admin/espacios` (solo superadmin) lista todos los espacios con dueño, nº de proyectos y fecha, y "Gestionar" abre el backoffice de ese espacio.
