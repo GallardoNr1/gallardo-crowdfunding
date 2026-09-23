@@ -1,0 +1,106 @@
+---
+// Cambiar la contraseña (con sesión). También es el destino del enlace de recuperación
+// (/auth/confirm?type=recovery deja la sesión en cookies y redirige aquí con ?recovery=1).
+export const prerender = false;
+
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { handlePasswordChange } from '@/lib/auth-routes';
+import { supabaseAuthApi } from '@/lib/auth-supabase';
+
+const user = Astro.locals.user!;
+const fromRecovery = Astro.url.searchParams.get('recovery') === '1';
+
+let error = '';
+let fields: Record<string, string> = {};
+let done = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const result = await handlePasswordChange(form, user.id, {
+    auth: supabaseAuthApi,
+  });
+  if (result.ok) {
+    done = true;
+  } else {
+    error = result.error;
+    fields = result.fields ?? {};
+    Astro.response.status = result.status;
+  }
+}
+---
+
+<AuthLayout
+  title='Contraseña'
+  heading={
+    fromRecovery ? 'Elige una contraseña nueva' : 'Cambiar la contraseña'
+  }
+  subtitle={user.email ?? ''}
+>
+  {done ? (
+    <div>
+      <div class='success-banner'>✅ Contraseña guardada.</div>
+      <p class='auth-links'>
+        <a href='/admin'>Ir a mis proyectos</a> ·{' '}
+        <a href='/cuenta'>Mi cuenta</a>
+      </p>
+    </div>
+  ) : (
+    <div>
+      {fromRecovery && (
+        <div class='info-banner'>
+          Enlace verificado. Escribe la contraseña nueva dos veces.
+        </div>
+      )}
+      {error && <div class='error-banner'>⚠️ {error}</div>}
+
+      <form
+        method='POST'
+        class='auth-form'
+      >
+        <div class={`field ${fields.password ? 'has-error' : ''}`}>
+          <label for='password'>Contraseña nueva</label>
+          <input
+            type='password'
+            id='password'
+            name='password'
+            required
+            minlength='8'
+            autocomplete='new-password'
+            placeholder='Al menos 8 caracteres'
+          />
+          {fields.password && (
+            <span class='field-error'>{fields.password}</span>
+          )}
+        </div>
+
+        <div class={`field ${fields.password2 ? 'has-error' : ''}`}>
+          <label for='password2'>Repite la contraseña</label>
+          <input
+            type='password'
+            id='password2'
+            name='password2'
+            required
+            minlength='8'
+            autocomplete='new-password'
+          />
+          {fields.password2 && (
+            <span class='field-error'>{fields.password2}</span>
+          )}
+        </div>
+
+        <button
+          type='submit'
+          class='submit-btn'
+        >
+          Guardar contraseña
+        </button>
+      </form>
+
+      {!fromRecovery && (
+        <p class='auth-links'>
+          <a href='/cuenta'>← Volver a mi cuenta</a>
+        </p>
+      )}
+    </div>
+  )}
+</AuthLayout>

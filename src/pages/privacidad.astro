@@ -1,0 +1,119 @@
+---
+// Aviso de privacidad breve: qué datos se guardan y para qué.
+export const prerender = false;
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Footer from '@/layouts/Footer.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title='Privacidad'
+  subtitle='Qué datos guardamos y para qué'
+>
+  <div class='container'>
+    <Breadcrumbs
+      items={[{ label: 'Inicio', href: '/' }, { label: 'Privacidad' }]}
+    />
+
+    <article class='legal'>
+      <h2>Aviso de privacidad</h2>
+      <p>
+        Gallardo Crowdfunding es una web familiar para organizar regalos y
+        proyectos entre amigos y familia. No hay pagos dentro de la web: las
+        aportaciones se hacen por Bizum, efectivo o transferencia y la persona
+        que organiza el proyecto las confirma a mano.
+      </p>
+
+      <h3>Qué datos guardamos</h3>
+      <ul>
+        <li>
+          <strong>Si creas una cuenta:</strong> tu email, el nombre de tu
+          espacio y, si la subes, una foto de avatar. Sirven para que puedas
+          entrar y gestionar tus proyectos.
+        </li>
+        <li>
+          <strong>Si aportas a un proyecto:</strong> el nombre que escribas, tu
+          email (solo lo ve la persona que organiza el proyecto, nunca se
+          publica), el importe, el método de pago y, si lo dejas, un mensaje de
+          apoyo.
+        </li>
+        <li>
+          <strong>Si dejas un mensaje de apoyo:</strong> el nombre y el texto;
+          se publica solo después de que la persona que organiza el proyecto lo
+          revise.
+        </li>
+      </ul>
+
+      <h3>Cookies</h3>
+      <p>
+        Solo usamos cookies técnicas para mantener la sesión de quien tiene
+        cuenta. No hay cookies de publicidad ni de seguimiento.
+      </p>
+
+      <h3>Dónde se guardan y quién los ve</h3>
+      <p>
+        Los datos se almacenan en Supabase (servidores en la Unión Europea) y
+        solo los ve la persona que organiza cada proyecto y quien administra la
+        web. No se ceden a terceros.
+      </p>
+
+      <h3>Tus derechos</h3>
+      <p>
+        Puedes pedir que corrijamos o borremos tus datos escribiendo al
+        administrador de la web (la persona que te ha enviado el enlace del
+        proyecto). Al borrar una cuenta se borran su espacio y sus proyectos.
+      </p>
+    </article>
+
+    <p class='back-link'>
+      <a href='/'>← Volver al inicio</a>
+    </p>
+  </div>
+  <Footer slot='footer' />
+
+  <style>
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .legal {
+      background: var(--color-surface, #fff);
+      border-radius: var(--radius-xl, 16px);
+      box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.06));
+      padding: 32px 28px;
+      line-height: 1.6;
+      color: var(--color-text-primary, #222);
+    }
+
+    .legal h2 {
+      margin: 0 0 12px;
+    }
+
+    .legal h3 {
+      margin: 24px 0 8px;
+      font-size: 1.05rem;
+    }
+
+    .legal ul {
+      padding-left: 20px;
+    }
+
+    .legal li + li {
+      margin-top: 8px;
+    }
+
+    .back-link {
+      text-align: center;
+      margin: 32px 0 0;
+    }
+
+    .back-link a {
+      color: var(--color-brand-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+  </style>
+</BaseLayout>

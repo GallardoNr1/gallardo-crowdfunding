@@ -94,12 +94,7 @@ export async function resolveSession(
   }
 
   if (refreshToken) {
-    let refreshed: RefreshedSession | null = null;
-    try {
-      refreshed = await deps.refresh(refreshToken);
-    } catch {
-      refreshed = null;
-    }
+    const refreshed = await deps.refresh(refreshToken).catch(() => null);
     if (refreshed) {
       cookies.set({
         access_token: refreshed.access_token,

@@ -1,0 +1,161 @@
+---
+// Registro: nombre del espacio + email + contraseña. Con la confirmación por email activa,
+// Supabase envía un enlace a /auth/confirm; si está desactivada, entra directamente.
+export const prerender = false;
+
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { clientIp } from '@/lib/api';
+import { handleRegister } from '@/lib/auth-routes';
+import { authLimiters, supabaseAuthApi } from '@/lib/auth-supabase';
+import { setSessionCookies } from '@/lib/session-cookies';
+import { siteOrigin } from '@/lib/tenants';
+
+if (Astro.locals.user) {
+  return Astro.redirect('/admin');
+}
+
+let error = '';
+let fields: Record<string, string> = {};
+let values = { space_name: '', email: '' };
+let pendingEmail = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  values = {
+    space_name: String(form.get('space_name') ?? ''),
+    email: String(form.get('email') ?? ''),
+  };
+  const result = await handleRegister(
+    form,
+    clientIp(Astro.request, Astro.clientAddress),
+    siteOrigin(Astro.request.headers, Astro.url.origin),
+    { auth: supabaseAuthApi, limiter: authLimiters.register }
+  );
+  if (result.ok && result.session) {
+    setSessionCookies(Astro.cookies, result.session);
+    return Astro.redirect('/admin?bienvenida=1');
+  }
+  if (result.ok) {
+    pendingEmail = values.email.trim();
+  } else {
+    error = result.error;
+    fields = result.fields ?? {};
+    Astro.response.status = result.status;
+  }
+}
+---
+
+<AuthLayout
+  title='Crear cuenta'
+  heading='Crea tu espacio'
+  subtitle='Un espacio para tu familia con sus proyectos y su propio panel'
+>
+  {pendingEmail ? (
+    <div>
+      <div class='success-banner'>
+        📬 Te hemos enviado un correo a <strong>{pendingEmail}</strong>. Abre el
+        enlace para confirmar la cuenta y entrar en tu espacio.
+      </div>
+      <p class='auth-links'>
+        ¿No llega? Mira en la carpeta de spam o{' '}
+        <a href='/recuperar'>pide un enlace nuevo</a>.
+        <br />
+        <a href='/login'>Ir a la pantalla de acceso</a>
+      </p>
+    </div>
+  ) : (
+    <div>
+      {error && <div class='error-banner'>⚠️ {error}</div>}
+
+      <form
+        method='POST'
+        class='auth-form'
+      >
+        <div class={`field ${fields.space_name ? 'has-error' : ''}`}>
+          <label for='space_name'>Nombre de tu espacio</label>
+          <input
+            type='text'
+            id='space_name'
+            name='space_name'
+            required
+            maxlength='80'
+            value={values.space_name}
+            placeholder='Familia Gallardo'
+            autocomplete='organization'
+          />
+          {fields.space_name && (
+            <span class='field-error'>{fields.space_name}</span>
+          )}
+          <small>
+            Aparece en tus proyectos como "por{' '}
+            {values.space_name || 'Familia …'}".
+          </small>
+        </div>
+
+        <div class={`field ${fields.email ? 'has-error' : ''}`}>
+          <label for='email'>Email</label>
+          <input
+            type='email'
+            id='email'
+            name='email'
+            required
+            autocomplete='email'
+            value={values.email}
+            placeholder='tu@email.com'
+          />
+          {fields.email && <span class='field-error'>{fields.email}</span>}
+        </div>
+
+        <div class={`field ${fields.password ? 'has-error' : ''}`}>
+          <label for='password'>Contraseña</label>
+          <input
+            type='password'
+            id='password'
+            name='password'
+            required
+            minlength='8'
+            autocomplete='new-password'
+            placeholder='Al menos 8 caracteres'
+          />
+          {fields.password && (
+            <span class='field-error'>{fields.password}</span>
+          )}
+        </div>
+
+        <div class={`field ${fields.accept_privacy ? 'has-error' : ''}`}>
+          <label class='check-label'>
+            <input
+              type='checkbox'
+              name='accept_privacy'
+              required
+            />
+            <span>
+              He leído el{' '}
+              <a
+                href='/privacidad'
+                target='_blank'
+              >
+                aviso de privacidad
+              </a>{' '}
+              y acepto que se guarden mis datos para gestionar mi espacio.
+            </span>
+          </label>
+          {fields.accept_privacy && (
+            <span class='field-error'>{fields.accept_privacy}</span>
+          )}
+        </div>
+
+        <button
+          type='submit'
+          class='submit-btn'
+        >
+          Crear mi espacio
+        </button>
+      </form>
+
+      <p class='auth-links'>
+        ¿Ya tienes cuenta? <a href='/login'>Entrar</a>
+      </p>
+    </div>
+  )}
+</AuthLayout>

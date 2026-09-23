@@ -1,0 +1,348 @@
+---
+// Tarjeta centrada para las páginas de cuenta (login, registro, recuperar, confirmar, contraseña).
+// Sin cabecera pública: es la "puerta" de la web. Usa los tokens del backoffice.
+import '../styles/tokens.css';
+
+export interface Props {
+  title: string;
+  heading: string;
+  subtitle?: string;
+  /** Tarjeta más ancha (formularios largos como el de la cuenta). */
+  wide?: boolean;
+}
+
+const { title, heading, subtitle = '', wide = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang='es'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta
+      name='viewport'
+      content='width=device-width, initial-scale=1.0'
+    />
+    <title>{title} — Gallardo Crowdfunding</title>
+    <meta
+      name='robots'
+      content='noindex, nofollow'
+    />
+    <link
+      rel='icon'
+      href='/favicon.svg'
+      type='image/svg+xml'
+    />
+    <link
+      rel='shortcut icon'
+      href='/favicon.svg'
+    />
+    <link
+      href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+      rel='stylesheet'
+    />
+  </head>
+  <body>
+    <div class='auth-wrapper'>
+      <div class={`auth-card ${wide ? 'auth-card--wide' : ''}`}>
+        <div class='auth-header'>
+          <a
+            href='/'
+            class='auth-logo-link'
+            title='Ir a la página principal'
+          >
+            <svg
+              class='auth-logo'
+              viewBox='0 0 64 64'
+              fill='none'
+              xmlns='http://www.w3.org/2000/svg'
+            >
+              <defs>
+                <linearGradient
+                  id='gc-auth-grad'
+                  x1='0'
+                  y1='0'
+                  x2='64'
+                  y2='64'
+                  gradientUnits='userSpaceOnUse'
+                >
+                  <stop stop-color='#ff6b35'></stop>
+                  <stop
+                    offset='1'
+                    stop-color='#c62828'
+                  ></stop>
+                </linearGradient>
+              </defs>
+              <rect
+                width='64'
+                height='64'
+                rx='15'
+                fill='url(#gc-auth-grad)'
+              ></rect>
+              <rect
+                x='29'
+                y='0'
+                width='6'
+                height='64'
+                fill='white'
+                opacity='0.10'
+                rx='3'
+              ></rect>
+              <rect
+                x='0'
+                y='29'
+                width='64'
+                height='6'
+                fill='white'
+                opacity='0.10'
+                rx='3'
+              ></rect>
+              <ellipse
+                cx='25'
+                cy='12'
+                rx='7'
+                ry='3.5'
+                fill='white'
+                opacity='0.22'
+                transform='rotate(-20 25 12)'
+              ></ellipse>
+              <ellipse
+                cx='39'
+                cy='12'
+                rx='7'
+                ry='3.5'
+                fill='white'
+                opacity='0.22'
+                transform='rotate(20 39 12)'
+              ></ellipse>
+              <circle
+                cx='32'
+                cy='12'
+                r='3'
+                fill='white'
+                opacity='0.30'
+              ></circle>
+              <text
+                x='32'
+                y='47'
+                font-family="'Arial Black',sans-serif"
+                font-size='26'
+                font-weight='900'
+                fill='white'
+                text-anchor='middle'
+                letter-spacing='-0.5'
+              >
+                GC
+              </text>
+            </svg>
+          </a>
+          <h1>{heading}</h1>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+
+        <slot />
+      </div>
+      <p class='auth-footnote'>
+        <a href='/'>← Volver a la web</a>
+      </p>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-admin);
+    background: var(--color-admin-bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-admin-text);
+  }
+
+  .auth-wrapper {
+    width: 100%;
+    max-width: var(--container-narrow);
+    padding: 20px;
+  }
+
+  .auth-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-10);
+  }
+
+  .auth-card--wide {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .auth-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .auth-logo {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.35));
+  }
+
+  .auth-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+  }
+
+  .auth-header p {
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label,
+  .check-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .field small {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .field input:not([type='checkbox']) {
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    color: var(--color-admin-text);
+    width: 100%;
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--color-admin-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .field.has-error input {
+    border-color: #dc2626;
+  }
+
+  .field-error {
+    font-size: 0.8rem;
+    color: #b91c1c;
+  }
+
+  .check-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .check-label input {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    accent-color: var(--color-admin-primary);
+    flex-shrink: 0;
+  }
+
+  .submit-btn {
+    background: var(--color-admin-primary);
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: var(--transition-fast);
+    margin-top: 4px;
+  }
+
+  .submit-btn:hover {
+    background: var(--color-admin-primary-dk);
+  }
+
+  .error-banner,
+  .success-banner,
+  .info-banner {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    line-height: 1.45;
+  }
+
+  .error-banner {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+
+  .success-banner {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+
+  .info-banner {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+  }
+
+  .auth-links {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+
+  .auth-links a,
+  .auth-footnote a {
+    color: var(--color-admin-primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .auth-links a:hover,
+  .auth-footnote a:hover {
+    text-decoration: underline;
+  }
+
+  .auth-footnote {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+</style>
