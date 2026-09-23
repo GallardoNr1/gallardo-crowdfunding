@@ -21,8 +21,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // TIPOS DE DATOS
 // ===============================================
 
+export interface Tenant {
+  id: string;
+  /** Número público de 6 dígitos (URL /<number>). */
+  number: number;
+  name: string;
+  avatar_url?: string | null;
+  created_at: string;
+}
+
 export interface ProjectConfig {
   id: string;
+  /** Espacio (tenant) al que pertenece. */
+  tenant_id: string;
+  /** Público: en la portada de la web; privado: solo con el enlace. */
+  visibility?: 'public' | 'private';
+  /** Espacio embebido (`select('*, tenants(number, name)')`). */
+  tenants?: Pick<Tenant, 'number' | 'name'> | null;
   project_name: string;
   target_amount: number;
   current_amount: number;

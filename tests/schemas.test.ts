@@ -34,12 +34,20 @@ describe('ContributionInput', () => {
   });
 
   it('rejects an unknown payment method and a bad email', () => {
-    expect(ContributionInput.safeParse({ ...valid, paymentMethod: 'paypal' }).success).toBe(false);
-    expect(ContributionInput.safeParse({ ...valid, contributorEmail: 'nope' }).success).toBe(false);
+    expect(
+      ContributionInput.safeParse({ ...valid, paymentMethod: 'paypal' }).success
+    ).toBe(false);
+    expect(
+      ContributionInput.safeParse({ ...valid, contributorEmail: 'nope' })
+        .success
+    ).toBe(false);
   });
 
   it('rejects a message longer than 150 characters', () => {
-    expect(ContributionInput.safeParse({ ...valid, message: 'x'.repeat(151) }).success).toBe(false);
+    expect(
+      ContributionInput.safeParse({ ...valid, message: 'x'.repeat(151) })
+        .success
+    ).toBe(false);
   });
 
   it('accepts a custom amount instead of a level', () => {
@@ -55,14 +63,21 @@ describe('ContributionInput', () => {
   it('requires exactly one of levelId or customAmount', () => {
     const { levelId: _omit, ...rest } = valid;
     expect(ContributionInput.safeParse(rest).success).toBe(false);
-    expect(ContributionInput.safeParse({ ...valid, customAmount: 10 }).success).toBe(false);
-    expect(ContributionInput.safeParse({ ...rest, customAmount: 0 }).success).toBe(false);
+    expect(
+      ContributionInput.safeParse({ ...valid, customAmount: 10 }).success
+    ).toBe(false);
+    expect(
+      ContributionInput.safeParse({ ...rest, customAmount: 0 }).success
+    ).toBe(false);
   });
 });
 
 describe('SupportMessageInput', () => {
   it('accepts a message with optional author fields', () => {
-    const r = SupportMessageInput.safeParse({ projectId: uuid, message: 'Ánimo' });
+    const r = SupportMessageInput.safeParse({
+      projectId: uuid,
+      message: 'Ánimo',
+    });
     expect(r.success).toBe(true);
     if (r.success) {
       expect(r.data.authorName).toBeUndefined();
@@ -71,14 +86,25 @@ describe('SupportMessageInput', () => {
   });
 
   it('treats an empty email string as absent', () => {
-    const r = SupportMessageInput.safeParse({ projectId: uuid, message: 'Ánimo', authorEmail: '' });
+    const r = SupportMessageInput.safeParse({
+      projectId: uuid,
+      message: 'Ánimo',
+      authorEmail: '',
+    });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.authorEmail).toBeUndefined();
   });
 
   it('rejects a blank message and one over 200 characters', () => {
-    expect(SupportMessageInput.safeParse({ projectId: uuid, message: '   ' }).success).toBe(false);
-    expect(SupportMessageInput.safeParse({ projectId: uuid, message: 'x'.repeat(201) }).success).toBe(false);
+    expect(
+      SupportMessageInput.safeParse({ projectId: uuid, message: '   ' }).success
+    ).toBe(false);
+    expect(
+      SupportMessageInput.safeParse({
+        projectId: uuid,
+        message: 'x'.repeat(201),
+      }).success
+    ).toBe(false);
   });
 });
 
@@ -101,16 +127,37 @@ describe('ProjectFormInput', () => {
   });
 
   it('rejects a zero target and an invalid status', () => {
-    expect(ProjectFormInput.safeParse({ ...valid, target_amount: '0' }).success).toBe(false);
-    expect(ProjectFormInput.safeParse({ ...valid, project_status: 'deleted' }).success).toBe(false);
+    expect(
+      ProjectFormInput.safeParse({ ...valid, target_amount: '0' }).success
+    ).toBe(false);
+    expect(
+      ProjectFormInput.safeParse({ ...valid, project_status: 'deleted' })
+        .success
+    ).toBe(false);
   });
 
   it('rejects a slug with characters outside [a-z0-9-]', () => {
-    expect(ProjectFormInput.safeParse({ ...valid, slug: 'ñandú!' }).success).toBe(false);
+    expect(
+      ProjectFormInput.safeParse({ ...valid, slug: 'ñandú!' }).success
+    ).toBe(false);
+  });
+
+  it('defaults visibility to private and only accepts public or private', () => {
+    const r = ProjectFormInput.safeParse(valid);
+    expect(r.success && r.data.visibility).toBe('private');
+    const pub = ProjectFormInput.safeParse({ ...valid, visibility: 'public' });
+    expect(pub.success && pub.data.visibility).toBe('public');
+    expect(
+      ProjectFormInput.safeParse({ ...valid, visibility: 'secreto' }).success
+    ).toBe(false);
   });
 
   it('turns empty optional strings into null', () => {
-    const r = ProjectFormInput.safeParse({ ...valid, end_date: '', project_image_url: '' });
+    const r = ProjectFormInput.safeParse({
+      ...valid,
+      end_date: '',
+      project_image_url: '',
+    });
     expect(r.success).toBe(true);
     if (r.success) {
       expect(r.data.end_date).toBeNull();
@@ -157,13 +204,21 @@ describe('ProjectFormInput', () => {
     const ok = ProjectFormInput.safeParse({ ...valid, theme: 'aventura' });
     expect(ok.success).toBe(true);
     if (ok.success) expect(ok.data.theme).toBe('aventura');
-    expect(ProjectFormInput.safeParse({ ...valid, theme: 'neon' }).success).toBe(false);
+    expect(
+      ProjectFormInput.safeParse({ ...valid, theme: 'neon' }).success
+    ).toBe(false);
   });
 
   it('requires an end date for open campaigns and a positive target for target campaigns', () => {
     expect(
-      ProjectFormInput.safeParse({ ...valid, campaign_mode: 'open', target_amount: '' }).success
+      ProjectFormInput.safeParse({
+        ...valid,
+        campaign_mode: 'open',
+        target_amount: '',
+      }).success
     ).toBe(false);
-    expect(ProjectFormInput.safeParse({ ...valid, target_amount: '' }).success).toBe(false);
+    expect(
+      ProjectFormInput.safeParse({ ...valid, target_amount: '' }).success
+    ).toBe(false);
   });
 });

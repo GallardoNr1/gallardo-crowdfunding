@@ -16,6 +16,7 @@ En orden, una a una. Cada archivo lleva su bloque `-- down` comentado.
 | 5 | `20260922100300_project_config_slug_unique.sql` | Índice único en `slug` | Cualquier momento |
 | 6 | `20260922100400_rls_lockdown.sql` | RLS: anon solo lee; sin acceso a `contributor_email` | **Después** de desplegar el código nuevo |
 | 7 | `20260922110000_open_campaigns.sql` | Campañas por tiempo: `campaign_mode`, aportación base, cantidad libre; recrea `public_contributions` con LEFT JOIN | Antes de crear el proyecto de la bici |
+| 8 | `20260923100000_tenants.sql` | Espacios: tabla `tenants`, trigger que crea el espacio de cada usuario nuevo, backfill del usuario actual, `tenant_id` + `visibility` en `project_config`, slug único **por espacio** (sustituye a la 5) | Después de la 5; **antes** de desplegar la fase 1 de espacios (compatible con el código anterior) |
 
 **Opción A — SQL Editor:** pegar y ejecutar cada archivo en el dashboard (Database → SQL Editor).
 
