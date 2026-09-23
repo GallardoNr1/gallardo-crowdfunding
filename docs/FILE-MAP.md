@@ -97,6 +97,7 @@ gallardo-crowdfunding/
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
 ├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
+├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
 ├── astro.config.mjs
 ├── ecosystem.config.cjs       # PM2 en producción (cwd = current/, modo cluster)

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Vista previa al compartir (Open Graph)
+
+- **Qué cambió:** `BaseLayout` emite `og:title`, `og:description`, `og:url`, `og:image`, `og:site_name`, `og:locale` y las etiquetas `twitter:*` (`summary_large_image`). La página de proyecto comparte su subtítulo (o descripción) y la imagen del proyecto; la portada del espacio, su nombre y avatar; el resto usa `public/og-default.png` (1200×630, generado con Pillow). La URL y la imagen se hacen absolutas con `siteOrigin` (cabeceras `X-Forwarded-*` detrás de nginx).
+- **Por qué:** Al compartir un enlace por WhatsApp salía sin tarjeta; ahora aparece la foto y el título del proyecto.
+- **Archivos tocados:** `src/layouts/BaseLayout.astro`, `src/pages/[tenant]/projects/[slug].astro`, `src/pages/[tenant]/index.astro`, `public/og-default.png`, `tests/base-layout-og.test.ts`.
+- **Impacto:** WhatsApp cachea la vista previa por URL: los enlaces ya compartidos pueden tardar en refrescarse. Las imágenes de proyecto muy pesadas (varios MB) pueden no mostrarse en la tarjeta; conviene subir portadas de menos de 1 MB.
+
+---
+
 ## [2026-09-23] — Borrar cuenta y borrar espacio
 
 - **Qué cambió:** `src/lib/tenant-delete-server.ts` (`deleteTenantCompletely`): borra en orden mensajes de apoyo, contribuciones, niveles, familiares y proyectos del espacio, los archivos de Storage (`projects/<id>/…` y el avatar), el espacio y por último la cuenta de Supabase Auth. En `/cuenta`, "Borrar mi cuenta" pide escribir el email y confirmar; en `/admin/espacios` el superadmin tiene "Borrar" en cada espacio ajeno. La landing muestra un aviso con `?cuenta=borrada`.

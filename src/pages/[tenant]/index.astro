@@ -33,6 +33,8 @@ const items: ProjectListItem[] = projects.map((project) => ({
 <BaseLayout
   title={tenant.name}
   subtitle='Proyectos de este espacio'
+  description={`Los proyectos de ${tenant.name} en Gallardo Crowdfunding: regalos en familia, entre todos.`}
+  image={tenant.avatar_url || undefined}
 >
   <div class='container'>
     <Breadcrumbs

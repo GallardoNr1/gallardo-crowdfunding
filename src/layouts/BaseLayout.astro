@@ -4,6 +4,7 @@ import Header from './Header.astro';
 import Footer from './Footer.astro';
 import ContributionModal from '@/components/ContributionModal.astro';
 import { currencySymbol } from '@/lib/format';
+import { siteOrigin } from '@/lib/tenants';
 import { themeCss, type Theme } from '@/lib/themes';
 import type { PaymentMethodConfig, ProjectConfig } from '@/lib/supabase';
 
@@ -16,6 +17,8 @@ export interface Props {
   paymentMethods?: PaymentMethodConfig[];
   /** Tema del proyecto (colores + emojis). Sin él se usa el tema por defecto. */
   theme?: Theme;
+  /** Imagen para la vista previa al compartir (WhatsApp, etc.). Relativa o absoluta; por defecto /og-default.png. */
+  image?: string;
 }
 
 const {
@@ -25,11 +28,20 @@ const {
   project = null,
   paymentMethods = [],
   theme,
+  image,
 } = Astro.props;
+
+// Vista previa al compartir: URL e imagen absolutas (detrás de nginx el origen sale de X-Forwarded-*).
+const origin = siteOrigin(Astro.request.headers, Astro.url.origin);
+const pageUrl = origin + Astro.url.pathname;
+const ogImage = new URL(image || '/og-default.png', origin + '/').toString();
 ---
 
 <!doctype html>
-<html lang='es' data-theme={theme?.id ?? 'fiesta'}>
+<html
+  lang='es'
+  data-theme={theme?.id ?? 'fiesta'}
+>
   <head>
     <meta charset='UTF-8' />
     <meta
@@ -41,8 +53,59 @@ const {
       content={description}
     />
     <title>{title}</title>
-    <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
-    <link rel='shortcut icon' href='/favicon.svg' />
+    <meta
+      property='og:type'
+      content='website'
+    />
+    <meta
+      property='og:site_name'
+      content='Gallardo Crowdfunding'
+    />
+    <meta
+      property='og:locale'
+      content='es_ES'
+    />
+    <meta
+      property='og:title'
+      content={title}
+    />
+    <meta
+      property='og:description'
+      content={description}
+    />
+    <meta
+      property='og:url'
+      content={pageUrl}
+    />
+    <meta
+      property='og:image'
+      content={ogImage}
+    />
+    <meta
+      name='twitter:card'
+      content='summary_large_image'
+    />
+    <meta
+      name='twitter:title'
+      content={title}
+    />
+    <meta
+      name='twitter:description'
+      content={description}
+    />
+    <meta
+      name='twitter:image'
+      content={ogImage}
+    />
+    <link
+      rel='icon'
+      href='/favicon.svg'
+      type='image/svg+xml'
+    />
+    <link
+      rel='shortcut icon'
+      href='/favicon.svg'
+    />
 
     <link
       rel='preconnect'
@@ -61,7 +124,10 @@ const {
       rel='stylesheet'
       href='/styles/global.css'
     />
-    <style is:inline set:html={themeCss()}></style>
+    <style
+      is:inline
+      set:html={themeCss()}
+    ></style>
   </head>
   <body>
     <Header
@@ -73,32 +139,41 @@ const {
     </main>
     <slot name='footer' />
     <div id='gc-toast-container'></div>
-    <button type='button' class='to-top' id='gcToTop' aria-label='Volver arriba'>↑</button>
+    <button
+      type='button'
+      class='to-top'
+      id='gcToTop'
+      aria-label='Volver arriba'
+    >
+      ↑
+    </button>
     {project && (
-    <ContributionModal
-      paymentMethods={paymentMethods}
-      currency={currencySymbol(project.currency)}
-      modalTitle='Apoya el proyecto familiar'
-      modalIcon={theme?.emojis.modal ?? '🧡'}
-      modalSubtitle='Ayuda a la familia a crear recuerdos inolvidables'
-      summaryTitle='Resumen de tu aporte'
-      formTitle='Tus datos'
-      paymentTitle='Selecciona método'
-      successTitle='¡Gracias por tu apoyo!'
-      successMessage='Hemos registrado tu contribución correctamente.'
-      cancelButtonText='Cerrar'
-      confirmButtonText='Confirmar y Registrar'
-      bizumConcept={project.bizum_concept || ''}
-      bizumNumber={project.bizum_phone || ''}
-      totalLabel='Total a contribuir:'
-      emojiOptions={project.emoji_options && project.emoji_options.length > 0
-        ? project.emoji_options
-        : [
-            { value: '🙂', label: 'Amigo de la familia' },
-            { value: '💛', label: 'Colaborador' },
-          ]}
-      projectId={project.id}
-    />
+      <ContributionModal
+        paymentMethods={paymentMethods}
+        currency={currencySymbol(project.currency)}
+        modalTitle='Apoya el proyecto familiar'
+        modalIcon={theme?.emojis.modal ?? '🧡'}
+        modalSubtitle='Ayuda a la familia a crear recuerdos inolvidables'
+        summaryTitle='Resumen de tu aporte'
+        formTitle='Tus datos'
+        paymentTitle='Selecciona método'
+        successTitle='¡Gracias por tu apoyo!'
+        successMessage='Hemos registrado tu contribución correctamente.'
+        cancelButtonText='Cerrar'
+        confirmButtonText='Confirmar y Registrar'
+        bizumConcept={project.bizum_concept || ''}
+        bizumNumber={project.bizum_phone || ''}
+        totalLabel='Total a contribuir:'
+        emojiOptions={
+          project.emoji_options && project.emoji_options.length > 0
+            ? project.emoji_options
+            : [
+                { value: '🙂', label: 'Amigo de la familia' },
+                { value: '💛', label: 'Colaborador' },
+              ]
+        }
+        projectId={project.id}
+      />
     )}
   </body>
 </html>
@@ -121,7 +196,7 @@ const {
     gap: 10px;
     padding: 13px 16px;
     border-radius: 12px;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
     font-family: 'Poppins', sans-serif;
     font-size: 0.875rem;
     font-weight: 500;
@@ -130,25 +205,53 @@ const {
     animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
-  .gc-toast--out { animation: toastOut 0.3s ease-in forwards; }
+  .gc-toast--out {
+    animation: toastOut 0.3s ease-in forwards;
+  }
 
-  @keyframes toastIn  {
-    from { transform: translateX(110%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
+  @keyframes toastIn {
+    from {
+      transform: translateX(110%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
   @keyframes toastOut {
-    from { transform: translateX(0);    opacity: 1; }
-    to   { transform: translateX(110%); opacity: 0; }
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(110%);
+      opacity: 0;
+    }
   }
 
-  .gc-toast-icon  { font-size: 1.1rem; flex-shrink: 0; }
-  .gc-toast-msg   { flex: 1; line-height: 1.4; }
-  .gc-toast-close {
-    background: none; border: none; cursor: pointer;
-    font-size: 1.2rem; opacity: 0.5; padding: 0 2px;
-    color: inherit; line-height: 1; flex-shrink: 0;
+  .gc-toast-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
   }
-  .gc-toast-close:hover { opacity: 1; }
+  .gc-toast-msg {
+    flex: 1;
+    line-height: 1.4;
+  }
+  .gc-toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.5;
+    padding: 0 2px;
+    color: inherit;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .gc-toast-close:hover {
+    opacity: 1;
+  }
 </style>
 
 <script is:inline>
@@ -156,10 +259,20 @@ const {
     type = type || 'info';
     duration = duration || 4500;
     const styles = {
-      success: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', icon: '✅' },
-      error:   { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', icon: '❌' },
-      warning: { bg: '#fffbeb', border: '#fde68a', text: '#92400e', icon: '⚠️' },
-      info:    { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', icon: 'ℹ️' },
+      success: {
+        bg: '#f0fdf4',
+        border: '#bbf7d0',
+        text: '#166534',
+        icon: '✅',
+      },
+      error: { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', icon: '❌' },
+      warning: {
+        bg: '#fffbeb',
+        border: '#fde68a',
+        text: '#92400e',
+        icon: '⚠️',
+      },
+      info: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', icon: 'ℹ️' },
     };
     const s = styles[type] || styles.info;
     const container = document.getElementById('gc-toast-container');
@@ -167,7 +280,13 @@ const {
 
     const toast = document.createElement('div');
     toast.className = 'gc-toast';
-    toast.style.cssText = 'background:' + s.bg + ';border:1.5px solid ' + s.border + ';color:' + s.text;
+    toast.style.cssText =
+      'background:' +
+      s.bg +
+      ';border:1.5px solid ' +
+      s.border +
+      ';color:' +
+      s.text;
 
     // Construido con textContent: el mensaje puede venir de errores del servidor.
     const icon = document.createElement('span');
@@ -180,14 +299,18 @@ const {
     close.className = 'gc-toast-close';
     close.setAttribute('aria-label', 'Cerrar');
     close.textContent = '×';
-    close.addEventListener('click', function () { toast.remove(); });
+    close.addEventListener('click', function () {
+      toast.remove();
+    });
     toast.append(icon, msg, close);
 
     container.appendChild(toast);
 
     setTimeout(function () {
       toast.classList.add('gc-toast--out');
-      setTimeout(function () { if (toast.parentElement) toast.remove(); }, 320);
+      setTimeout(function () {
+        if (toast.parentElement) toast.remove();
+      }, 320);
     }, duration);
   };
 </script>
@@ -196,9 +319,12 @@ const {
   // Botón "volver arriba": aparece tras bajar media pantalla larga.
   const toTop = document.getElementById('gcToTop');
   if (toTop) {
-    const update = () => toTop.classList.toggle('is-visible', window.scrollY > 500);
+    const update = () =>
+      toTop.classList.toggle('is-visible', window.scrollY > 500);
     window.addEventListener('scroll', update, { passive: true });
     update();
-    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    toTop.addEventListener('click', () =>
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    );
   }
 </script>

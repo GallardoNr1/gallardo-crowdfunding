@@ -36,7 +36,8 @@ export const prerender = false;
 const tenantNumber = parseTenantParam(Astro.params.tenant);
 const tenant = tenantNumber ? await getTenantByNumber(tenantNumber) : null;
 const { slug } = Astro.params;
-const projectConfig = tenant && slug ? await getProjectByTenantAndSlug(tenant.id, slug) : null;
+const projectConfig =
+  tenant && slug ? await getProjectByTenantAndSlug(tenant.id, slug) : null;
 
 if (!tenant || !projectConfig) {
   return new Response(null, { status: 404 });
@@ -45,16 +46,27 @@ if (projectConfig.project_status === 'cancelled') {
   return Astro.redirect(tenantUrl(tenant.number));
 }
 const backHref = tenantUrl(tenant.number);
+// Vista previa al compartir por WhatsApp: subtítulo o descripción (recortada) y la imagen del proyecto.
+const shareDescription = (
+  normalizeProjectPageContent(projectConfig.page_content).pageSubtitle ||
+  projectConfig.project_description ||
+  `Proyecto de ${tenant.name} en Gallardo Crowdfunding`
+).slice(0, 200);
 
 // Consultas independientes en paralelo (antes eran 7 viajes secuenciales a Supabase).
-const [contributionLevels, contributions, familyMembers, photos, paymentMethods] =
-  await Promise.all([
-    getContributionLevels(projectConfig.id),
-    getPublicContributions(projectConfig.id),
-    getFamilyMembers(projectConfig.id),
-    getImagesFromFolder(projectConfig.id),
-    getPaymentMethods(),
-  ]);
+const [
+  contributionLevels,
+  contributions,
+  familyMembers,
+  photos,
+  paymentMethods,
+] = await Promise.all([
+  getContributionLevels(projectConfig.id),
+  getPublicContributions(projectConfig.id),
+  getFamilyMembers(projectConfig.id),
+  getImagesFromFolder(projectConfig.id),
+  getPaymentMethods(),
+]);
 
 const completed = projectConfig.project_status === 'completed';
 const mode = projectConfig.campaign_mode === 'open' ? 'open' : 'target';
@@ -66,7 +78,10 @@ const totals = campaignTotals(projectConfig);
 const remainingDays = daysLeft(projectConfig.end_date);
 const endDateLabel = formatEndDate(projectConfig.end_date);
 const startDateLabel = formatEndDate(projectConfig.start_date);
-const timeline = campaignTimeline(projectConfig.start_date, projectConfig.end_date);
+const timeline = campaignTimeline(
+  projectConfig.start_date,
+  projectConfig.end_date
+);
 const currency = currencySymbol(projectConfig.currency);
 // Fuente de verdad del progreso: project_config.current_amount (lo mantiene el trigger / el servidor).
 const currentAmount = Number(projectConfig.current_amount) || 0;
@@ -85,7 +100,9 @@ const heroSlots: [string, string, string][] = [
 const levelAmounts = contributionLevels
   .map((l) => Number(l.amount) || 0)
   .filter((a) => a > 0);
-const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefined;
+const minLevelAmount = levelAmounts.length
+  ? Math.min(...levelAmounts)
+  : undefined;
 ---
 
 <BaseLayout
@@ -94,8 +111,13 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   project={projectConfig}
   paymentMethods={paymentMethods}
   theme={theme}
+  description={shareDescription}
+  image={projectConfig.project_image_url || undefined}
 >
-  <div class='container' data-confetti={JSON.stringify(theme.emojis.confetti)}>
+  <div
+    class='container'
+    data-confetti={JSON.stringify(theme.emojis.confetti)}
+  >
     <Breadcrumbs
       items={[
         { label: 'Inicio', href: '/' },
@@ -107,7 +129,11 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       title={projectConfig.project_name}
       description={projectConfig.project_description ?? ''}
       price={mode === 'open' ? undefined : targetAmount}
-      href={mode === 'open' || !content.productUrl || content.productUrl === '#' ? undefined : content.productUrl}
+      href={
+        mode === 'open' || !content.productUrl || content.productUrl === '#'
+          ? undefined
+          : content.productUrl
+      }
       imageUrl={projectConfig.project_image_url ?? ''}
       imageAlt={projectConfig.project_name}
       completed={completed}
@@ -117,97 +143,96 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
       contributeLabel={`${theme.emojis.spark} Quiero aportar`}
     />
 
-    {
-      mode === 'open' ? (
-        <OpenCampaignSection
-          title={content.progressTitle}
-          raised={totals.raised}
-          base={totals.base}
-          baseLabel={projectConfig.base_label}
-          total={totals.total}
-          currency={currency}
-          daysLeft={remainingDays}
-          endDateLabel={endDateLabel}
-          startDateLabel={startDateLabel}
-          timeline={timeline}
-          closed={!open}
-        />
-      ) : (
-        <ProgressSection
-          currentAmount={currentAmount}
-          targetAmount={targetAmount}
-          currency={currency}
-          title={content.progressTitle}
-          minLevelAmount={minLevelAmount}
-        />
-      )
-    }
+    {mode === 'open' ? (
+      <OpenCampaignSection
+        title={content.progressTitle}
+        raised={totals.raised}
+        base={totals.base}
+        baseLabel={projectConfig.base_label}
+        total={totals.total}
+        currency={currency}
+        daysLeft={remainingDays}
+        endDateLabel={endDateLabel}
+        startDateLabel={startDateLabel}
+        timeline={timeline}
+        closed={!open}
+      />
+    ) : (
+      <ProgressSection
+        currentAmount={currentAmount}
+        targetAmount={targetAmount}
+        currency={currency}
+        title={content.progressTitle}
+        minLevelAmount={minLevelAmount}
+      />
+    )}
 
-    {
-      finished && (
-        <section class='completed-hero'>
-          <div class='completed-particles' aria-hidden='true'>
-            {heroSlots.map(([left, delay, duration], i) => (
-              <span style={`left:${left};animation-delay:${delay};animation-duration:${duration}`}>
-                {theme.emojis.hero[i % theme.emojis.hero.length]}
-              </span>
-            ))}
-          </div>
-          <div class='completed-check'>{completed ? '🏆' : '🏁'}</div>
-          <h2 class='completed-title'>{completed ? '¡Lo conseguimos!' : '¡Campaña cerrada!'}</h2>
-          <div class='completed-amount-block'>
-            <span class='completed-total'>
-              {(mode === 'open' ? totals.total : currentAmount).toFixed(2)} {currency}
+    {finished && (
+      <section class='completed-hero'>
+        <div
+          class='completed-particles'
+          aria-hidden='true'
+        >
+          {heroSlots.map(([left, delay, duration], i) => (
+            <span
+              style={`left:${left};animation-delay:${delay};animation-duration:${duration}`}
+            >
+              {theme.emojis.hero[i % theme.emojis.hero.length]}
             </span>
-            <span class='completed-label'>
-              {mode === 'open'
-                ? 'conseguidos entre todos'
-                : `recaudados de ${targetAmount.toFixed(2)} ${currency}`}
-            </span>
-          </div>
-          <p class='completed-msg'>
-            Gracias a cada persona que sumó su granito de arena.<br />
-            Juntos lo hicisteis posible. 💛
-          </p>
-        </section>
-      )
-    }
+          ))}
+        </div>
+        <div class='completed-check'>{completed ? '🏆' : '🏁'}</div>
+        <h2 class='completed-title'>
+          {completed ? '¡Lo conseguimos!' : '¡Campaña cerrada!'}
+        </h2>
+        <div class='completed-amount-block'>
+          <span class='completed-total'>
+            {(mode === 'open' ? totals.total : currentAmount).toFixed(2)}{' '}
+            {currency}
+          </span>
+          <span class='completed-label'>
+            {mode === 'open'
+              ? 'conseguidos entre todos'
+              : `recaudados de ${targetAmount.toFixed(2)} ${currency}`}
+          </span>
+        </div>
+        <p class='completed-msg'>
+          Gracias a cada persona que sumó su granito de arena.
+          <br />
+          Juntos lo hicisteis posible. 💛
+        </p>
+      </section>
+    )}
 
-    {
-      photos.length > 0 && (
-        <FamilyPhotos
-          title={content.photoSectionTitle}
-          photos={photos}
-          altPreText='Foto familiar'
-        />
-      )
-    }
+    {photos.length > 0 && (
+      <FamilyPhotos
+        title={content.photoSectionTitle}
+        photos={photos}
+        altPreText='Foto familiar'
+      />
+    )}
 
-    {
-      open && (
-        <ContributionLevels
-          levels={contributionLevels}
-          currency={currency}
-          allowCustomAmount={!!projectConfig.allow_custom_amount}
-          minCustomAmount={Number(projectConfig.min_custom_amount) || 5}
-          titleEmoji={theme.emojis.levels}
-          spark={theme.emojis.spark}
-          title={theme.texts.levelsTitle}
-        />
-      )
-    }
+    {open && (
+      <ContributionLevels
+        levels={contributionLevels}
+        currency={currency}
+        allowCustomAmount={!!projectConfig.allow_custom_amount}
+        minCustomAmount={Number(projectConfig.min_custom_amount) || 5}
+        titleEmoji={theme.emojis.levels}
+        spark={theme.emojis.spark}
+        title={theme.texts.levelsTitle}
+      />
+    )}
 
-    {
-      !completed && (
-        <ContributorsListReact
-          contributors={contributions}
-          contributorsTitle={content.contributorsTitle}
-          projectId={projectConfig.id}
-          currency={currency}
-          contributorsStat={theme.texts.contributorsStat}
-        />
-      )
-    }
+    {!completed && (
+      <ContributorsListReact
+        contributors={contributions}
+        contributorsTitle={content.contributorsTitle}
+        projectId={projectConfig.id}
+        currency={currency}
+        contributorsStat={theme.texts.contributorsStat}
+      />
+    )}
 
     <MessageSection
       familyMembers={familyMembers}
@@ -260,9 +285,17 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   }
 
   @keyframes floatParticle {
-    0%   { transform: translateY(0) rotate(0deg);     opacity: 0.9; }
-    80%  { opacity: 0.4; }
-    100% { transform: translateY(350px) rotate(360deg); opacity: 0; }
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 0.9;
+    }
+    80% {
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(350px) rotate(360deg);
+      opacity: 0;
+    }
   }
 
   .completed-check {
@@ -273,8 +306,14 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   }
 
   @keyframes popIn {
-    from { transform: scale(0) rotate(-15deg); opacity: 0; }
-    to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+    from {
+      transform: scale(0) rotate(-15deg);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
   }
 
   .completed-title {
@@ -318,8 +357,14 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   }
 
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .global-error-banner {
@@ -459,9 +504,13 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
   // Confeti del tema del proyecto (lo inyecta el servidor en data-confetti).
   const CONFETTI: string[] = (() => {
     try {
-      const raw = (document.querySelector('[data-confetti]') as HTMLElement | null)?.dataset.confetti;
+      const raw = (
+        document.querySelector('[data-confetti]') as HTMLElement | null
+      )?.dataset.confetti;
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) && parsed.length ? parsed : ['🎉', '✨', '🌟'];
+      return Array.isArray(parsed) && parsed.length
+        ? parsed
+        : ['🎉', '✨', '🌟'];
     } catch {
       return ['🎉', '✨', '🌟'];
     }
@@ -510,7 +559,8 @@ const minLevelAmount = levelAmounts.length ? Math.min(...levelAmounts) : undefin
 
     // Nombre, nivel y mensaje los escribe el contribuidor: siempre textContent, nunca innerHTML.
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;';
+    header.style.cssText =
+      'display:flex;align-items:center;gap:12px;margin-bottom:8px;';
     const emoji = document.createElement('span');
     emoji.style.fontSize = '1.5rem';
     emoji.textContent = contributor.emoji ?? '🎉';
