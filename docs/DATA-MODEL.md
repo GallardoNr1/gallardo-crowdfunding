@@ -6,13 +6,31 @@ Base de datos: **PostgreSQL** gestionado por Supabase.
 
 ## Tablas
 
+### `tenants`
+Espacio de cada usuario (migración `20260923100000_tenants.sql`). Una cuenta = un espacio; lo crea un trigger al darse de alta el usuario en Supabase Auth.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | uuid PK | Identificador único |
+| `number` | integer, único | Número público de 6 dígitos (aleatorio, `next_tenant_number()`); es el primer segmento de la URL: `/<number>/projects/<slug>` |
+| `name` | text | Nombre del espacio ("Familia Gallardo") |
+| `avatar_url` | text | Foto del espacio (bucket `avatars`, fase 2) |
+| `owner_user_id` | uuid único → `auth.users.id` | Dueño del espacio |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: `anon`/`authenticated` solo leen `id, number, name, avatar_url, created_at` (nunca el dueño); sin escrituras desde el navegador.
+
+---
+
 ### `project_config`
 Configuración y estado de cada campaña de crowdfunding.
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `id` | uuid PK | Identificador único |
-| `slug` | text | URL slug del proyecto (ej: `tablet-ana`) |
+| `tenant_id` | uuid FK → `tenants.id` | Espacio al que pertenece (obligatorio) |
+| `visibility` | text | `public` (aparece en la portada de la web y del espacio) \| `private` (no listado: solo con el enlace). Por defecto `private` |
+| `slug` | text | URL slug del proyecto (ej: `tablet-ana`). Único **dentro del espacio** (`project_config_tenant_slug_key`) |
 | `project_name` | text | Nombre público del proyecto |
 | `project_description` | text | Descripción |
 | `project_image_url` | text | URL de la imagen del producto |
@@ -192,8 +210,17 @@ Vista de contribuciones visibles (completadas, no de test), redefinida en `20260
 
 ```mermaid
 erDiagram
+    tenants {
+        uuid id PK
+        int number
+        text name
+        uuid owner_user_id
+    }
+
     project_config {
         uuid id PK
+        uuid tenant_id FK
+        text visibility
         text slug
         text project_name
         text project_status
@@ -252,6 +279,7 @@ erDiagram
         jsonb instructions
     }
 
+    tenants ||--o{ project_config : "agrupa"
     project_config ||--o{ contribution_levels : "tiene"
     project_config ||--o{ contributions : "recibe"
     project_config ||--o{ family_members : "tiene"
@@ -271,7 +299,9 @@ Definidos en `supabase/migrations/` (2026-09). Estado objetivo una vez aplicadas
 | `contributions_broadcast` | trigger AFTER INSERT/UPDATE en `contributions` | Cuando una contribución pasa a `completed`: `realtime.send(...)` al topic `project:<id>` con el evento `contribution_completed` (sin email; "Anónimo" si `is_anonymous`) |
 | `support_messages_broadcast` | trigger AFTER INSERT/UPDATE en `support_messages` | Cuando `is_approved` pasa a `true`: evento `support_message_approved` |
 | `increment_project_current_amount(uuid, numeric)` | RPC heredada | Se conserva pero **sin permiso de ejecución** para `anon` / `authenticated` |
-| `project_config_slug_key` | índice único | `slug` único |
+| `project_config_tenant_slug_key` | índice único | `(tenant_id, slug)`: el slug es único dentro de cada espacio (sustituye a `project_config_slug_key`) |
+| `next_tenant_number()` | función | Número de espacio de 6 dígitos aleatorio y único |
+| `handle_new_user_tenant()` + `on_auth_user_created_tenant` | trigger AFTER INSERT en `auth.users` | Crea el espacio del usuario nuevo (`name` = `raw_user_meta_data.space_name` o parte local del email) |
 | `project_config_campaign_mode_check` | check | `campaign_mode in ('target','open')` |
 
 El servidor (`src/lib/contributions-server.ts`) recalcula también `current_amount` al confirmar un pago, así el importe se mantiene correcto aunque la migración del trigger no esté aplicada todavía.
@@ -280,7 +310,8 @@ El servidor (`src/lib/contributions-server.ts`) recalcula también `current_amou
 
 | Tabla | `anon` / `authenticated` pueden… |
 |-------|----------------------------------|
-| `project_config` | `SELECT` de proyectos no cancelados |
+| `tenants` | `SELECT` de `id, number, name, avatar_url, created_at` (privilegio por columna) |
+| `project_config` | `SELECT` de proyectos no cancelados (la visibilidad se filtra en servidor: un proyecto privado se puede abrir con su enlace) |
 | `contribution_levels`, `family_members` | `SELECT` de filas `is_active` |
 | `payment_instructions` | `SELECT` |
 | `support_messages` | `SELECT` de filas `is_approved` |

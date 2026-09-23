@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Espacios (fase 1): proyectos por espacio y URLs con número
+
+- **Qué cambió:** Tabla `tenants` (espacio por usuario, número público de 6 dígitos, creado por trigger al registrarse) y `tenant_id` + `visibility` en `project_config`, con slug único por espacio (migración `20260923100000_tenants.sql`; backfill del espacio del administrador con los proyectos actuales como públicos). Rutas públicas nuevas: `/[número]` (portada del espacio, con avatar o iniciales) y `/[número]/projects/[slug]` (página del proyecto, con migas "Inicio › Espacio › Proyecto" y enlace "Volver a los proyectos de…"); `/projects/[slug]` redirige con 301. La home lista los proyectos públicos de todos los espacios ("por Familia X") con la tarjeta extraída a `ProjectsList.astro`. Backoffice: el alta crea el proyecto en el espacio del usuario (`getTenantForUser`), campo "Visibilidad" (privado por defecto) en alta y edición, enlace público nuevo con botón "Copiar enlace" (origen tomado de `X-Forwarded-*` detrás de nginx) y etiqueta 🌍/🔒 en el listado.
+- **Por qué:** Primer paso de la web multiusuario: cada familia tendrá su espacio y sus proyectos sin pisarse los slugs, y los proyectos privados quedan fuera de las listas.
+- **Archivos tocados:** `supabase/migrations/20260923100000_tenants.sql`, `supabase/README.md`, `src/lib/{tenants,tenants-server,supabase,schemas,project-form}.ts`, `src/components/{ProjectsList,Breadcrumbs}.astro`, `src/pages/index.astro`, `src/pages/[tenant]/**`, `src/pages/projects/[slug].astro`, `src/pages/admin/**`, `tests/{tenants,breadcrumbs,schemas,project-form}.test.ts`, `docs/*`.
+- **Impacto:** Requiere aplicar la migración **antes** de desplegar (es compatible con el código anterior). Los enlaces antiguos siguen funcionando vía 301. Cuentas y landing llegan en las fases 2 y 3 (spec `docs/superpowers/specs/2026-09-23-espacios-multiusuario-design.md`).
+
+---
+
 ## [2026-09-23] — Casilla "otra cantidad" alineada en los formularios del backoffice
 
 - **Qué cambió:** En "Aportaciones" (alta y edición) la casilla "Permitir otra cantidad" pasa a una fila casilla + texto (`.field--check`, `.check-label`) con tamaño propio y una ayuda debajo; antes heredaba el `width: 100%` de los inputs y quedaba descolgada. El resaltado de la IA marca la etiqueta entera de la casilla.

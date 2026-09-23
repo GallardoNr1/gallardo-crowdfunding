@@ -19,6 +19,8 @@ gallardo-crowdfunding/
 │   └── styles/global.css      # CSS global público
 ├── src/
 │   ├── components/            # Secciones de la página de proyecto (Astro)
+│   │   ├── ProjectsList.astro         # Tarjetas de proyecto (home y portada del espacio)
+│   │   ├── Breadcrumbs.astro          # Migas "Inicio › Espacio › Proyecto"
 │   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
 │   │   ├── OpenCampaignSection.astro  # Progreso de campañas por tiempo (totales + cuenta atrás)
 │   │   ├── ContributionModal.astro    # Modal: formulario → POST /api/contributions
@@ -38,6 +40,8 @@ gallardo-crowdfunding/
 │   │   ├── contributions-server.ts   # Crear pendiente, cambiar estado, recalcular importe, listar
 │   │   ├── support-messages-server.ts# Crear pendiente, aprobar, borrar, listar
 │   │   ├── themes.ts                 # Temas: colores (tokens) + emojis + textos de sección; getTheme, themeCss
+│   │   ├── tenants.ts                # Espacios: número de 6 dígitos, URLs (/<n>/projects/<slug>), iniciales, siteOrigin
+│   │   ├── tenants-server.ts         # getTenantForUser (service role)
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
 │   │   ├── client/campaign-form.ts   # Backoffice: muestra los campos según el modo de campaña
@@ -59,10 +63,12 @@ gallardo-crowdfunding/
 │   │   └── html.ts                   # escapeHtml
 │   ├── middleware.ts          # Cabeceras de seguridad; auth + rol + refresco en /admin/*
 │   ├── pages/
-│   │   ├── index.astro        # Lista de proyectos
+│   │   ├── index.astro        # Escaparate de proyectos públicos de todos los espacios
 │   │   ├── 404.astro
 │   │   ├── design-system.astro# Showcase de tokens (solo dev)
-│   │   ├── projects/[slug].astro
+│   │   ├── [tenant]/index.astro           # Portada del espacio (/<número>)
+│   │   ├── [tenant]/projects/[slug].astro # Página del proyecto (/<número>/projects/<slug>)
+│   │   ├── projects/[slug].astro          # URL antigua → 301 a la nueva
 │   │   ├── api/
 │   │   │   ├── contributions.ts      # POST
 │   │   │   └── support-messages.ts   # POST
@@ -77,7 +83,7 @@ gallardo-crowdfunding/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, breadcrumbs, rate-limit, api, authz, format, html, themes
 ├── .env.example
 ├── astro.config.mjs
 ├── ecosystem.config.cjs       # PM2 en producción (cwd = current/, modo cluster)

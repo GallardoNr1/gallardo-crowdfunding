@@ -36,8 +36,10 @@
 ```mermaid
 graph TD
     subgraph Pages
-        Index["/index.astro"]
-        Slug["/projects/[slug].astro"]
+        Index["/index.astro (escaparate público)"]
+        Tenant["/[tenant]/index.astro (portada del espacio)"]
+        Slug["/[tenant]/projects/[slug].astro"]
+        Legacy["/projects/[slug].astro → 301"]
         NotFound["/404.astro"]
         Admin["/admin/** (backoffice)"]
         ApiC["POST /api/contributions"]
@@ -87,6 +89,8 @@ graph TD
     MW --> Admin
     MW --> Auth
     Index --> BaseLayout
+    Tenant --> BaseLayout
+    Legacy --> SupabaseRead
     Slug --> BaseLayout
     Slug --> SupabaseRead
     Slug --> ProductCard & ProgressSection & ContributionLevels & FamilyPhotos & MessageSection
@@ -116,10 +120,10 @@ sequenceDiagram
     participant Lib as supabase.ts (anon)
     participant DB as Supabase
 
-    Browser->>MW: GET /projects/mi-proyecto
+    Browser->>MW: GET /123456/projects/mi-proyecto
     MW->>Page: next()
-    Page->>Lib: getProjectBySlug(slug)
-    Lib->>DB: select project_config
+    Page->>Lib: getTenantByNumber(123456) + getProjectByTenantAndSlug(tenant.id, slug)
+    Lib->>DB: select tenants, select project_config
     alt no existe
         Page-->>Browser: 404 (404.astro)
     else existe
@@ -224,3 +228,5 @@ sequenceDiagram
 | Sin pagos online (Stripe eliminado) | No estaba integrado; se retira hasta que exista un plan real. |
 | Temas por proyecto en código (`src/lib/themes.ts`) guardados en `page_content.theme` | Seis paletas + juegos de emojis sin migración: el tema sobrescribe los tokens CSS vía `html[data-theme]` y los componentes reciben los emojis por props. Los emojis escritos por el administrador (títulos, niveles, modal) no cambian. |
 | Campañas por tiempo como **modo** del mismo proyecto (`campaign_mode = 'open'`) | La bici de Máximo no tiene objetivo: se recauda hasta una fecha y la familia pone una base. Un flag más cuatro campos reutilizan niveles, modal, backoffice y broadcast; la lógica de apertura/cierre y totales está en `src/lib/campaign.ts`. `end_date` pasa a ser vinculante para todos los proyectos. |
+| Espacios (tenants) por **ruta con número** (`/<número de 6 dígitos>/projects/<slug>`) | Cada usuario tiene un espacio con sus proyectos y su `/admin`. El número aleatorio evita colisiones de slug entre familias y no requiere subdominios ni DNS. Los enlaces antiguos `/projects/<slug>` redirigen con 301 (ya circulan por WhatsApp). Ver `docs/superpowers/specs/2026-09-23-espacios-multiusuario-design.md`. |
+| Proyecto **privado = no listado** | Se ve y se aporta con el enlace, sin cuenta, como hasta ahora; solo desaparece de la portada de la web y de la del espacio. Así RLS y Realtime no cambian. |
