@@ -7,6 +7,7 @@ import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
 import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
+import ShareButton from '@/components/ShareButton.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
 import {
@@ -28,7 +29,7 @@ import {
   getTenantByNumber,
   normalizeProjectPageContent,
 } from '@/lib/supabase';
-import { parseTenantParam, tenantUrl } from '@/lib/tenants';
+import { parseTenantParam, siteOrigin, tenantUrl } from '@/lib/tenants';
 
 export const prerender = false;
 
@@ -46,6 +47,9 @@ if (projectConfig.project_status === 'cancelled') {
   return Astro.redirect(tenantUrl(tenant.number));
 }
 const backHref = tenantUrl(tenant.number);
+// Enlace absoluto para el botón de compartir (detrás de nginx el origen sale de X-Forwarded-*).
+const shareUrl =
+  siteOrigin(Astro.request.headers, Astro.url.origin) + Astro.url.pathname;
 // Vista previa al compartir por WhatsApp: subtítulo o descripción (recortada) y la imagen del proyecto.
 const shareDescription = (
   normalizeProjectPageContent(projectConfig.page_content).pageSubtitle ||
@@ -125,6 +129,12 @@ const minLevelAmount = levelAmounts.length
         { label: projectConfig.project_name },
       ]}
     />
+    <ShareButton
+      url={shareUrl}
+      title={content.pageTitle || projectConfig.project_name}
+      text={shareDescription}
+    />
+
     <ProductCard
       title={projectConfig.project_name}
       description={projectConfig.project_description ?? ''}

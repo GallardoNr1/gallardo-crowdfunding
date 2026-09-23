@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Botón Compartir en la página del proyecto
+
+- **Qué cambió:** `ShareButton.astro` bajo las migas: "Compartir" (icono de nodos) abre el menú nativo con la Web Share API (móvil y navegadores compatibles) o copia el enlace y avisa con el toast; al lado, "WhatsApp" abre `wa.me` con el título, el subtítulo y el enlace ya escritos. El enlace es absoluto (`siteOrigin`).
+- **Por qué:** Compartir el proyecto era el paso más habitual y había que copiar la URL a mano.
+- **Archivos tocados:** `src/components/ShareButton.astro`, `src/pages/[tenant]/projects/[slug].astro`, `tests/share-button.test.ts`, `docs/*`.
+- **Impacto:** Solo interfaz; sin cambios de datos.
+
+---
+
 ## [2026-09-23] — Ajustar con IA, invitaciones, cambio de email, Google y cabecera móvil
 
 - **Qué cambió:** (1) **Ajustar con IA**: el endpoint del borrador acepta `{ instructions, current }`; el panel (`src/components/admin/AiDraftPanel.astro`, compartido por alta y edición) envía el formulario actual y aplica solo los campos que cambian (`collectFormValues` / `applyDraftToForm` con `current`); en edición los niveles van como contexto y no se tocan. (2) **Invitar** desde `/admin/espacios`: email + nombre del espacio, con invitación por email (`inviteUserByEmail`, plantilla *Invite user* → `/auth/confirm?type=invite`) o cuenta confirmada con contraseña temporal mostrada una vez (`createUser`). (3) **Cambiar email** en "Mi cuenta" confirmando la contraseña actual (`auth.admin.updateUserById`, sin correo de verificación). (4) **Entrar con Google**: `/auth/google` inicia el flujo PKCE en servidor (verificador en cookie HttpOnly) y `/auth/callback` intercambia el código; botones en login y registro. (5) Cabecera en móvil: logo a la izquierda, avatar (solo icono) a la derecha y título/subtítulo debajo centrados.

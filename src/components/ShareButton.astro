@@ -1,0 +1,184 @@
+---
+// Botón "Compartir" (icono de nodos) + acceso directo a WhatsApp.
+// Con Web Share API (móvil y algunos escritorios) abre el menú nativo; si no, copia el enlace.
+export interface Props {
+  /** URL absoluta que se comparte. */
+  url: string;
+  title: string;
+  text?: string;
+}
+
+const { url, title, text = '' } = Astro.props;
+const waText = encodeURIComponent(
+  `${title}${text ? ` — ${text}` : ''}\n${url}`
+);
+---
+
+<div class='share'>
+  <button
+    type='button'
+    class='share-btn'
+    data-share-url={url}
+    data-share-title={title}
+    data-share-text={text}
+    aria-label='Compartir este proyecto'
+  >
+    <svg
+      class='share-icon'
+      viewBox='0 0 24 24'
+      aria-hidden='true'
+    >
+      <circle
+        cx='18'
+        cy='5'
+        r='3'
+      ></circle>
+      <circle
+        cx='6'
+        cy='12'
+        r='3'
+      ></circle>
+      <circle
+        cx='18'
+        cy='19'
+        r='3'
+      ></circle>
+      <line
+        x1='8.6'
+        y1='13.5'
+        x2='15.4'
+        y2='17.5'
+      ></line>
+      <line
+        x1='15.4'
+        y1='6.5'
+        x2='8.6'
+        y2='10.5'
+      ></line>
+    </svg>
+    <span>Compartir</span>
+  </button>
+  <a
+    class='share-wa'
+    href={`https://wa.me/?text=${waText}`}
+    target='_blank'
+    rel='noopener'
+    aria-label='Compartir por WhatsApp'
+  >
+    <svg
+      class='share-icon'
+      viewBox='0 0 24 24'
+      aria-hidden='true'
+    >
+      <path
+        fill='currentColor'
+        stroke='none'
+        d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 1.8a8.2 8.2 0 1 1-4.2 15.3l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 0 1 12 3.8zm-3.1 4.4c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.4 2.5 1 3 .8 3.5.7.5 0 1.7-.7 2-1.4.2-.7.2-1.2.1-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.3.2-.6.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6z'
+      ></path>
+    </svg>
+    <span>WhatsApp</span>
+  </a>
+</div>
+
+<script>
+  document
+    .querySelectorAll<HTMLButtonElement>('.share-btn')
+    .forEach((button) => {
+      button.addEventListener('click', async () => {
+        const {
+          shareUrl = '',
+          shareTitle = '',
+          shareText = '',
+        } = button.dataset;
+        const notify = (msg: string) =>
+          (
+            window as unknown as { showToast?: (m: string, k?: string) => void }
+          ).showToast?.(msg, 'success') ?? alert(msg);
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: shareTitle,
+              text: shareText,
+              url: shareUrl,
+            });
+            return;
+          } catch {
+            // Cancelado por la persona o no soportado con estos datos: pasamos a copiar.
+          }
+        }
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          notify('Enlace copiado. ¡Pégalo donde quieras!');
+        } catch {
+          notify(`Copia este enlace: ${shareUrl}`);
+        }
+      });
+    });
+</script>
+
+<style>
+  .share {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin: -8px 0 18px;
+  }
+
+  .share-btn,
+  .share-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+  }
+
+  .share-btn {
+    border: none;
+    color: #fff;
+    background: linear-gradient(
+      135deg,
+      var(--color-brand-orange),
+      var(--color-brand-primary)
+    );
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  }
+
+  .share-wa {
+    border: 2px solid #25d366;
+    color: #128c7e;
+    background: var(--color-surface, #fff);
+  }
+
+  .share-btn:hover,
+  .share-wa:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  }
+
+  .share-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 600px) {
+    .share {
+      justify-content: center;
+    }
+  }
+</style>

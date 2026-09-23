@@ -22,6 +22,7 @@ gallardo-crowdfunding/
 │   │   ├── admin/AiDraftPanel.astro   # Panel de IA del formulario (Rellenar / Ajustar)
 │   │   ├── ProjectsList.astro         # Tarjetas de proyecto (home y portada del espacio)
 │   │   ├── Breadcrumbs.astro          # Migas "Inicio › Espacio › Proyecto"
+│   │   ├── ShareButton.astro          # Compartir (Web Share API / copiar) + WhatsApp
 │   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
 │   │   ├── OpenCampaignSection.astro  # Progreso de campañas por tiempo (totales + cuenta atrás)
 │   │   ├── ContributionModal.astro    # Modal: formulario → POST /api/contributions
