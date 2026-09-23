@@ -1,6 +1,6 @@
 ---
-// Portada de un espacio: /<número>. Muestra el espacio y sus proyectos públicos.
-// (Los privados los verá el dueño con sesión en la fase 2.)
+// Portada de un espacio: /<número>. Muestra el espacio y sus proyectos públicos;
+// el dueño (con sesión) y el superadmin ven también los privados, marcados.
 export const prerender = false;
 
 import Breadcrumbs from '@/components/Breadcrumbs.astro';
@@ -18,10 +18,15 @@ if (!tenant) {
   return new Response(null, { status: 404 });
 }
 
-const projects = await getTenantProjects(tenant.id);
+const isOwner =
+  Astro.locals.tenant?.id === tenant.id || Astro.locals.isSuperAdmin;
+const projects = await getTenantProjects(tenant.id, {
+  includePrivate: isOwner,
+});
 const items: ProjectListItem[] = projects.map((project) => ({
   project,
   href: projectUrl(tenant.number, project.slug),
+  private: project.visibility === 'private',
 }));
 ---
 
@@ -59,7 +64,11 @@ const items: ProjectListItem[] = projects.map((project) => ({
 
     <ProjectsList
       items={items}
-      emptyText='Este espacio aún no tiene proyectos públicos.'
+      emptyText={
+        isOwner
+          ? 'Todavía no tienes proyectos. Créalos desde Administrar.'
+          : 'Este espacio aún no tiene proyectos públicos.'
+      }
     />
 
     <p class='back-link'>

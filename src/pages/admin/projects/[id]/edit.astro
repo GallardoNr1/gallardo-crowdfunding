@@ -6,6 +6,7 @@ import { parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
 import { projectUrl, siteOrigin } from '@/lib/tenants';
+import { requireProjectInTenant } from '@/lib/tenants-server';
 import { DEFAULT_THEME_ID, THEMES, THEME_IDS, isThemeId } from '@/lib/themes';
 
 const { id } = Astro.params;
@@ -17,14 +18,13 @@ let fieldErrors: Record<string, string> = {};
 
 // Se carga antes del POST para conservar lo que el formulario no edita (stats del CTA)
 // y para comprobar el slug.
-const { data: current } = await supabase
-  .from('project_config')
-  .select('*')
-  .eq('id', id)
-  .maybeSingle();
+// Solo proyectos del espacio del usuario (o del que gestiona un superadmin): 404 si no es suyo.
+const current = Astro.locals.tenant
+  ? await requireProjectInTenant(supabase, id ?? '', Astro.locals.tenant.id)
+  : null;
 
 if (!current) {
-  return Astro.redirect('/admin');
+  return new Response(null, { status: 404 });
 }
 
 // ── Manejar acciones POST ────────────────────────────────────────────────────

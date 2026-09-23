@@ -1,4 +1,6 @@
 ---
+import { tenantInitials, tenantUrl } from '@/lib/tenants';
+
 export interface Props {
   title?: string;
   subtitle?: string;
@@ -8,6 +10,11 @@ const {
   title = 'Gallardo Crowdfunding',
   subtitle = 'Elige un proyecto y únete a hacerlo realidad',
 } = Astro.props;
+
+// Sesión y espacio los deja el middleware en locals (null sin sesión).
+const user = Astro.locals.user ?? null;
+const tenant = Astro.locals.tenant ?? null;
+const menuName = tenant?.name ?? user?.email ?? '';
 ---
 
 <div class='header-bg'>
@@ -109,6 +116,67 @@ const {
       <h1 class='title'>{title}</h1>
       <p class='subtitle'>{subtitle}</p>
     </div>
+
+    <div class='right'>
+      {user ? (
+        <details class='user-menu'>
+          <summary aria-label={`Menú de ${menuName}`}>
+            {tenant?.avatar_url ? (
+              <img
+                class='menu-avatar'
+                src={tenant.avatar_url}
+                alt=''
+                width='40'
+                height='40'
+              />
+            ) : (
+              <span
+                class='menu-avatar menu-avatar--initials'
+                aria-hidden='true'
+              >
+                {tenantInitials(menuName)}
+              </span>
+            )}
+            <span class='menu-name'>{menuName}</span>
+            <span
+              class='menu-caret'
+              aria-hidden='true'
+            >
+              ▾
+            </span>
+          </summary>
+          <div class='user-menu__panel'>
+            {tenant && <a href={tenantUrl(tenant.number)}>🏠 Mi espacio</a>}
+            <a href='/admin'>🛠️ Administrar</a>
+            <a href='/cuenta'>👤 Mi cuenta</a>
+            <form
+              method='POST'
+              action='/logout'
+            >
+              <button type='submit'>🚪 Salir</button>
+            </form>
+          </div>
+        </details>
+      ) : (
+        <nav
+          class='auth-links'
+          aria-label='Acceso'
+        >
+          <a
+            href='/login'
+            class='auth-link'
+          >
+            Entrar
+          </a>
+          <a
+            href='/registro'
+            class='auth-link auth-link--primary'
+          >
+            Crear cuenta
+          </a>
+        </nav>
+      )}
+    </div>
   </div>
 </div>
 
@@ -154,8 +222,155 @@ const {
   .center {
     flex: 1;
     text-align: center;
-    /* Que el título no se meta debajo del logo en anchos intermedios. */
-    padding: 0 88px;
+    /* Que el título no se meta debajo del logo ni del menú en anchos intermedios. */
+    padding: 0 150px 0 88px;
+  }
+
+  /* Menú de usuario / accesos, en absoluto a la derecha (simétrico al logo). */
+  .right {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+  }
+
+  .auth-links {
+    display: flex;
+    gap: 8px;
+  }
+
+  .auth-link {
+    color: var(--color-header-text);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    transition: var(--transition-fast);
+  }
+
+  .auth-link:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .auth-link--primary {
+    background: var(--color-brand-orange);
+    border-color: var(--color-brand-orange);
+    color: #fff;
+  }
+
+  .auth-link--primary:hover {
+    background: var(--color-brand-primary);
+    border-color: var(--color-brand-primary);
+  }
+
+  .user-menu {
+    position: relative;
+  }
+
+  .user-menu summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--color-header-text);
+    padding: 4px 10px 4px 4px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    transition: var(--transition-fast);
+  }
+
+  .user-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .user-menu summary:hover,
+  .user-menu[open] summary {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .menu-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .menu-avatar--initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(
+      135deg,
+      var(--color-brand-orange),
+      var(--color-brand-primary)
+    );
+  }
+
+  .menu-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .menu-caret {
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+
+  .user-menu__panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 200px;
+    background: var(--color-surface, #fff);
+    color: var(--color-text-primary, #222);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: var(--shadow-lg, 0 14px 30px rgba(0, 0, 0, 0.18));
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 50;
+    animation: fadeInUp 0.18s ease both;
+  }
+
+  .user-menu__panel a,
+  .user-menu__panel button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    background: none;
+    border: none;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .user-menu__panel a:hover,
+  .user-menu__panel button:hover {
+    background: var(--color-surface-muted, #f1f3f5);
+  }
+
+  .user-menu__panel form {
+    border-top: 1px solid var(--color-surface-muted, #eee);
+    margin-top: 4px;
+    padding-top: 4px;
   }
 
   .logo-svg {
@@ -194,10 +409,25 @@ const {
       padding: 25px 20px;
     }
 
-    /* En móvil el logo vuelve al flujo, encima del título. */
-    .left {
+    /* En móvil el logo y el menú vuelven al flujo, encima y debajo del título. */
+    .left,
+    .right {
       position: static;
       transform: none;
+    }
+
+    .right {
+      margin-top: 14px;
+    }
+
+    .menu-name {
+      max-width: 200px;
+    }
+
+    .user-menu__panel {
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
     .center {

@@ -15,6 +15,8 @@ export interface ProjectListItem {
   href: string;
   /** Nombre del espacio, si se quiere mostrar "por Familia Gallardo". */
   by?: string;
+  /** Proyecto no listado (solo lo ve el dueño en su portada). */
+  private?: boolean;
 }
 
 export interface Props {
@@ -52,7 +54,7 @@ const progressPct = (p: ProjectConfig) =>
   <p class='projects-empty'>{emptyText}</p>
 ) : (
   <ul class='projects-list'>
-    {items.map(({ project, href, by }, index) => (
+    {items.map(({ project, href, by, private: isPrivate }, index) => (
       <li
         class='project-card'
         style={`--card-accent: ${getTheme(normalizeProjectPageContent(project.page_content).theme).swatch[0]}; --i: ${index}`}
@@ -74,7 +76,10 @@ const progressPct = (p: ProjectConfig) =>
           )}
 
           <div class='project-info'>
-            <h2>{project.project_name}</h2>
+            <h2>
+              {project.project_name}
+              {isPrivate && <span class='private-badge'>🔒 privado</span>}
+            </h2>
             {by && <p class='project-by'>por {by}</p>}
 
             {project.project_description && (
@@ -204,6 +209,18 @@ const progressPct = (p: ProjectConfig) =>
 
   .project-info h2 {
     margin: 0 0 0.35rem;
+  }
+
+  .private-badge {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-surface-muted, #eef0f3);
+    color: var(--color-text-secondary, #555);
   }
 
   .project-by {
