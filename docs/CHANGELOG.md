@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Fix deploy: el secret ENV_LOCAL rompía el workflow con valores entre comillas
+
+- **Qué cambió:** El paso "Crear .env desde el secret" de `deploy.yml` interpolaba `${{ secrets.ENV_LOCAL }}` dentro del comando `printf`; con `MAIL_FROM="Gallardo Crowdfunding <no-reply@gallardcode.com>"` las comillas cerraban la cadena y `<no-reply@…>` se leía como redirección (`No such file or directory`). Ahora el secret se pasa como variable de entorno del paso y se vuelca con `printf '%s\n' "$ENV_LOCAL"`. El paso SSH ya usaba un heredoc entrecomillado y no cambia.
+- **Por qué:** El deploy fallaba en el build desde que `MAIL_FROM` lleva nombre y `<correo>`.
+- **Archivos tocados:** `.github/workflows/deploy.yml`, `docs/INFRA.md`, `docs/CHANGELOG.md`.
+- **Impacto:** Cualquier valor de `ENV_LOCAL` puede llevar comillas, `<`, `$` o espacios sin romper el deploy.
+
+---
+
 ## [2026-09-23] — Avisos por email al organizador, fotos de la familia y escaparate solo con activos
 
 - **Qué cambió:** (1) Cuando llega una aportación (queda pendiente) o un mensaje de apoyo (pendiente de moderar), el dueño del espacio recibe un email con los datos y el enlace a la pantalla de confirmación/moderación (`notifications.ts` + `mailer.ts` con nodemailer; variables `SMTP_*` y `MAIL_FROM`, opcionales). Se envía sin bloquear la respuesta y nunca falla la operación por el email. (2) Sección "Fotos de la familia" en la edición del proyecto: subir varias fotos (JPG/PNG/WEBP/GIF ≤ 5 MB, 12 por vez) y borrarlas; van a `projects/<id>/fotoFami/`, la carpeta que ya lee la página pública. (3) El escaparate de la landing solo muestra proyectos activos.

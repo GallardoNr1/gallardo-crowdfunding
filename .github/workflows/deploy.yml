@@ -50,8 +50,12 @@ jobs:
       - run: npm ci
 
       # Astro incrusta las variables en el build: el .env real tiene que existir aquí.
+      # El secret va por variable de entorno: interpolarlo dentro del script rompe si
+      # un valor lleva comillas o "<" (p. ej. MAIL_FROM="Nombre <correo>").
       - name: Crear .env desde el secret
-        run: printf '%s\n' "${{ secrets.ENV_LOCAL }}" > .env
+        env:
+          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+        run: printf '%s\n' "$ENV_LOCAL" > .env
 
       - run: npm run build
 

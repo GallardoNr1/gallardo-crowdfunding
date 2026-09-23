@@ -121,7 +121,7 @@ Las acciones de GitHub están fijadas por SHA (`actions/checkout`, `actions/setu
 
 | Secret | Descripción |
 |--------|-------------|
-| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS`, `SUPABASE_JWT_SECRET`, `ANTHROPIC_API_KEY` y `ANTHROPIC_WORKSPACE_ID` si se usan) |
+| `ENV_LOCAL` | Contenido completo del `.env` de producción (incluye `ADMIN_EMAILS`, `SUPABASE_JWT_SECRET`, `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID` y `SMTP_*`/`MAIL_FROM` si se usan). Los valores pueden llevar comillas y `<>` (p. ej. `MAIL_FROM="Nombre <correo>"`): el workflow lo vuelca por variable de entorno y heredoc entrecomillado, nunca interpolado en el script |
 | `SERVER_HOST` | IP o hostname del VPS |
 | `SERVER_USER` | Usuario SSH |
 | `SERVER_SSH_KEY` | Clave privada SSH |
