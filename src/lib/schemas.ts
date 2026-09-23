@@ -194,3 +194,51 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
   }
   return out;
 }
+
+// ── Cuenta (login, registro, recuperación, contraseña) ─────────────────────
+
+const Email = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email('Escribe un email válido'));
+const Password = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .max(72, 'La contraseña es demasiado larga');
+
+export const LoginInput = z.object({
+  email: Email,
+  password: z.string().min(1, 'Escribe la contraseña'),
+});
+export type LoginInput = z.infer<typeof LoginInput>;
+
+export const RegisterInput = z.object({
+  space_name: z.string().trim().min(1, 'Ponle nombre a tu espacio').max(80),
+  email: Email,
+  password: Password,
+  accept_privacy: z.preprocess(
+    (v) => v === 'on' || v === 'true' || v === true,
+    z.literal(true, 'Tienes que aceptar el aviso de privacidad')
+  ),
+});
+export type RegisterInput = z.infer<typeof RegisterInput>;
+
+export const RecoverInput = z.object({ email: Email });
+export type RecoverInput = z.infer<typeof RecoverInput>;
+
+export const PasswordInput = z
+  .object({
+    password: Password,
+    password2: z.string(),
+  })
+  .superRefine((d, ctx) => {
+    if (d.password !== d.password2) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['password2'],
+        message: 'Las contraseñas no coinciden',
+      });
+    }
+  });
+export type PasswordInput = z.infer<typeof PasswordInput>;
