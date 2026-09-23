@@ -11,7 +11,8 @@
     "check": "astro check",
     "test": "vitest run",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{astro,ts,tsx,css}\""
+    "format": "prettier --write \"src/**/*.{astro,ts,tsx,css}\"",
+    "supabase:email-templates": "node scripts/apply-email-templates.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

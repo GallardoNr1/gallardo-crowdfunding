@@ -29,6 +29,16 @@ npx supabase db push            # aplica supabase/migrations/ pendientes
 npx supabase db pull            # vuelca el esquema actual (baseline) a una migración
 ```
 
+Plantillas de email de Auth (registro, recuperar contraseña, invitación, cambio de email):
+
+```bash
+npm run supabase:email-templates -- --dry   # muestra qué enviaría
+npm run supabase:email-templates            # aplica supabase/email-templates/ vía Management API
+```
+
+Lee `SUPABASE_ACCESS_TOKEN` (token personal de https://supabase.com/dashboard/account/tokens) del entorno o del `.env`
+y deduce el proyecto de `PUBLIC_SUPABASE_URL`. El token no lo usa la web: solo hace falta para este comando.
+
 Consultas útiles en el SQL Editor:
 
 ```sql

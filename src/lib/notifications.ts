@@ -30,12 +30,22 @@ function wrapHtml(
   adminUrl: string,
   cta: string
 ): string {
-  return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1f2937">
-<h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(title)}</h2>
-${lines.map((l) => `<p style="margin:0 0 8px">${l}</p>`).join('\n')}
-<p style="margin:18px 0"><a href="${escapeHtml(adminUrl)}" style="background:#4f46e5;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">${escapeHtml(cta)}</a></p>
-<p style="margin:0;color:#6b7280;font-size:12px">${escapeHtml(FOOTER)}</p>
-</div>`;
+  // Mismo diseño que las plantillas de Supabase Auth (supabase/email-templates/):
+  // tarjeta blanca con cabecera naranja, todo en tablas e inline para los clientes de correo.
+  const url = escapeHtml(adminUrl);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f4f5" style="background:#f4f4f5;padding:32px 12px;font-family:Arial,Helvetica,sans-serif">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb">
+<tr><td bgcolor="#ff6b35" style="background:#ff6b35;background-image:linear-gradient(135deg,#ff6b35,#f7931e);border-radius:16px 16px 0 0;padding:22px 32px;color:#ffffff;font-size:20px;font-weight:bold">🎁 Gallardo Crowdfunding</td></tr>
+<tr><td style="padding:32px 32px 8px;color:#1f2937;font-size:22px;font-weight:bold;line-height:1.3">${escapeHtml(title)}</td></tr>
+<tr><td style="padding:0 32px;color:#374151;font-size:16px;line-height:1.6">
+${lines.map((l) => `<p style="margin:0 0 10px">${l}</p>`).join('\n')}
+</td></tr>
+<tr><td style="padding:20px 32px 28px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#ff6b35" style="background:#ff6b35;border-radius:10px"><a href="${url}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none">${escapeHtml(cta)}</a></td></tr></table></td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px"><tr><td style="padding:18px 8px 0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center">${escapeHtml(FOOTER)}</td></tr></table>
+</td></tr>
+</table>`;
 }
 
 export function buildContributionEmail(input: {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-23] — Plantillas de email de Auth con diseño propio y avisos con el mismo estilo
+
+- **Qué cambió:** (1) Nuevas plantillas en español para los correos de Supabase Auth (confirmar registro, recuperar contraseña, invitación y cambio de email), versionadas en `supabase/email-templates/` con sus asuntos en `subjects.json`: tarjeta blanca con cabecera naranja de la marca, botón grande, enlace alternativo en texto, nombre del espacio (`{{ .Data.space_name }}`) cuando existe y nota de caducidad. (2) Script `scripts/apply-email-templates.mjs` (`npm run supabase:email-templates`, con `--dry`) que las aplica por la Management API. (3) Los avisos al organizador (`notifications.ts`) usan el mismo diseño. (4) ESLint conoce los globals de Node en `scripts/**/*.mjs`.
+- **Por qué:** Los correos de registro salían con la plantilla por defecto de Supabase en inglés y sin marca; ahora tienen el mismo aspecto que el resto de correos de la web y quedan en el repo en vez de solo en el panel.
+- **Archivos tocados:** `supabase/email-templates/*`, `scripts/apply-email-templates.mjs`, `src/lib/notifications.ts`, `package.json`, `eslint.config.js`, `supabase/README.md`, `docs/{INFRA,COMMANDS,FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Aplicadas en el proyecto de producción. Si se cambia una plantilla en el panel de Supabase hay que reflejarlo en el repo. El remitente lo fija el SMTP de Supabase (Resend, `no-reply@gallardcode.com`), ya configurado.
+
+---
+
 ## [2026-09-23] — Fix deploy: el secret ENV_LOCAL rompía el workflow con valores entre comillas
 
 - **Qué cambió:** El paso "Crear .env desde el secret" de `deploy.yml` interpolaba `${{ secrets.ENV_LOCAL }}` dentro del comando `printf`; con `MAIL_FROM="Gallardo Crowdfunding <no-reply@gallardcode.com>"` las comillas cerraban la cadena y `<no-reply@…>` se leía como redirección (`No such file or directory`). Ahora el secret se pasa como variable de entorno del paso y se vuelca con `printf '%s\n' "$ENV_LOCAL"`. El paso SSH ya usaba un heredoc entrecomillado y no cambia.

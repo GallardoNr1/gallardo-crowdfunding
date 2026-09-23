@@ -77,10 +77,8 @@ La sesión va en cookies HttpOnly (`sb-access-token` / `sb-refresh-token`); el m
 |-------|-----|
 | Authentication → Providers → Email | *Allow new users to sign up* **on**; *Confirm email* **on** |
 | Authentication → URL Configuration | Site URL `https://gc.gallardcode.com`; Redirect URLs: `https://gc.gallardcode.com/auth/confirm` (y `http://localhost:4321/auth/confirm` en local) |
-| Authentication → Email Templates → *Confirm signup* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup` |
-| Authentication → Email Templates → *Reset password* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery` |
-| Project Settings → Auth → SMTP | SMTP propio (Resend, Brevo…). El SMTP por defecto de Supabase permite unos pocos correos por hora: vale para probar, no para abrir la web |
-| Authentication → Email Templates → *Invite user* | Enlace: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite` (para "Invitar por email" desde `/admin/espacios`) |
+| Authentication → Email Templates | Las cuatro plantillas que usa la web (*Confirm signup*, *Reset password*, *Invite user*, *Change email address*) están versionadas en `supabase/email-templates/` y se aplican con `npm run supabase:email-templates` (Management API, necesita `SUPABASE_ACCESS_TOKEN`). Todas enlazan a `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=<signup|recovery|invite|email_change>`; si se editan en el panel, copiar el cambio al repo |
+| Project Settings → Auth → SMTP | SMTP propio: configurado con Resend (`smtp.resend.com:465`, usuario `resend`, contraseña = API key), remitente `Gallardo Crowdfunding <no-reply@gallardcode.com>`. El SMTP por defecto de Supabase solo envía a los miembros del proyecto y unos pocos correos por hora |
 | Authentication → URL Configuration | Añadir también `https://gc.gallardcode.com/auth/callback` a Redirect URLs (vuelta de Google) |
 | Authentication → Providers → Google | Activar y pegar *Client ID* y *Client secret* del cliente OAuth creado en Google Cloud (APIs y servicios → Credenciales → ID de cliente OAuth, tipo *Aplicación web*, URI de redirección autorizado `https://<ref>.supabase.co/auth/v1/callback`; la pantalla de consentimiento puede quedar en "externa" con la web como dominio) |
 | Storage | Bucket `avatars` público (lo crea la migración `20260923110000_avatars_bucket.sql`) |

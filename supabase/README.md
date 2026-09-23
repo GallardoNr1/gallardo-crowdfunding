@@ -69,3 +69,18 @@ select tablename, policyname, roles, cmd
  where schemaname = 'public'
  order by tablename;
 ```
+
+## Plantillas de email de Auth
+
+Los correos que envía Supabase Auth (confirmar registro, recuperar contraseña, invitación y cambio de
+email) tienen su HTML y asunto en `email-templates/`: un archivo por plantilla y `subjects.json`.
+Comparten diseño con los avisos que manda la web (`src/lib/notifications.ts`).
+
+- Aplicar: `npm run supabase:email-templates` (Management API; lee `SUPABASE_ACCESS_TOKEN` del `.env`
+  o del entorno). Con `-- --dry` solo muestra qué enviaría.
+- Variables disponibles: `{{ .SiteURL }}`, `{{ .TokenHash }}`, `{{ .Email }}`, `{{ .NewEmail }}` y
+  `{{ .Data.space_name }}` (metadatos del usuario; la web lo rellena al registrarse o invitar).
+- El enlace debe seguir siendo `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=<tipo>`:
+  `/auth/confirm` verifica el token en servidor y crea la sesión.
+- Si alguien cambia una plantilla en el panel, hay que copiar el cambio aquí o se perderá en la
+  siguiente aplicación.

@@ -105,7 +105,9 @@ gallardo-crowdfunding/
 ├── supabase/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
+│   ├── email-templates/       # Plantillas de Supabase Auth (confirmation, recovery, invite, email_change) + subjects.json
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
+├── scripts/apply-email-templates.mjs  # Aplica supabase/email-templates/ a Supabase Auth (Management API)
 ├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
