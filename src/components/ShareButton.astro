@@ -165,6 +165,20 @@ const { url, title, text = '', iconOnly = false, inline = false } = Astro.props;
     height: 40px;
     padding: 0;
     border-radius: 50%;
+    background: none;
+    box-shadow: none;
+    color: var(--color-brand-primary);
+  }
+
+  .share--icon .share-btn:hover {
+    transform: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
+  }
+
+  .share--icon .share-icon {
+    width: 22px;
+    height: 22px;
   }
 
   @media (max-width: 600px) {
