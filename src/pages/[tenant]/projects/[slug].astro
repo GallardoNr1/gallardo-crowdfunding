@@ -7,7 +7,6 @@ import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
 import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
-import ShareButton from '@/components/ShareButton.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
 import {
@@ -129,11 +128,6 @@ const minLevelAmount = levelAmounts.length
         { label: projectConfig.project_name },
       ]}
     />
-    <ShareButton
-      url={shareUrl}
-      title={content.pageTitle || projectConfig.project_name}
-      text={shareDescription}
-    />
 
     <ProductCard
       title={projectConfig.project_name}
@@ -151,6 +145,11 @@ const minLevelAmount = levelAmounts.length
       currency={currency}
       contributeHref={open ? '#contribuir' : undefined}
       contributeLabel={`${theme.emojis.spark} Quiero aportar`}
+      share={{
+        url: shareUrl,
+        title: content.pageTitle || projectConfig.project_name,
+        text: shareDescription,
+      }}
     />
 
     {mode === 'open' ? (

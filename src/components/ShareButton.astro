@@ -7,12 +7,16 @@ export interface Props {
   title: string;
   text?: string;
   iconOnly?: boolean;
+  /** Dentro de una tarjeta: centrado y sin margen negativo. */
+  inline?: boolean;
 }
 
-const { url, title, text = '', iconOnly = false } = Astro.props;
+const { url, title, text = '', iconOnly = false, inline = false } = Astro.props;
 ---
 
-<div class={`share ${iconOnly ? 'share--icon' : ''}`}>
+<div
+  class={`share ${iconOnly ? 'share--icon' : ''} ${inline ? 'share--inline' : ''}`}
+>
   <button
     type='button'
     class='share-btn'
@@ -143,6 +147,12 @@ const { url, title, text = '', iconOnly = false } = Astro.props;
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  /* Dentro de la tarjeta del proyecto: centrado bajo la descripción. */
+  .share--inline {
+    justify-content: center;
+    margin: 0 0 22px;
   }
 
   /* Solo icono (tarjetas de la lista): botón redondo con el icono centrado. */

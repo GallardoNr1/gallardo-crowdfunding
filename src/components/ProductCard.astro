@@ -1,5 +1,6 @@
 ---
 import CompletedBage from './UI/CompletedBage.astro';
+import ShareButton from './ShareButton.astro';
 
 export interface Props {
   title: string;
@@ -15,6 +16,8 @@ export interface Props {
   /** Ancla de la sección de aportaciones; sin ella no se muestra el botón. */
   contributeHref?: string;
   contributeLabel?: string;
+  /** Botón "Compartir" bajo la descripción. */
+  share?: { url: string; title: string; text?: string };
 }
 
 const {
@@ -29,6 +32,7 @@ const {
   currency = '€',
   contributeHref,
   contributeLabel = '💛 Quiero aportar',
+  share,
 } = Astro.props;
 ---
 
@@ -38,59 +42,73 @@ const {
 >
   {completed && <CompletedBage size='lg' />}
 
-  {
-    href ? (
-      <a
-        class='product-title'
-        href={href}
-        target='_blank'
-        rel='noopener'
-        title='Ver producto'
-      >
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt={imageAlt}
-            class='lego-image'
-          />
-        )}
-      </a>
-    ) : (
-      imageUrl && (
-        <div class='product-title'>
-          <img
-            src={imageUrl}
-            alt={imageAlt}
-            class='lego-image'
-          />
-        </div>
-      )
+  {href ? (
+    <a
+      class='product-title'
+      href={href}
+      target='_blank'
+      rel='noopener'
+      title='Ver producto'
+    >
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={imageAlt}
+          class='lego-image'
+        />
+      )}
+    </a>
+  ) : (
+    imageUrl && (
+      <div class='product-title'>
+        <img
+          src={imageUrl}
+          alt={imageAlt}
+          class='lego-image'
+        />
+      </div>
     )
-  }
+  )}
 
   <h2 class='product-title'>{title}</h2>
   <p class='product-description'>{description}</p>
+  {share && (
+    <ShareButton
+      url={share.url}
+      title={share.title}
+      text={share.text}
+      inline
+    />
+  )}
 
-  {
-    contributeHref && (
-      <div class='contribute-cta-wrap'>
-        <a class='contribute-cta' href={contributeHref}>
-          <span class='cta-label'>{contributeLabel}</span>
-          <span class='cta-arrow' aria-hidden='true'>👇</span>
-        </a>
-        <p class='contribute-cta-hint'>Elige un nivel o pon tu cantidad. ¡Es un momento!</p>
-      </div>
-    )
-  }
+  {contributeHref && (
+    <div class='contribute-cta-wrap'>
+      <a
+        class='contribute-cta'
+        href={contributeHref}
+      >
+        <span class='cta-label'>{contributeLabel}</span>
+        <span
+          class='cta-arrow'
+          aria-hidden='true'
+        >
+          👇
+        </span>
+      </a>
+      <p class='contribute-cta-hint'>
+        Elige un nivel o pon tu cantidad. ¡Es un momento!
+      </p>
+    </div>
+  )}
 
-  {
-    price !== undefined && (
-      <div class='price'>
-        <span>💰</span>
-        <span>{price.toFixed(2)} {currency}</span>
-      </div>
-    )
-  }
+  {price !== undefined && (
+    <div class='price'>
+      <span>💰</span>
+      <span>
+        {price.toFixed(2)} {currency}
+      </span>
+    </div>
+  )}
 </div>
 
 <style>
@@ -151,7 +169,11 @@ const {
     gap: 12px;
     padding: 18px 42px;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--color-brand-orange), var(--color-brand-primary));
+    background: linear-gradient(
+      135deg,
+      var(--color-brand-orange),
+      var(--color-brand-primary)
+    );
     color: #fff;
     font-weight: 800;
     font-size: 1.25rem;
@@ -171,7 +193,12 @@ const {
     left: -70%;
     width: 45%;
     height: 100%;
-    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background: linear-gradient(
+      120deg,
+      transparent,
+      rgba(255, 255, 255, 0.5),
+      transparent
+    );
     transform: skewX(-20deg);
     animation: ctaShine 2.8s ease-in-out infinite;
     pointer-events: none;
