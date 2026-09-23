@@ -3,6 +3,7 @@ import {
   isTenantNumber,
   parseTenantParam,
   projectUrl,
+  siteOrigin,
   tenantInitials,
   tenantUrl,
 } from '../src/lib/tenants';
@@ -50,5 +51,33 @@ describe('tenantInitials', () => {
   it('falls back to a question mark for an empty name', () => {
     expect(tenantInitials('')).toBe('?');
     expect(tenantInitials('   ')).toBe('?');
+  });
+});
+
+describe('siteOrigin', () => {
+  it('prefers the reverse proxy headers over the local origin', () => {
+    const headers = new Headers({
+      'x-forwarded-proto': 'https',
+      'x-forwarded-host': 'gc.gallardcode.com',
+      host: '127.0.0.1:5025',
+    });
+    expect(siteOrigin(headers, 'http://127.0.0.1:5025')).toBe(
+      'https://gc.gallardcode.com'
+    );
+  });
+
+  it('uses the Host header with the given protocol when there is no proxy', () => {
+    expect(
+      siteOrigin(
+        new Headers({ host: 'localhost:4321' }),
+        'http://localhost:4321'
+      )
+    ).toBe('http://localhost:4321');
+  });
+
+  it('falls back to the origin when there are no headers', () => {
+    expect(siteOrigin(new Headers(), 'http://127.0.0.1:5025')).toBe(
+      'http://127.0.0.1:5025'
+    );
   });
 });

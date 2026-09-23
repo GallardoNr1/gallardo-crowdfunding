@@ -20,3 +20,16 @@ export function tenantInitials(name: string): string {
   const letters = words.slice(0, 2).map((w) => w[0]!.toUpperCase());
   return letters.join('') || '?';
 }
+
+/**
+ * Origen público de la web para construir enlaces absolutos. Detrás de nginx el servidor ve
+ * http://127.0.0.1:5025, así que se prefieren las cabeceras X-Forwarded-*; sin ellas, Host.
+ */
+export function siteOrigin(headers: Headers, fallbackOrigin: string): string {
+  const host = headers.get('x-forwarded-host') ?? headers.get('host');
+  if (!host) return fallbackOrigin;
+  const forwardedProto = headers.get('x-forwarded-proto');
+  const proto =
+    forwardedProto ?? (fallbackOrigin.startsWith('https') ? 'https' : 'http');
+  return `${proto}://${host}`;
+}

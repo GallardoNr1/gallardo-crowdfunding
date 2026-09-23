@@ -6,6 +6,7 @@ import { isDraftConfigured } from '@/lib/project-draft-server';
 import { parseLevelRows, parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { getTenantForUser } from '@/lib/tenants-server';
 import { DEFAULT_THEME_ID, THEMES, THEME_IDS } from '@/lib/themes';
 
 let error = '';
@@ -23,20 +24,28 @@ if (Astro.request.method === 'POST') {
     error = levelRows.error;
   } else {
     const supabase = createAdminClient();
-    const { data: clash } = await supabase
-      .from('project_config')
-      .select('id')
-      .eq('slug', parsed.data.slug)
-      .maybeSingle();
+    // El proyecto nace en el espacio del usuario con sesión; el slug solo es único dentro de él.
+    const tenant = await getTenantForUser(supabase, Astro.locals.user.id);
+    const { data: clash } = tenant
+      ? await supabase
+          .from('project_config')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('slug', parsed.data.slug)
+          .maybeSingle()
+      : { data: null };
 
-    if (clash) {
-      error = `Ya existe un proyecto con el slug "${parsed.data.slug}".`;
+    if (!tenant) {
+      error = 'Tu cuenta no tiene espacio asignado. Aplica la migración de espacios o contacta con el administrador.';
+    } else if (clash) {
+      error = `Ya existe un proyecto con el slug "${parsed.data.slug}" en tu espacio.`;
     } else {
       const { data, error: dbError } = await supabase
         .from('project_config')
         .insert([
           {
             ...parsed.data,
+            tenant_id: tenant.id,
             start_date:
               parsed.data.start_date ?? new Date().toISOString().slice(0, 10),
             current_amount: 0,
@@ -237,6 +246,26 @@ const aiConfigured = isDraftConfigured();
             <option value='completed'>Completado</option>
             <option value='cancelled'>Cancelado</option>
           </select>
+        </div>
+
+        <div class='field full'>
+          <span class='field-label'>Visibilidad</span>
+          <div class='mode-options'>
+            <label class='mode-option'>
+              <input type='radio' name='visibility' value='private' checked={true} />
+              <span class='mode-option__body'>
+                <strong>🔒 Privado</strong>
+                <small>Solo lo ve quien tenga el enlace. No aparece en la portada de la web.</small>
+              </span>
+            </label>
+            <label class='mode-option'>
+              <input type='radio' name='visibility' value='public' checked={false} />
+              <span class='mode-option__body'>
+                <strong>🌍 Público</strong>
+                <small>Aparece en la portada de la web y en la página de tu espacio.</small>
+              </span>
+            </label>
+          </div>
         </div>
 
         <div class='field full'>
@@ -867,6 +896,12 @@ const aiConfigured = isDraftConfigured();
   .field-errors {
     list-style: disc inside;
     margin: 0 0 16px;
+  }
+
+  .field-label {
+    font-size: 0.845rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
   }
   .mode-options {
     display: grid;

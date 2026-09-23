@@ -4,12 +4,13 @@ export const prerender = false;
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { createAdminClient } from '@/lib/supabase-server';
+import { projectUrl } from '@/lib/tenants';
 
 const supabase = createAdminClient();
 
 const { data: projects, error } = await supabase
   .from('project_config')
-  .select('*')
+  .select('*, tenants(number, name)')
   .order('created_at', { ascending: false });
 
 // Pendientes por proyecto (confirmar pagos / aprobar mensajes)
@@ -76,7 +77,8 @@ const statusColor: Record<string, string> = {
               <div class='card-header'>
                 <div>
                   <h2 class='project-name'>{p.project_name}</h2>
-                  <code class='project-slug'>/{p.slug}</code>
+                  <code class='project-slug'>{projectUrl(p.tenants?.number ?? 0, p.slug)}</code>
+                  <span class='vis-badge'>{p.visibility === 'public' ? '🌍 Público' : '🔒 Privado'}</span>
                 </div>
                 <span
                   class='status-badge'
@@ -117,7 +119,7 @@ const statusColor: Record<string, string> = {
 
               <div class='card-actions'>
                 <a
-                  href={`/projects/${p.slug}`}
+                  href={projectUrl(p.tenants?.number ?? 0, p.slug)}
                   target='_blank'
                   class='btn-ghost'
                 >
@@ -194,6 +196,13 @@ const statusColor: Record<string, string> = {
     background: var(--color-admin-bg);
     padding: 2px 6px;
     border-radius: 4px;
+  }
+
+  .vis-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 0.75rem;
+    color: var(--color-admin-text-muted);
   }
 
   .status-badge {

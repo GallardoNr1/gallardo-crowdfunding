@@ -1,0 +1,138 @@
+---
+// Portada de un espacio: /<número>. Muestra el espacio y sus proyectos públicos.
+// (Los privados los verá el dueño con sesión en la fase 2.)
+export const prerender = false;
+
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import ProjectsList, {
+  type ProjectListItem,
+} from '@/components/ProjectsList.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Footer from '@/layouts/Footer.astro';
+import { getTenantByNumber, getTenantProjects } from '@/lib/supabase';
+import { parseTenantParam, projectUrl, tenantInitials } from '@/lib/tenants';
+
+const tenantNumber = parseTenantParam(Astro.params.tenant);
+const tenant = tenantNumber ? await getTenantByNumber(tenantNumber) : null;
+if (!tenant) {
+  return new Response(null, { status: 404 });
+}
+
+const projects = await getTenantProjects(tenant.id);
+const items: ProjectListItem[] = projects.map((project) => ({
+  project,
+  href: projectUrl(tenant.number, project.slug),
+}));
+---
+
+<BaseLayout
+  title={tenant.name}
+  subtitle='Proyectos de este espacio'
+>
+  <div class='container'>
+    <Breadcrumbs
+      items={[{ label: 'Inicio', href: '/' }, { label: tenant.name }]}
+    />
+
+    <header class='space-header'>
+      {tenant.avatar_url ? (
+        <img
+          class='space-avatar'
+          src={tenant.avatar_url}
+          alt=''
+          width='72'
+          height='72'
+        />
+      ) : (
+        <span
+          class='space-avatar space-avatar--initials'
+          aria-hidden='true'
+        >
+          {tenantInitials(tenant.name)}
+        </span>
+      )}
+      <div>
+        <h2 class='space-name'>{tenant.name}</h2>
+        <p class='space-meta'>Espacio nº {tenant.number}</p>
+      </div>
+    </header>
+
+    <ProjectsList
+      items={items}
+      emptyText='Este espacio aún no tiene proyectos públicos.'
+    />
+
+    <p class='back-link'>
+      <a href='/'>← Volver al inicio</a>
+    </p>
+  </div>
+  <Footer slot='footer' />
+
+  <style>
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .space-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 28px;
+      padding: 18px 22px;
+      background: var(--color-surface, #fff);
+      border-radius: var(--radius-xl, 16px);
+      box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.06));
+      animation: fadeInUp 0.5s ease both;
+    }
+
+    .space-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .space-avatar--initials {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #fff;
+      background: linear-gradient(
+        135deg,
+        var(--color-brand-orange),
+        var(--color-brand-primary)
+      );
+    }
+
+    .space-name {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .space-meta {
+      margin: 4px 0 0;
+      color: var(--color-text-secondary, #666);
+      font-size: 0.9rem;
+    }
+
+    .back-link {
+      text-align: center;
+      margin: 32px 0 0;
+    }
+
+    .back-link a {
+      color: var(--color-brand-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</BaseLayout>

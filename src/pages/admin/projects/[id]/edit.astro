@@ -5,6 +5,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import { parseProjectForm } from '@/lib/project-form';
 import { uploadProjectImage } from '@/lib/project-image-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { projectUrl, siteOrigin } from '@/lib/tenants';
 import { DEFAULT_THEME_ID, THEMES, THEME_IDS, isThemeId } from '@/lib/themes';
 
 const { id } = Astro.params;
@@ -42,12 +43,13 @@ if (Astro.request.method === 'POST') {
       const { data: clash } = await supabase
         .from('project_config')
         .select('id')
+        .eq('tenant_id', current.tenant_id)
         .eq('slug', parsed.data.slug)
         .neq('id', id)
         .maybeSingle();
 
       if (clash) {
-        error = `Ya existe otro proyecto con el slug "${parsed.data.slug}".`;
+        error = `Ya existe otro proyecto con el slug "${parsed.data.slug}" en este espacio.`;
       } else {
         const existingStats =
           (current.page_content as { cta?: { stats?: { number: string; label: string }[] } } | null)
@@ -146,7 +148,7 @@ if (Astro.request.method === 'POST') {
 
 // ── Cargar datos actuales (tras el POST) ─────────────────────────────────────
 const [{ data: project, error: projectErr }, { data: levels }] = await Promise.all([
-  supabase.from('project_config').select('*').eq('id', id).single(),
+  supabase.from('project_config').select('*, tenants(number, name)').eq('id', id).single(),
   supabase.from('contribution_levels').select('*').eq('project_id', id).order('sort_order'),
 ]);
 
@@ -174,6 +176,10 @@ if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
 const levelsErrorParam = Astro.url.searchParams.get('levels_error');
 if (levelsErrorParam) error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos abajo.`;
 const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
+const currentVisibility = project.visibility === 'public' ? 'public' : 'private';
+// URL pública nueva (/<número>/projects/<slug>); absoluta para el botón de copiar.
+const publicPath = projectUrl(project.tenants?.number ?? 0, project.slug);
+const publicHref = siteOrigin(Astro.request.headers, Astro.url.origin) + publicPath;
 ---
 
 <AdminLayout title={`Editar: ${project.project_name}`}>
@@ -194,7 +200,7 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
   <nav class='subnav'>
     <a href={`/admin/projects/${id}/contributions`} class='subnav-link'>💳 Contribuciones</a>
     <a href={`/admin/projects/${id}/messages`} class='subnav-link'>💬 Mensajes de apoyo</a>
-    <a href={`/projects/${project.slug}`} target='_blank' class='subnav-link'>👁 Ver página</a>
+    <a href={publicPath} target='_blank' class='subnav-link'>👁 Ver página</a>
   </nav>
 
   <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
@@ -251,6 +257,26 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
               </option>
             ))}
           </select>
+        </div>
+
+        <div class='field full'>
+          <span class='field-label'>Visibilidad</span>
+          <div class='mode-options'>
+            <label class='mode-option'>
+              <input type='radio' name='visibility' value='private' checked={currentVisibility === 'private'} />
+              <span class='mode-option__body'>
+                <strong>🔒 Privado</strong>
+                <small>Solo lo ve quien tenga el enlace. No aparece en la portada de la web.</small>
+              </span>
+            </label>
+            <label class='mode-option'>
+              <input type='radio' name='visibility' value='public' checked={currentVisibility === 'public'} />
+              <span class='mode-option__body'>
+                <strong>🌍 Público</strong>
+                <small>Aparece en la portada de la web y en la página de tu espacio.</small>
+              </span>
+            </label>
+          </div>
         </div>
 
         <div class='field full'>
@@ -574,10 +600,11 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
 
   <!-- ── Enlace a la página pública ─────────────────────────────────────── -->
   <div class='public-link'>
-    <span>Ver página pública:</span>
-    <a href={`/projects/${project.slug}`} target='_blank' class='public-url'>
-      /projects/{project.slug} ↗
+    <span>Enlace público:</span>
+    <a href={publicPath} target='_blank' class='public-url'>
+      {publicHref} ↗
     </a>
+    <button type='button' class='copy-link' data-copy={publicHref} id='copyPublicLink'>📋 Copiar enlace</button>
   </div>
 </AdminLayout>
 
@@ -920,6 +947,7 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
   /* ── Enlace público ── */
   .public-link {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     padding: 14px 18px;
@@ -1108,9 +1136,46 @@ const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
     border-radius: var(--radius-sm);
     padding: 9px 12px;
   }
+
+  .field-label {
+    font-size: 0.845rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+  }
+
+  .copy-link {
+    margin-left: auto;
+    border: 1px solid var(--color-admin-border);
+    background: var(--color-surface);
+    color: var(--color-admin-text);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .copy-link:hover {
+    background: var(--color-admin-bg);
+  }
 </style>
 
 <script>
   import { initCampaignForm } from '@/lib/client/campaign-form';
   initCampaignForm(document.querySelector('form.project-form'));
+</script>
+
+<script>
+  // Copiar el enlace público al portapapeles (sin librerías).
+  const copyButton = document.getElementById('copyPublicLink');
+  copyButton?.addEventListener('click', async () => {
+    const url = copyButton.dataset.copy ?? '';
+    const original = copyButton.textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+      copyButton.textContent = '✅ Copiado';
+    } catch {
+      copyButton.textContent = 'No se pudo copiar';
+    }
+    setTimeout(() => (copyButton.textContent = original), 2000);
+  });
 </script>

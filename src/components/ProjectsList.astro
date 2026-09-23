@@ -1,0 +1,321 @@
+---
+// Lista de tarjetas de proyecto (home y portada de cada espacio).
+// Cada elemento trae su URL ya resuelta (/<número>/projects/<slug>) y, opcionalmente, "por <espacio>".
+import CompletedBage from '@/components/UI/CompletedBage.astro';
+import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
+import { currencySymbol } from '@/lib/format';
+import {
+  normalizeProjectPageContent,
+  type ProjectConfig,
+} from '@/lib/supabase';
+import { getTheme } from '@/lib/themes';
+
+export interface ProjectListItem {
+  project: ProjectConfig;
+  href: string;
+  /** Nombre del espacio, si se quiere mostrar "por Familia Gallardo". */
+  by?: string;
+}
+
+export interface Props {
+  items: ProjectListItem[];
+  emptyText?: string;
+}
+
+const { items, emptyText = 'No hay proyectos todavía.' } = Astro.props;
+
+const countdownLabel = (p: ProjectConfig) => {
+  if (!isCampaignOpen(p)) return '🏁 Cerrada';
+  const d = daysLeft(p.end_date);
+  if (d === null) return '⏳ Abierta';
+  if (d === 0) return '⏳ ¡Último día!';
+  return `⏳ Quedan ${d} días`;
+};
+
+const statusLabel: Record<string, string> = {
+  active: 'Activo',
+  completed: 'Completado',
+  paused: 'Pausado',
+  cancelled: 'Cancelado',
+};
+
+const progressPct = (p: ProjectConfig) =>
+  p.target_amount > 0
+    ? Math.min(
+        100,
+        Math.round(((p.current_amount ?? 0) / p.target_amount) * 100)
+      )
+    : 0;
+---
+
+{items.length === 0 ? (
+  <p class='projects-empty'>{emptyText}</p>
+) : (
+  <ul class='projects-list'>
+    {items.map(({ project, href, by }, index) => (
+      <li
+        class='project-card'
+        style={`--card-accent: ${getTheme(normalizeProjectPageContent(project.page_content).theme).swatch[0]}; --i: ${index}`}
+      >
+        <a
+          href={href}
+          class='project-link'
+        >
+          {project.project_status === 'completed' && (
+            <CompletedBage size='sm' />
+          )}
+          {project.project_image_url && (
+            <img
+              src={project.project_image_url}
+              alt={project.project_name}
+              class='project-image'
+              loading='lazy'
+            />
+          )}
+
+          <div class='project-info'>
+            <h2>{project.project_name}</h2>
+            {by && <p class='project-by'>por {by}</p>}
+
+            {project.project_description && (
+              <p class='project-description'>{project.project_description}</p>
+            )}
+
+            {project.campaign_mode === 'open' ? (
+              <div class='progress-wrapper'>
+                <div class='progress-info'>
+                  <span>Conseguido entre todos:</span>
+                  <strong>
+                    {campaignTotals(project).total.toFixed(2)}{' '}
+                    {currencySymbol(project.currency)}
+                  </strong>
+                </div>
+                <div class='progress-percent'>{countdownLabel(project)}</div>
+              </div>
+            ) : (
+              <>
+                <p class='project-amount'>
+                  Objetivo:{' '}
+                  <strong>
+                    {Number(project.target_amount).toFixed(2)}{' '}
+                    {currencySymbol(project.currency)}
+                  </strong>
+                </p>
+
+                <div class='progress-wrapper'>
+                  <div class='progress-info'>
+                    <span>Recaudado:</span>
+                    <strong>
+                      {Number(project.current_amount ?? 0).toFixed(2)}{' '}
+                      {currencySymbol(project.currency)}
+                    </strong>
+                  </div>
+
+                  <div
+                    class='progress-bar'
+                    role='progressbar'
+                    aria-valuemin='0'
+                    aria-valuemax='100'
+                    aria-valuenow={progressPct(project)}
+                  >
+                    <div
+                      class='progress-fill'
+                      style={`width: ${progressPct(project)}%`}
+                    />
+                  </div>
+
+                  <div class='progress-percent'>{progressPct(project)}%</div>
+                </div>
+              </>
+            )}
+
+            <p class={`project-status status-${project.project_status}`}>
+              {statusLabel[project.project_status] ?? project.project_status}
+            </p>
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .projects-empty {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 2rem 0;
+  }
+
+  .projects-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .project-link {
+    display: flex;
+    gap: 1.25rem;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .project-card {
+    position: relative;
+    padding: 1.1rem;
+    border-radius: var(--radius-xl, 16px);
+    border-top: 5px solid var(--card-accent, transparent);
+    background: var(--color-surface, #fff);
+    box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.06));
+    overflow: hidden;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+    animation: fadeInUp 0.5s ease both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+
+  .project-card:hover,
+  .project-card:focus-within {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg, 0 14px 30px rgba(0, 0, 0, 0.14));
+  }
+
+  .project-image {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex-shrink: 0;
+    transition: transform 0.4s ease;
+  }
+
+  .project-card:hover .project-image {
+    transform: scale(1.04);
+  }
+
+  .project-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .project-info h2 {
+    margin: 0 0 0.35rem;
+  }
+
+  .project-by {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #666);
+  }
+
+  .project-description {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    color: #555;
+  }
+
+  .project-amount {
+    margin: 0 0 0.25rem;
+    font-weight: 500;
+  }
+
+  .progress-wrapper {
+    margin: 0.75rem 0 1rem;
+    width: 100%;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #444;
+    margin-bottom: 4px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 10px;
+    border-radius: 8px;
+    background: var(--color-surface-muted, #e9ecef);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-green),
+      var(--color-brand-green-light)
+    );
+    border-radius: 8px;
+    animation: growBar 1s 0.2s ease-out both;
+  }
+
+  @keyframes growBar {
+    from {
+      width: 0;
+    }
+  }
+
+  .progress-percent {
+    text-align: right;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .project-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  .project-status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .status-active {
+    color: var(--color-status-active, #4caf50);
+  }
+
+  .status-completed {
+    color: var(--color-status-completed, #2196f3);
+  }
+
+  .status-paused {
+    color: var(--color-status-paused, #ff9800);
+  }
+
+  .status-cancelled {
+    color: var(--color-status-cancelled, #f44336);
+  }
+
+  @media (max-width: 768px) {
+    .project-link {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .project-image {
+      width: 160px;
+      height: 160px;
+    }
+  }
+</style>
