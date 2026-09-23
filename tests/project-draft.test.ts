@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   DraftRequest,
+  RefineRequest,
+  buildRefineUserMessage,
   ProjectDraft,
   buildDraftSystemPrompt,
   normalizeDraft,
@@ -186,5 +188,67 @@ describe('draftToFormValues', () => {
     expect(values).not.toHaveProperty('levels');
     expect(values).not.toHaveProperty('notes');
     expect(values).not.toHaveProperty('bizum_phone');
+  });
+});
+
+describe('RefineRequest', () => {
+  it('accepts instructions with the current form values and levels', () => {
+    const r = RefineRequest.safeParse({
+      instructions: '  Es para Hugo y cuesta 179,99 €  ',
+      current: {
+        fields: {
+          project_name: 'Set LEGO',
+          target_amount: '200',
+          allow_custom_amount: true,
+        },
+        levels: [
+          {
+            name: 'Ladrillo',
+            amount: 10,
+            emoji: '🧱',
+            description: '',
+            color: '#ff0000',
+          },
+        ],
+      },
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.instructions).toBe('Es para Hugo y cuesta 179,99 €');
+      expect(r.data.current.levels).toHaveLength(1);
+    }
+  });
+
+  it('rejects empty instructions, a missing current form or extra keys', () => {
+    expect(
+      RefineRequest.safeParse({ instructions: 'ab', current: { fields: {} } })
+        .success
+    ).toBe(false);
+    expect(
+      RefineRequest.safeParse({ instructions: 'Cambia el título' }).success
+    ).toBe(false);
+    expect(
+      RefineRequest.safeParse({
+        instructions: 'Cambia el título',
+        current: { fields: {} },
+        extra: 1,
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe('buildRefineUserMessage', () => {
+  it('embeds the current form as JSON, the instructions and the keep-the-rest rule', () => {
+    const msg = buildRefineUserMessage(
+      {
+        fields: { project_name: 'Set LEGO', target_amount: '200' },
+        levels: [],
+      },
+      'Es para Hugo'
+    );
+    expect(msg).toContain('"project_name": "Set LEGO"');
+    expect(msg).toContain('Es para Hugo');
+    expect(msg).toMatch(/conserva/i);
+    expect(msg).toMatch(/completo/i);
   });
 });

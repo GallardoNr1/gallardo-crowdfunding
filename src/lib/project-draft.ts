@@ -10,6 +10,38 @@ export const DraftRequest = z.strictObject({
 });
 export type DraftRequest = z.infer<typeof DraftRequest>;
 
+/** Formulario actual tal y como está en el navegador (valores de los inputs + filas de niveles). */
+export const CurrentDraft = z.object({
+  fields: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+  levels: z
+    .array(
+      z.object({
+        name: z.string(),
+        amount: z.union([z.number(), z.string()]),
+        emoji: z.string(),
+        description: z.string(),
+        color: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
+});
+export type CurrentDraft = z.infer<typeof CurrentDraft>;
+
+/** Cuerpo de "Ajustar": instrucciones sobre el formulario actual. */
+export const RefineRequest = z.strictObject({
+  instructions: z.string().trim().min(3).max(2000),
+  current: CurrentDraft,
+});
+export type RefineRequest = z.infer<typeof RefineRequest>;
+
+export const DraftRequestBody = z.union([DraftRequest, RefineRequest]);
+
+/** Entrada del generador: descripción inicial o ajuste del borrador actual. */
+export type DraftInput =
+  | { kind: 'brief'; brief: string }
+  | { kind: 'refine'; instructions: string; current: CurrentDraft };
+
 export const DraftLevel = z.object({
   name: z.string(),
   amount: z.number(),
@@ -196,4 +228,19 @@ ${themes}
 - notes: lista de suposiciones que has hecho y de datos que faltan y la persona debe completar o comprobar (teléfono de Bizum, fechas, precios, nombres...). Frases cortas.
 
 Rellena todos los campos que puedas deducir razonablemente; deja en "" o null lo que no sepas.`;
+}
+
+/** Mensaje de usuario para "Ajustar": el formulario actual en JSON más las instrucciones. */
+export function buildRefineUserMessage(
+  current: CurrentDraft,
+  instructions: string
+): string {
+  return `Este es el borrador actual del proyecto, tal y como está ahora en el formulario (JSON):
+
+${JSON.stringify(current, null, 2)}
+
+Instrucciones o respuestas de la persona:
+${instructions}
+
+Devuelve el borrador completo (todos los campos) aplicando solo lo que pidan las instrucciones o lo que corrija un dato claramente erróneo; conserva el resto de valores literalmente, incluidos los niveles si no te piden cambiarlos. En "notes" deja solo lo que siga faltando o convenga revisar.`;
 }

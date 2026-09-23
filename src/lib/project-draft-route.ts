@@ -1,7 +1,11 @@
 // Lógica de POST /admin/api/draft-project, separada del endpoint para poder probarla
 // sin sesión real ni clave de Anthropic (`generate` y `configured` se inyectan).
 import { json, readJson } from './api';
-import { DraftRequest, type ProjectDraft } from './project-draft';
+import {
+  DraftRequestBody,
+  type DraftInput,
+  type ProjectDraft,
+} from './project-draft';
 import { fieldErrors } from './schemas';
 
 export interface DraftRouteDeps {
@@ -9,8 +13,8 @@ export interface DraftRouteDeps {
   user: { id: string; email?: string | null } | null;
   /** Hay ANTHROPIC_API_KEY. */
   configured: boolean;
-  /** Genera el borrador (llama a la API de Claude). Lanza si falla. */
-  generate: (brief: string) => Promise<ProjectDraft>;
+  /** Genera o ajusta el borrador (llama a la API de Claude). Lanza si falla. */
+  generate: (input: DraftInput) => Promise<ProjectDraft>;
 }
 
 export async function handleDraftRequest(
@@ -33,11 +37,12 @@ export async function handleDraftRequest(
     );
   }
 
-  const parsed = DraftRequest.safeParse(await readJson(request));
+  const parsed = DraftRequestBody.safeParse(await readJson(request));
   if (!parsed.success) {
     return json(
       {
-        error: 'Cuéntame un poco más (entre 10 y 4000 caracteres).',
+        error:
+          'Cuéntame un poco más (descripción de 10 a 4000 caracteres, o instrucciones de al menos 3).',
         fields: fieldErrors(parsed.error),
       },
       { status: 400 }
@@ -45,7 +50,15 @@ export async function handleDraftRequest(
   }
 
   try {
-    const draft = await generate(parsed.data.brief);
+    const input: DraftInput =
+      'brief' in parsed.data
+        ? { kind: 'brief', brief: parsed.data.brief }
+        : {
+            kind: 'refine',
+            instructions: parsed.data.instructions,
+            current: parsed.data.current,
+          };
+    const draft = await generate(input);
     return json({ draft });
   } catch (err) {
     const message =

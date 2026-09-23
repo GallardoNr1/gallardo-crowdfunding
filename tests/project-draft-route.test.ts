@@ -94,8 +94,8 @@ describe('handleDraftRequest', () => {
       {
         user,
         configured: true,
-        generate: async (brief) => {
-          received = brief;
+        generate: async (input) => {
+          received = input.kind === 'brief' ? input.brief : '';
           return draft;
         },
       }
@@ -120,5 +120,38 @@ describe('handleDraftRequest', () => {
     expect((await res.json()).error).toBe(
       'La IA no devolvió un borrador válido.'
     );
+  });
+
+  it('accepts a refine body and passes instructions and the current form to generate', async () => {
+    let received: unknown = null;
+    const res = await handleDraftRequest(
+      post({
+        instructions: 'Ponle el nombre de Hugo',
+        current: { fields: { project_name: 'Set LEGO' }, levels: [] },
+      }),
+      {
+        user,
+        configured: true,
+        generate: async (input) => {
+          received = input;
+          return draft;
+        },
+      }
+    );
+    expect(res.status).toBe(200);
+    expect(received).toEqual({
+      kind: 'refine',
+      instructions: 'Ponle el nombre de Hugo',
+      current: { fields: { project_name: 'Set LEGO' }, levels: [] },
+    });
+  });
+
+  it('rejects a body that is neither a brief nor a refine request', async () => {
+    const res = await handleDraftRequest(post({ instructions: 'x' }), {
+      user,
+      configured: true,
+      generate,
+    });
+    expect(res.status).toBe(400);
   });
 });

@@ -6,7 +6,9 @@ import { env } from './env';
 import {
   ProjectDraft,
   buildDraftSystemPrompt,
+  buildRefineUserMessage,
   normalizeDraft,
+  type DraftInput,
 } from './project-draft';
 
 export const DRAFT_MODEL = 'claude-opus-5';
@@ -28,7 +30,7 @@ export interface GenerateDraftOptions {
  * y lo normaliza. Lanza un Error con un mensaje apto para mostrar en el backoffice.
  */
 export async function generateProjectDraft(
-  brief: string,
+  input: DraftInput,
   { client, today }: GenerateDraftOptions = {}
 ): Promise<ProjectDraft> {
   const anthropic =
@@ -56,7 +58,15 @@ export async function generateProjectDraft(
       system: buildDraftSystemPrompt(
         today ?? new Date().toISOString().slice(0, 10)
       ),
-      messages: [{ role: 'user', content: brief }],
+      messages: [
+        {
+          role: 'user',
+          content:
+            input.kind === 'brief'
+              ? input.brief
+              : buildRefineUserMessage(input.current, input.instructions),
+        },
+      ],
     });
   } catch (err) {
     throw new Error(describeApiError(err), { cause: err });
