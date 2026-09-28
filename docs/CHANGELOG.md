@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-28] — Diez temas más
+
+- **Qué cambió:** Nuevos temas en `src/lib/themes.ts`: 🦸 Superhéroes, ⚽ Deporte, 🚀 Espacio, 🦕 Dinosaurios, 🐾 Mascotas, 🎵 Música, 👶 Bebé, 💍 Boda, 🏖️ Verano, 🎃 Halloween. Cada uno con su paleta completa (cabecera, fondos, secciones, acentos), sus emojis (títulos, insignias, partículas y confeti) y sus textos propios (nombre de la familia, contador de contribuidores, niveles, mensaje, muro de apoyo y muro vacío). Total: 17 temas. Entran solos en el selector del formulario, en la IA y en las tarjetas de la home.
+- **Por qué:** El usuario pidió más aspectos para cubrir más tipos de regalo (deporte, bebés, bodas, mascotas, fechas señaladas…).
+- **Archivos tocados:** `src/lib/themes.ts`, `tests/themes.test.ts`, `docs/{DATA-MODEL,CHANGELOG}.md`.
+- **Impacto:** Sin cambios de datos ni de interfaz: `page_content.theme` admite los ids nuevos y el selector compacto ya está pensado para crecer.
+
+---
+
 ## [2026-09-28] — Edición de proyecto en dos pestañas
 
 - **Qué cambió:** La pantalla de edición se divide en dos pestañas: **Datos del proyecto** (panel de IA, formulario largo y barra de guardado) y **Fotos, niveles y emojis** (los tres apartados que se guardan al momento con su propio botón). Pestañas accesibles (`role=tablist`, flechas del teclado) en `src/lib/client/tabs.ts`; la activa va en la URL (`?tab=extras`), así que una recarga o el POST de un apartado "al momento" vuelven a la misma pestaña; el servidor también la abre cuando la acción enviada es de esos apartados, al crear un proyecto sin niveles o si falló la creación de niveles. Si el formulario tiene cambios sin guardar, la segunda pestaña muestra un aviso (esos apartados recargan la página; el navegador además pide confirmación). Desaparece el separador "Se guardan al momento".
