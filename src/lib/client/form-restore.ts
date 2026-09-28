@@ -2,6 +2,7 @@
 // (slug repetido, nivel sin importe...). Sin esto, un formulario largo (o rellenado por la
 // IA) se perdía entero al reenviarlo. Usa sessionStorage: solo esta pestaña, solo un envío.
 import type { LevelRowsApi } from './level-rows';
+import { notifyFormFilled } from './save-bar';
 
 const STORAGE_KEY = 'gc:new-project-form';
 
@@ -89,4 +90,6 @@ export function restoreFormAfterError(
     }
     first.value = values[0] ?? '';
   }
+  // Lo restaurado sigue sin guardar: la barra debe avisar.
+  notifyFormFilled(form);
 }

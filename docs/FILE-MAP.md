@@ -64,6 +64,7 @@ gallardo-crowdfunding/
 │   │   ├── client/level-rows.ts      # Backoffice (alta): filas de niveles clonando un <template>
 │   │   ├── client/ai-draft.ts        # Backoffice (alta): panel "Rellenar con IA" → vuelca el borrador
 │   │   ├── client/form-restore.ts    # Backoffice (alta): recupera lo escrito tras un error del servidor
+│   │   ├── client/save-bar.ts        # Backoffice (alta y edición): barra de guardado fija, aviso de cambios sin guardar
 │   │   ├── project-draft.ts          # Borrador IA: esquemas Zod, normalizeDraft, prompt de sistema (puro)
 │   │   ├── project-draft-form.ts     # Borrador IA → valores de los campos del formulario (sin Zod)
 │   │   ├── project-draft-route.ts    # Lógica de POST /admin/api/draft-project (inyectable, testeable)
@@ -108,7 +109,7 @@ gallardo-crowdfunding/
 │   ├── email-templates/       # Plantillas de Supabase Auth (confirmation, recovery, invite, email_change) + subjects.json
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
 ├── scripts/apply-email-templates.mjs  # Aplica supabase/email-templates/ a Supabase Auth (Management API)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms y save-bar (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
 ├── astro.config.mjs

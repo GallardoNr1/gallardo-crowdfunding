@@ -822,7 +822,16 @@ const levelsForAi = (levels ?? []).map((l) => ({
       </div>
     </section>
 
-    <div class='form-actions'>
+    <div
+      class='save-bar'
+      id='saveBar'
+      data-dirty='false'
+    >
+      <span
+        class='save-bar-status'
+        data-status
+        aria-live='polite'
+      ></span>
       <a
         href='/admin'
         class='btn-ghost'
@@ -838,7 +847,15 @@ const levelsForAi = (levels ?? []).map((l) => ({
     </div>
   </form>
 
-  <!-- ── Niveles de contribución ─────────────────────────────────────────── -->
+  <!-- ── Secciones con formulario propio: se guardan al momento ──────────── -->
+  <div class='instant-divider'>
+    <h2 class='instant-title'>Se guardan al momento</h2>
+    <p class='instant-hint'>
+      Fotos, niveles y emojis tienen su propio botón y no dependen de «Guardar
+      cambios».
+    </p>
+  </div>
+
   <section class='form-section photos-section'>
     <h2 class='section-title'>Fotos de la familia</h2>
     <p class='section-hint'>
@@ -1303,10 +1320,70 @@ const levelsForAi = (levels ?? []).map((l) => ({
     border: none;
   }
 
-  .form-actions {
+  /* Barra de guardado: pegada al borde inferior mientras se edita el formulario. */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .save-bar-status {
+    margin-right: auto;
+    min-height: 1.2em;
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+
+  .save-bar[data-dirty='true'] .save-bar-status {
+    color: #c2410c;
+    font-weight: 600;
+  }
+
+  .save-bar[data-dirty='true'] .save-bar-status::before {
+    content: '● ';
+  }
+
+  @media (max-width: 600px) {
+    .save-bar {
+      padding: 10px 12px;
+    }
+
+    .save-bar-status {
+      flex-basis: 100%;
+    }
+  }
+
+  /* Separador de las secciones con formulario propio (fotos, niveles, emojis). */
+  .instant-divider {
+    margin: 36px 0 4px;
+    padding-top: 22px;
+    border-top: 2px dashed var(--color-admin-border);
+  }
+
+  .instant-title {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .instant-hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
   }
 
   .btn-primary {
@@ -1793,7 +1870,12 @@ const levelsForAi = (levels ?? []).map((l) => ({
 
 <script>
   import { initCampaignForm } from '@/lib/client/campaign-form';
-  initCampaignForm(document.querySelector('form.project-form'));
+  import { initSaveBar } from '@/lib/client/save-bar';
+
+  const projectForm =
+    document.querySelector<HTMLFormElement>('form.project-form');
+  initCampaignForm(projectForm);
+  initSaveBar(projectForm, document.getElementById('saveBar'));
 </script>
 
 <script>

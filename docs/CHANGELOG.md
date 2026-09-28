@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-28] — Barra de guardado fija en el formulario de proyecto
+
+- **Qué cambió:** (1) En alta y edición, los botones del formulario principal ("Crear proyecto" / "Guardar cambios" con Cancelar/Volver) van en una barra pegada al borde inferior de la pantalla mientras se edita (`position: sticky`), con un aviso "● Cambios sin guardar" en cuanto se toca un campo o la IA rellena el formulario, "Guardando…" al enviar y confirmación del navegador si se intenta salir con cambios pendientes (`src/lib/client/save-bar.ts`). (2) En edición, las secciones con formulario propio (Fotos de la familia, Niveles, Emojis) quedan bajo un separador "Se guardan al momento" que explica que no dependen de "Guardar cambios". (3) `AdminLayout`: el área de contenido pasa de `overflow-x: hidden` a `overflow-x: clip`, porque `hidden` creaba un contenedor de scroll que anulaba el `sticky`.
+- **Por qué:** En edición, "Guardar cambios" quedaba a mitad de página, seguido de tres secciones con sus propios botones, y parecía que lo de abajo no se guardaba o que el botón estaba mal puesto.
+- **Archivos tocados:** `src/lib/client/{save-bar,ai-draft,form-restore}.ts`, `src/pages/admin/projects/{new,[id]/edit}.astro`, `src/layouts/AdminLayout.astro`, `tests/save-bar.test.ts`, `docs/{FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Solo interfaz del backoffice. Cualquier relleno por programa del formulario debe disparar `notifyFormFilled(form)` (evento `form:filled`) para que la barra lo detecte.
+
+---
+
 ## [2026-09-23] — Plantillas de email de Auth con diseño propio y avisos con el mismo estilo
 
 - **Qué cambió:** (1) Nuevas plantillas en español para los correos de Supabase Auth (confirmar registro, recuperar contraseña, invitación y cambio de email), versionadas en `supabase/email-templates/` con sus asuntos en `subjects.json`: tarjeta blanca con cabecera naranja de la marca, botón grande, enlace alternativo en texto, nombre del espacio (`{{ .Data.space_name }}`) cuando existe y nota de caducidad. (2) Script `scripts/apply-email-templates.mjs` (`npm run supabase:email-templates`, con `--dry`) que las aplica por la Management API. (3) Los avisos al organizador (`notifications.ts`) usan el mismo diseño. (4) ESLint conoce los globals de Node en `scripts/**/*.mjs`.

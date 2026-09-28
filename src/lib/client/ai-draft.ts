@@ -4,6 +4,7 @@
 import type { CurrentDraft, ProjectDraft } from '../project-draft';
 import { draftToFormValues } from '../project-draft-form';
 import type { LevelRowsApi } from './level-rows';
+import { notifyFormFilled } from './save-bar';
 
 type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
@@ -150,6 +151,7 @@ export function applyDraftToForm(
     filled += draft.levels.length;
   }
 
+  if (filled > 0) notifyFormFilled(form);
   return filled;
 }
 

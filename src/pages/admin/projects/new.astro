@@ -689,7 +689,16 @@ const aiConfigured = isDraftConfigured();
       </div>
     </section>
 
-    <div class='form-actions'>
+    <div
+      class='save-bar'
+      id='saveBar'
+      data-dirty='false'
+    >
+      <span
+        class='save-bar-status'
+        data-status
+        aria-live='polite'
+      ></span>
       <a
         href='/admin'
         class='btn-ghost'
@@ -829,11 +838,48 @@ const aiConfigured = isDraftConfigured();
     border: none;
   }
 
-  .form-actions {
+  /* Barra de guardado: pegada al borde inferior mientras se edita el formulario. */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 12px;
-    padding-bottom: 40px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--color-admin-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .save-bar-status {
+    margin-right: auto;
+    min-height: 1.2em;
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+
+  .save-bar[data-dirty='true'] .save-bar-status {
+    color: #c2410c;
+    font-weight: 600;
+  }
+
+  .save-bar[data-dirty='true'] .save-bar-status::before {
+    content: '● ';
+  }
+
+  @media (max-width: 600px) {
+    .save-bar {
+      padding: 10px 12px;
+    }
+
+    .save-bar-status {
+      flex-basis: 100%;
+    }
   }
 
   .btn-primary {
@@ -1082,9 +1128,11 @@ const aiConfigured = isDraftConfigured();
     saveFormOnSubmit,
   } from '@/lib/client/form-restore';
   import { initLevelRows } from '@/lib/client/level-rows';
+  import { initSaveBar } from '@/lib/client/save-bar';
 
   const form = document.querySelector<HTMLFormElement>('form.project-form');
   initCampaignForm(form);
+  initSaveBar(form, document.getElementById('saveBar'));
   const levels = initLevelRows(document.getElementById('levelsSection'));
   if (form) {
     // Tras un error del servidor se recupera lo escrito (incluidos los niveles).

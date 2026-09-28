@@ -577,7 +577,8 @@ const isSuperAdmin = Astro.locals.isSuperAdmin ?? false;
     width: 100%;
     max-width: var(--container-admin);
     box-sizing: border-box;
-    overflow-x: hidden;
+    /* clip, no hidden: hidden crea un contenedor de scroll y rompe position: sticky. */
+    overflow-x: clip;
   }
 
   @media (max-width: 768px) {
