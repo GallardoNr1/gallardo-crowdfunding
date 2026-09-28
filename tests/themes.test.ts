@@ -28,6 +28,12 @@ describe('themes registry', () => {
         'boda',
         'verano',
         'halloween',
+        'flores',
+        'sirenas',
+        'danza',
+        'glamour',
+        'bienestar',
+        'dulce',
       ].sort()
     );
     expect(DEFAULT_THEME_ID).toBe('fiesta');

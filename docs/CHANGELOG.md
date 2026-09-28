@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-28] — Seis temas más: flores, sirenas, danza, glamour, bienestar y dulce
+
+- **Qué cambió:** Nuevos temas en `src/lib/themes.ts`: 🌸 Flores, 🧜‍♀️ Sirenas, 🩰 Danza, 💄 Glamour, 🧘‍♀️ Bienestar, 🧁 Dulce, cada uno con paleta, emojis y textos propios. Total: 23 temas.
+- **Por qué:** El usuario pidió más aspectos pensados para regalos de chicas y mujeres; se nombran por motivo (flores, danza, dulce…) para que sirvan a cualquiera.
+- **Archivos tocados:** `src/lib/themes.ts`, `tests/themes.test.ts`, `docs/{DATA-MODEL,CHANGELOG}.md`.
+- **Impacto:** Sin cambios de datos ni de interfaz; el selector de fichas crece solo.
+
+---
+
 ## [2026-09-28] — Diez temas más
 
 - **Qué cambió:** Nuevos temas en `src/lib/themes.ts`: 🦸 Superhéroes, ⚽ Deporte, 🚀 Espacio, 🦕 Dinosaurios, 🐾 Mascotas, 🎵 Música, 👶 Bebé, 💍 Boda, 🏖️ Verano, 🎃 Halloween. Cada uno con su paleta completa (cabecera, fondos, secciones, acentos), sus emojis (títulos, insignias, partículas y confeti) y sus textos propios (nombre de la familia, contador de contribuidores, niveles, mensaje, muro de apoyo y muro vacío). Total: 17 temas. Entran solos en el selector del formulario, en la IA y en las tarjetas de la home.
