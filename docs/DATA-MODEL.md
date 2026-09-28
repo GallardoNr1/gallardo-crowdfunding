@@ -66,7 +66,7 @@ Configuración y estado de cada campaña de crowdfunding.
   "cta": { "icon": "...", "title": "...", "text": "...", "stats": [{"number": "...", "label": "..."}] },
   "bizum_phone": "...",
   "bizum_concept": "...",
-  "theme": "fiesta | aventura | navidad | fantasia | viaje | tecnologia"
+  "theme": "fiesta | aventura | navidad | fantasia | viaje | tecnologia | princesas"
 }
 ```
 

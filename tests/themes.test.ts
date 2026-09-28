@@ -8,13 +8,14 @@ import {
 } from '../src/lib/themes';
 
 describe('themes registry', () => {
-  it('has the six agreed themes with fiesta as default', () => {
+  it('has the seven agreed themes with fiesta as default', () => {
     expect([...THEME_IDS].sort()).toEqual(
       [
         'aventura',
         'fantasia',
         'fiesta',
         'navidad',
+        'princesas',
         'tecnologia',
         'viaje',
       ].sort()

@@ -561,18 +561,33 @@ const levelsForAi = (levels ?? []).map((l) => ({
         Colores y emojis decorativos de la página del proyecto (no cambia los
         emojis que escribes tú).
       </p>
-      <div class='theme-options'>
-        {THEME_IDS.map((id) => {
-          const t = THEMES[id];
-          return (
-            <label class='theme-option'>
-              <input
-                type='radio'
-                name='theme'
-                value={id}
-                checked={currentTheme === id}
-              />
-              <span class='theme-option__body'>
+      <div
+        class='theme-picker'
+        id='themePicker'
+      >
+        <div
+          class='theme-tiles'
+          role='radiogroup'
+          aria-label='Tema visual'
+        >
+          {THEME_IDS.map((id) => {
+            const t = THEMES[id];
+            const [icon, ...words] = t.name.split(' ');
+            return (
+              <label class='theme-tile'>
+                <input
+                  type='radio'
+                  name='theme'
+                  value={id}
+                  checked={currentTheme === id}
+                />
+                <span
+                  class='theme-tile__icon'
+                  aria-hidden='true'
+                >
+                  {icon}
+                </span>
+                <span class='theme-tile__name'>{words.join(' ')}</span>
                 <span
                   class='theme-swatch'
                   aria-hidden='true'
@@ -581,17 +596,32 @@ const levelsForAi = (levels ?? []).map((l) => ({
                     <i style={`background:${c}`} />
                   ))}
                 </span>
-                <strong>{t.name}</strong>
-                <small>{t.description}</small>
-                <span
-                  class='theme-emojis'
-                  aria-hidden='true'
-                >
-                  {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
-                  {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
-                </span>
+              </label>
+            );
+          })}
+        </div>
+        {THEME_IDS.map((id) => {
+          const t = THEMES[id];
+          return (
+            <div
+              class='theme-detail'
+              data-theme-detail={id}
+              hidden={currentTheme !== id}
+            >
+              <strong>{t.name}</strong>
+              <span>{t.description}</span>
+              <span
+                class='theme-emojis'
+                aria-hidden='true'
+              >
+                {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
+                {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
               </span>
-            </label>
+              <small>
+                «{t.texts.familyTitle}» · {t.texts.contributorsStat} ·{' '}
+                {t.texts.levelsTitle}
+              </small>
+            </div>
           );
         })}
       </div>
@@ -1678,32 +1708,42 @@ const levelsForAi = (levels ?? []).map((l) => ({
     font-size: 0.9rem;
     margin: -6px 0 14px;
   }
-  .theme-options {
+  /* Selector de tema: fichas compactas (crece bien con más temas) + detalle del elegido. */
+  .theme-tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-  }
-  .theme-option {
-    display: flex;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
     gap: 10px;
-    align-items: flex-start;
-    padding: 12px 14px;
-    border: 1.5px solid var(--color-admin-border);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    background: var(--color-surface);
   }
-  .theme-option:has(input:checked) {
-    border-color: var(--color-admin-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-  }
-  .theme-option input {
-    margin-top: 4px;
-  }
-  .theme-option__body {
+  .theme-tile {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px 10px;
+    border: 1.5px solid var(--color-admin-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    cursor: pointer;
+    text-align: center;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .theme-tile:hover {
+    border-color: #c7d2fe;
+  }
+  .theme-tile:has(input:checked) {
+    border-color: var(--color-admin-primary);
+    background: #eef2ff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+  .theme-tile__icon {
+    font-size: 1.7rem;
+    line-height: 1;
+  }
+  .theme-tile__name {
+    font-size: 0.9rem;
+    font-weight: 600;
   }
   .theme-swatch {
     display: inline-flex;
@@ -1711,12 +1751,31 @@ const levelsForAi = (levels ?? []).map((l) => ({
   }
   .theme-swatch i {
     display: inline-block;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
     border: 1px solid rgba(0, 0, 0, 0.08);
   }
-  .theme-option small {
+  .theme-detail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px dashed var(--color-admin-border);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    font-size: 0.92rem;
+  }
+  .theme-detail[hidden] {
+    display: none;
+  }
+  .theme-detail span {
+    color: #475569;
+  }
+  .theme-detail small {
+    flex-basis: 100%;
     color: #64748b;
   }
   .theme-emojis {
@@ -1725,7 +1784,7 @@ const levelsForAi = (levels ?? []).map((l) => ({
   }
   /* Las tarjetas ya marcan la selección: el círculo del radio sobra (sigue accesible por teclado). */
   .mode-option input,
-  .theme-option input {
+  .theme-tile input {
     position: absolute;
     opacity: 0;
     width: 1px;
@@ -1733,11 +1792,11 @@ const levelsForAi = (levels ?? []).map((l) => ({
     pointer-events: none;
   }
   .mode-option,
-  .theme-option {
+  .theme-tile {
     position: relative;
   }
   .mode-option:has(input:focus-visible),
-  .theme-option:has(input:focus-visible) {
+  .theme-tile:has(input:focus-visible) {
     outline: 2px solid var(--color-admin-primary);
     outline-offset: 2px;
   }
@@ -1871,11 +1930,13 @@ const levelsForAi = (levels ?? []).map((l) => ({
 <script>
   import { initCampaignForm } from '@/lib/client/campaign-form';
   import { initSaveBar } from '@/lib/client/save-bar';
+  import { initThemePicker } from '@/lib/client/theme-picker';
 
   const projectForm =
     document.querySelector<HTMLFormElement>('form.project-form');
   initCampaignForm(projectForm);
   initSaveBar(projectForm, document.getElementById('saveBar'));
+  initThemePicker(document.getElementById('themePicker'));
 </script>
 
 <script>

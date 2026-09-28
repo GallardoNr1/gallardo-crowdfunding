@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-28] — Tema "Princesas" y selector de temas compacto
+
+- **Qué cambió:** (1) Nuevo tema `princesas` (rosa, lila y dorado; coronas, castillos y unicornios; textos "La Corte del Palacio", "Hadas madrinas", "Joyas de la Corona"…) en `src/lib/themes.ts`; entra solo en el selector, en la IA (`theme` del borrador) y en las tarjetas de la home. (2) El selector de tema de alta y edición pasa de tarjetas grandes a una rejilla de fichas compactas (emoji, nombre y muestra de colores; `minmax(112px)`, crece a más columnas o filas según haga falta) con un panel debajo que muestra descripción, emojis y textos solo del tema elegido (`src/lib/client/theme-picker.ts`).
+- **Por qué:** Con siete temas las tarjetas ocupaban media pantalla y cada tema nuevo lo empeoraba; el usuario pidió "Princesas" y un orden que admita más opciones.
+- **Archivos tocados:** `src/lib/themes.ts`, `src/lib/client/theme-picker.ts`, `src/pages/admin/projects/{new,[id]/edit}.astro`, `tests/{themes,theme-picker}.test.ts`, `docs/{DATA-MODEL,FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Ningún cambio de datos: `page_content.theme` admite el id nuevo. Para añadir otro tema basta con sumarlo a `THEME_IDS` y `THEMES`.
+
+---
+
 ## [2026-09-28] — Barra de guardado fija en el formulario de proyecto
 
 - **Qué cambió:** (1) En alta y edición, los botones del formulario principal ("Crear proyecto" / "Guardar cambios" con Cancelar/Volver) van en una barra pegada al borde inferior de la pantalla mientras se edita (`position: sticky`), con un aviso "● Cambios sin guardar" en cuanto se toca un campo o la IA rellena el formulario, "Guardando…" al enviar y confirmación del navegador si se intenta salir con cambios pendientes (`src/lib/client/save-bar.ts`). (2) En edición, las secciones con formulario propio (Fotos de la familia, Niveles, Emojis) quedan bajo un separador "Se guardan al momento" que explica que no dependen de "Guardar cambios". (3) `AdminLayout`: el área de contenido pasa de `overflow-x: hidden` a `overflow-x: clip`, porque `hidden` creaba un contenedor de scroll que anulaba el `sticky`.
