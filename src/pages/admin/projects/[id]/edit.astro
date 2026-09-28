@@ -21,6 +21,7 @@ const supabase = createAdminClient();
 
 let error = '';
 let successMsg = '';
+let postedAction = '';
 let fieldErrors: Record<string, string> = {};
 
 // Se carga antes del POST para conservar lo que el formulario no edita (stats del CTA)
@@ -38,6 +39,7 @@ if (!current) {
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const action = form.get('_action') as string;
+  postedAction = action;
 
   // Actualizar datos del proyecto
   if (action === 'update_project') {
@@ -239,7 +241,25 @@ const imageErrorParam = Astro.url.searchParams.get('image_error');
 if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
 const levelsErrorParam = Astro.url.searchParams.get('levels_error');
 if (levelsErrorParam)
-  error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos abajo.`;
+  error = `Los niveles no se han creado: ${levelsErrorParam}. Añádelos en la pestaña «Fotos, niveles y emojis».`;
+
+// Pestaña inicial: la de "al momento" si venimos de uno de sus formularios, de ?tab=extras
+// o de crear un proyecto sin niveles (el siguiente paso es añadirlos).
+const INSTANT_ACTIONS = [
+  'add_photos',
+  'delete_photo',
+  'add_level',
+  'delete_level',
+  'add_emoji',
+  'delete_emoji',
+];
+const initialTab: 'datos' | 'extras' =
+  INSTANT_ACTIONS.includes(postedAction) ||
+  Astro.url.searchParams.get('tab') === 'extras' ||
+  levelsErrorParam ||
+  (createdParam && createdLevels === 0)
+    ? 'extras'
+    : 'datos';
 const currentTheme = isThemeId(pc.theme) ? pc.theme : DEFAULT_THEME_ID;
 const currentVisibility =
   project.visibility === 'public' ? 'public' : 'private';
@@ -294,900 +314,953 @@ const levelsForAi = (levels ?? []).map((l) => ({
     </a>
   </nav>
 
-  <AiDraftPanel
-    mode='edit'
-    configured={aiConfigured}
-  />
-
-  <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
-  <form
-    method='POST'
-    class='project-form'
-    enctype='multipart/form-data'
+  <div
+    class='tabs'
+    role='tablist'
+    aria-label='Secciones del proyecto'
+    id='projectTabs'
   >
-    <script
-      type='application/json'
-      data-level-json
-      set:html={JSON.stringify(levelsForAi)}
-    ></script>
-    <input
-      type='hidden'
-      name='_action'
-      value='update_project'
-    />
-
-    <section class='form-section'>
-      <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
-      <div class='mode-options'>
-        <label class='mode-option'>
-          <input
-            type='radio'
-            name='campaign_mode'
-            value='target'
-            checked={project.campaign_mode !== 'open'}
-          />
-          <span class='mode-option__body'>
-            <strong>🎯 Al alcanzar un objetivo de dinero</strong>
-            <small>
-              Hay un producto concreto con precio. Barra de progreso y
-              porcentaje. La fecha de cierre es opcional.
-            </small>
-          </span>
-        </label>
-        <label class='mode-option'>
-          <input
-            type='radio'
-            name='campaign_mode'
-            value='open'
-            checked={project.campaign_mode === 'open'}
-          />
-          <span class='mode-option__body'>
-            <strong>
-              ⏳ En una fecha de cierre (recaudar lo máximo posible)
-            </strong>
-            <small>
-              Sin objetivo ni producto fijo: lo que se compre depende de lo
-              recaudado. Se muestra lo conseguido, la aportación base y una
-              cuenta atrás.
-            </small>
-          </span>
-        </label>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>2. Información básica</h2>
-      <div class='form-grid'>
-        <div class='field full'>
-          <label for='project_name'>Nombre del proyecto *</label>
-          <input
-            type='text'
-            name='project_name'
-            id='project_name'
-            required
-            value={project.project_name}
-          />
-        </div>
-
-        <div class='field'>
-          <label for='slug'>Slug (URL) *</label>
-          <div class='input-prefix'>
-            <span class='prefix'>/projects/</span>
-            <input
-              type='text'
-              name='slug'
-              id='slug'
-              required
-              value={project.slug}
-              pattern='[a-z0-9\-]+'
-              title='Solo letras minúsculas, números y guiones'
-            />
-          </div>
-          <small>Solo minúsculas, números y guiones.</small>
-        </div>
-
-        <div class='field'>
-          <label for='project_status'>Estado</label>
-          <select
-            name='project_status'
-            id='project_status'
-          >
-            {['active', 'paused', 'completed', 'cancelled'].map((s) => (
-              <option
-                value={s}
-                selected={project.project_status === s}
-              >
-                {s === 'active'
-                  ? 'Activo'
-                  : s === 'paused'
-                    ? 'Pausado'
-                    : s === 'completed'
-                      ? 'Completado'
-                      : 'Cancelado'}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div class='field full'>
-          <span class='field-label'>Visibilidad</span>
-          <div class='mode-options'>
-            <label class='mode-option'>
-              <input
-                type='radio'
-                name='visibility'
-                value='private'
-                checked={currentVisibility === 'private'}
-              />
-              <span class='mode-option__body'>
-                <strong>🔒 Privado</strong>
-                <small>
-                  Solo lo ve quien tenga el enlace. No aparece en la portada de
-                  la web.
-                </small>
-              </span>
-            </label>
-            <label class='mode-option'>
-              <input
-                type='radio'
-                name='visibility'
-                value='public'
-                checked={currentVisibility === 'public'}
-              />
-              <span class='mode-option__body'>
-                <strong>🌍 Público</strong>
-                <small>
-                  Aparece en la portada de la web y en la página de tu espacio.
-                </small>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div class='field full'>
-          <label for='project_description'>Descripción</label>
-          <textarea
-            name='project_description'
-            id='project_description'
-            rows='3'
-          >{project.project_description ?? ''}</textarea>
-        </div>
-
-        <div
-          class='field'
-          data-mode='target'
-        >
-          <label for='target_amount'>Meta (importe) *</label>
-          <input
-            type='number'
-            name='target_amount'
-            id='target_amount'
-            min='1'
-            step='0.01'
-            value={project.target_amount || ''}
-            data-required-in='target'
-          />
-        </div>
-
-        <div class='field'>
-          <label for='currency'>Moneda</label>
-          <input
-            type='text'
-            name='currency'
-            id='currency'
-            value={project.currency ?? 'EUR'}
-            maxlength='5'
-          />
-        </div>
-
-        <div class='field full'>
-          <label for='project_image'>Imagen (subir desde el dispositivo)</label>
-          <input
-            type='file'
-            name='project_image'
-            id='project_image'
-            accept='image/jpeg,image/png,image/webp,image/gif'
-          />
-          <small>
-            JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, sustituye a
-            la imagen actual.
-          </small>
-          {project.project_image_url && (
-            <img
-              src={project.project_image_url}
-              alt='Imagen actual del proyecto'
-              class='image-preview'
-            />
-          )}
-        </div>
-
-        <div class='field full'>
-          <label for='project_image_url'>… o URL de la imagen</label>
-          <input
-            type='url'
-            name='project_image_url'
-            id='project_image_url'
-            value={project.project_image_url ?? ''}
-          />
-          <small data-mode='open'>
-            En campañas por tiempo es solo ilustrativa (no enlaza a ningún
-            producto).
-          </small>
-        </div>
-
-        <div class='field'>
-          <label for='start_date'>Fecha de inicio</label>
-          <input
-            type='date'
-            name='start_date'
-            id='start_date'
-            value={project.start_date ? project.start_date.split('T')[0] : ''}
-          />
-        </div>
-
-        <div class='field'>
-          <label for='end_date'>Fecha de cierre</label>
-          <input
-            type='date'
-            name='end_date'
-            id='end_date'
-            value={project.end_date ? project.end_date.split('T')[0] : ''}
-            data-required-in='open'
-          />
-          <small data-mode='open'>
-            Obligatoria: la campaña se cierra sola al terminar ese día.
-          </small>
-          <small data-mode='target'>
-            Opcional: si se indica, la campaña se cierra sola al terminar ese
-            día.
-          </small>
-        </div>
-
-        <div class='field full'>
-          <label for='redirect_url'>URL de redirección al finalizar</label>
-          <input
-            type='text'
-            name='redirect_url'
-            id='redirect_url'
-            value={project.redirect_url ?? '/'}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Aspecto</h2>
-      <p class='section-hint'>
-        Colores y emojis decorativos de la página del proyecto (no cambia los
-        emojis que escribes tú).
-      </p>
-      <div
-        class='theme-picker'
-        id='themePicker'
-      >
-        <div
-          class='theme-tiles'
-          role='radiogroup'
-          aria-label='Tema visual'
-        >
-          {THEME_IDS.map((id) => {
-            const t = THEMES[id];
-            const [icon, ...words] = t.name.split(' ');
-            return (
-              <label class='theme-tile'>
-                <input
-                  type='radio'
-                  name='theme'
-                  value={id}
-                  checked={currentTheme === id}
-                />
-                <span
-                  class='theme-tile__icon'
-                  aria-hidden='true'
-                >
-                  {icon}
-                </span>
-                <span class='theme-tile__name'>{words.join(' ')}</span>
-                <span
-                  class='theme-swatch'
-                  aria-hidden='true'
-                >
-                  {t.swatch.map((c) => (
-                    <i style={`background:${c}`} />
-                  ))}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-        {THEME_IDS.map((id) => {
-          const t = THEMES[id];
-          return (
-            <div
-              class='theme-detail'
-              data-theme-detail={id}
-              hidden={currentTheme !== id}
-            >
-              <strong>{t.name}</strong>
-              <span>{t.description}</span>
-              <span
-                class='theme-emojis'
-                aria-hidden='true'
-              >
-                {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
-                {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
-              </span>
-              <small>
-                «{t.texts.familyTitle}» · {t.texts.contributorsStat} ·{' '}
-                {t.texts.levelsTitle}
-              </small>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Aportaciones</h2>
-      <div class='form-grid'>
-        <div
-          class='field'
-          data-mode='open'
-        >
-          <label for='base_amount'>Aportación base (la pone la familia)</label>
-          <input
-            type='number'
-            name='base_amount'
-            id='base_amount'
-            min='0'
-            step='0.01'
-            value={project.base_amount ?? 0}
-          />
-        </div>
-        <div
-          class='field'
-          data-mode='open'
-        >
-          <label for='base_label'>Etiqueta de la aportación base</label>
-          <input
-            type='text'
-            name='base_label'
-            id='base_label'
-            placeholder='Papá y mamá'
-            maxlength='60'
-            value={project.base_label ?? ''}
-          />
-        </div>
-        <div class='field field--check'>
-          <label
-            class='check-label'
-            for='allow_custom_amount'
-          >
-            <input
-              type='checkbox'
-              name='allow_custom_amount'
-              id='allow_custom_amount'
-              checked={!!project.allow_custom_amount}
-            />
-            <span>Permitir "otra cantidad"</span>
-          </label>
-          <small>
-            Además de los niveles, se puede aportar cualquier importe (a partir
-            del mínimo de al lado).
-          </small>
-        </div>
-        <div class='field'>
-          <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
-          <input
-            type='number'
-            name='min_custom_amount'
-            id='min_custom_amount'
-            min='1'
-            step='0.01'
-            value={project.min_custom_amount ?? 5}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Pago — Bizum</h2>
-      <div class='form-grid'>
-        <div class='field'>
-          <label for='bizum_phone'>Número de Bizum</label>
-          <input
-            type='text'
-            name='bizum_phone'
-            id='bizum_phone'
-            value={project.bizum_phone ?? ''}
-          />
-        </div>
-        <div class='field'>
-          <label for='bizum_concept'>Concepto Bizum</label>
-          <input
-            type='text'
-            name='bizum_concept'
-            id='bizum_concept'
-            value={project.bizum_concept ?? ''}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Contenido de la página</h2>
-      <div class='form-grid'>
-        <div class='field full'>
-          <label for='pageTitle'>Título de la página</label>
-          <input
-            type='text'
-            name='pageTitle'
-            id='pageTitle'
-            value={pc.pageTitle ?? ''}
-          />
-        </div>
-        <div class='field full'>
-          <label for='pageSubtitle'>Subtítulo</label>
-          <input
-            type='text'
-            name='pageSubtitle'
-            id='pageSubtitle'
-            value={pc.pageSubtitle ?? ''}
-          />
-        </div>
-        <div
-          class='field full'
-          data-mode='target'
-        >
-          <label for='productUrl'>URL del producto</label>
-          <input
-            type='url'
-            name='productUrl'
-            id='productUrl'
-            value={pc.productUrl ?? ''}
-          />
-        </div>
-
-        <div class='field'>
-          <label for='progressTitle'>Título sección progreso</label>
-          <input
-            type='text'
-            name='progressTitle'
-            id='progressTitle'
-            value={pc.progressTitle ?? '🎯 Progreso'}
-          />
-        </div>
-        <div class='field'>
-          <label for='contributorsTitle'>Título sección contribuidores</label>
-          <input
-            type='text'
-            name='contributorsTitle'
-            id='contributorsTitle'
-            value={pc.contributorsTitle ?? '✨ Contribuidores'}
-          />
-        </div>
-        <div class='field full'>
-          <label for='photoSectionTitle'>Título sección fotos</label>
-          <input
-            type='text'
-            name='photoSectionTitle'
-            id='photoSectionTitle'
-            value={pc.photoSectionTitle ?? '📸 Fotos'}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Mensaje principal de la familia</h2>
-      <div class='form-grid'>
-        <div class='field full'>
-          <label for='mainMessage_message'>Mensaje</label>
-          <textarea
-            name='mainMessage_message'
-            id='mainMessage_message'
-            rows='5'
-          >{mm.message ?? ''}</textarea>
-        </div>
-        <div class='field'>
-          <label for='mainMessage_signature'>Firma</label>
-          <input
-            type='text'
-            name='mainMessage_signature'
-            id='mainMessage_signature'
-            value={mm.signature ?? ''}
-          />
-        </div>
-        <div class='field'>
-          <label for='mainMessage_familyName'>Nombre de familia</label>
-          <input
-            type='text'
-            name='mainMessage_familyName'
-            id='mainMessage_familyName'
-            value={mm.familyName ?? ''}
-          />
-        </div>
-        <div class='field'>
-          <label for='mainMessage_date'>Fecha del mensaje</label>
-          <input
-            type='text'
-            name='mainMessage_date'
-            id='mainMessage_date'
-            value={mm.date ?? ''}
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class='form-section'>
-      <h2 class='section-title'>Call to Action (CTA)</h2>
-      <div class='form-grid'>
-        <div class='field'>
-          <label for='cta_icon'>Icono (emoji)</label>
-          <input
-            type='text'
-            name='cta_icon'
-            id='cta_icon'
-            value={cta.icon ?? '🎁'}
-            maxlength='4'
-          />
-        </div>
-        <div class='field'>
-          <label for='cta_title'>Título del CTA</label>
-          <input
-            type='text'
-            name='cta_title'
-            id='cta_title'
-            value={cta.title ?? ''}
-          />
-        </div>
-        <div class='field full'>
-          <label for='cta_text'>Texto del CTA</label>
-          <textarea
-            name='cta_text'
-            id='cta_text'
-            rows='3'
-          >{cta.text ?? ''}</textarea>
-        </div>
-      </div>
-    </section>
-
-    <div
-      class='save-bar'
-      id='saveBar'
-      data-dirty='false'
+    <button
+      type='button'
+      role='tab'
+      id='tab-datos'
+      data-tab='datos'
+      aria-controls='panel-datos'
+      aria-selected={initialTab === 'datos' ? 'true' : 'false'}
     >
-      <span
-        class='save-bar-status'
-        data-status
-        aria-live='polite'
-      ></span>
-      <a
-        href='/admin'
-        class='btn-ghost'
-      >
-        ← Volver
-      </a>
-      <button
-        type='submit'
-        class='btn-primary'
-      >
-        Guardar cambios
-      </button>
-    </div>
-  </form>
-
-  <!-- ── Secciones con formulario propio: se guardan al momento ──────────── -->
-  <div class='instant-divider'>
-    <h2 class='instant-title'>Se guardan al momento</h2>
-    <p class='instant-hint'>
-      Fotos, niveles y emojis tienen su propio botón y no dependen de «Guardar
-      cambios».
-    </p>
+      📝 Datos del proyecto
+    </button>
+    <button
+      type='button'
+      role='tab'
+      id='tab-extras'
+      data-tab='extras'
+      aria-controls='panel-extras'
+      aria-selected={initialTab === 'extras' ? 'true' : 'false'}
+    >
+      ⚡ Fotos, niveles y emojis
+    </button>
   </div>
 
-  <section class='form-section photos-section'>
-    <h2 class='section-title'>Fotos de la familia</h2>
-    <p class='section-hint'>
-      Se muestran en la sección "{pc.photoSectionTitle ?? '📸 Fotos'}" de la
-      página pública, en el orden en que se suben.
-    </p>
-    {photos.length > 0 ? (
-      <ul class='photos-grid'>
-        {photos.map((photo) => (
-          <li class='photo-item'>
-            <img
-              src={photo.url}
-              alt=''
-              loading='lazy'
-            />
-            <form
-              method='POST'
-              class='delete-form photo-delete'
-              onsubmit="return confirm('¿Borrar esta foto?')"
-            >
-              <input
-                type='hidden'
-                name='_action'
-                value='delete_photo'
-              />
-              <input
-                type='hidden'
-                name='photo_name'
-                value={photo.name}
-              />
-              <button
-                type='submit'
-                class='photo-delete-btn'
-                aria-label='Borrar foto'
-              >
-                ✕
-              </button>
-            </form>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p class='photos-empty'>Todavía no hay fotos.</p>
-    )}
+  <div
+    id='panel-datos'
+    class='tab-panel'
+    role='tabpanel'
+    aria-labelledby='tab-datos'
+    hidden={initialTab !== 'datos'}
+  >
+    <AiDraftPanel
+      mode='edit'
+      configured={aiConfigured}
+    />
+
+    <!-- ── Formulario del proyecto ─────────────────────────────────────────── -->
     <form
       method='POST'
-      class='photos-upload'
+      class='project-form'
       enctype='multipart/form-data'
     >
+      <script
+        type='application/json'
+        data-level-json
+        set:html={JSON.stringify(levelsForAi)}
+      ></script>
       <input
         type='hidden'
         name='_action'
-        value='add_photos'
+        value='update_project'
       />
-      <label for='photos'>Subir fotos (puedes elegir varias)</label>
-      <input
-        type='file'
-        name='photos'
-        id='photos'
-        accept='image/jpeg,image/png,image/webp,image/gif'
-        multiple
-        required
-      />
-      <small>JPG, PNG, WEBP o GIF, máximo 5 MB cada una y 12 por vez.</small>
-      <button
-        type='submit'
-        class='btn-secondary'
-      >
-        📸 Subir
-      </button>
-    </form>
-  </section>
 
-  <section class='form-section levels-section'>
-    <h2 class='section-title'>Niveles de contribución</h2>
+      <section class='form-section'>
+        <h2 class='section-title'>1. ¿Cómo termina la campaña?</h2>
+        <div class='mode-options'>
+          <label class='mode-option'>
+            <input
+              type='radio'
+              name='campaign_mode'
+              value='target'
+              checked={project.campaign_mode !== 'open'}
+            />
+            <span class='mode-option__body'>
+              <strong>🎯 Al alcanzar un objetivo de dinero</strong>
+              <small>
+                Hay un producto concreto con precio. Barra de progreso y
+                porcentaje. La fecha de cierre es opcional.
+              </small>
+            </span>
+          </label>
+          <label class='mode-option'>
+            <input
+              type='radio'
+              name='campaign_mode'
+              value='open'
+              checked={project.campaign_mode === 'open'}
+            />
+            <span class='mode-option__body'>
+              <strong>
+                ⏳ En una fecha de cierre (recaudar lo máximo posible)
+              </strong>
+              <small>
+                Sin objetivo ni producto fijo: lo que se compre depende de lo
+                recaudado. Se muestra lo conseguido, la aportación base y una
+                cuenta atrás.
+              </small>
+            </span>
+          </label>
+        </div>
+      </section>
 
-    {levels && levels.length > 0 ? (
-      <div class='levels-list'>
-        {levels.map((level) => (
-          <div class='level-row'>
-            <span class='level-emoji'>{level.emoji}</span>
-            <div class='level-info'>
-              <strong>{level.name}</strong>
-              <span class='level-amount'>
-                {level.amount} {project.currency}
-              </span>
-              {level.description && (
-                <span class='level-desc'>{level.description}</span>
-              )}
-            </div>
-            <div class='level-meta'>
-              <span
-                class='color-dot'
-                style={`background: ${level.color}`}
-              />
-              <span class='sort-badge'>#{level.sort_order}</span>
-            </div>
-            <form
-              method='POST'
-              class='delete-form'
-            >
-              <input
-                type='hidden'
-                name='_action'
-                value='delete_level'
-              />
-              <input
-                type='hidden'
-                name='level_id'
-                value={level.id}
-              />
-              <button
-                type='submit'
-                class='btn-delete'
-                onclick="return confirm('¿Eliminar este nivel?')"
-              >
-                🗑
-              </button>
-            </form>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p class='no-levels'>No hay niveles todavía. Añade el primero.</p>
-    )}
-
-    <details class='add-level-details'>
-      <summary class='add-level-summary'>➕ Añadir nivel</summary>
-      <form
-        method='POST'
-        class='add-level-form'
-      >
-        <input
-          type='hidden'
-          name='_action'
-          value='add_level'
-        />
+      <section class='form-section'>
+        <h2 class='section-title'>2. Información básica</h2>
         <div class='form-grid'>
-          <div class='field'>
-            <label for='level_name'>Nombre *</label>
+          <div class='field full'>
+            <label for='project_name'>Nombre del proyecto *</label>
             <input
               type='text'
-              name='level_name'
-              id='level_name'
+              name='project_name'
+              id='project_name'
               required
-              placeholder='Paladín'
+              value={project.project_name}
             />
           </div>
+
           <div class='field'>
-            <label for='level_amount'>Importe (€) *</label>
+            <label for='slug'>Slug (URL) *</label>
+            <div class='input-prefix'>
+              <span class='prefix'>/projects/</span>
+              <input
+                type='text'
+                name='slug'
+                id='slug'
+                required
+                value={project.slug}
+                pattern='[a-z0-9\-]+'
+                title='Solo letras minúsculas, números y guiones'
+              />
+            </div>
+            <small>Solo minúsculas, números y guiones.</small>
+          </div>
+
+          <div class='field'>
+            <label for='project_status'>Estado</label>
+            <select
+              name='project_status'
+              id='project_status'
+            >
+              {['active', 'paused', 'completed', 'cancelled'].map((s) => (
+                <option
+                  value={s}
+                  selected={project.project_status === s}
+                >
+                  {s === 'active'
+                    ? 'Activo'
+                    : s === 'paused'
+                      ? 'Pausado'
+                      : s === 'completed'
+                        ? 'Completado'
+                        : 'Cancelado'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div class='field full'>
+            <span class='field-label'>Visibilidad</span>
+            <div class='mode-options'>
+              <label class='mode-option'>
+                <input
+                  type='radio'
+                  name='visibility'
+                  value='private'
+                  checked={currentVisibility === 'private'}
+                />
+                <span class='mode-option__body'>
+                  <strong>🔒 Privado</strong>
+                  <small>
+                    Solo lo ve quien tenga el enlace. No aparece en la portada
+                    de la web.
+                  </small>
+                </span>
+              </label>
+              <label class='mode-option'>
+                <input
+                  type='radio'
+                  name='visibility'
+                  value='public'
+                  checked={currentVisibility === 'public'}
+                />
+                <span class='mode-option__body'>
+                  <strong>🌍 Público</strong>
+                  <small>
+                    Aparece en la portada de la web y en la página de tu
+                    espacio.
+                  </small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class='field full'>
+            <label for='project_description'>Descripción</label>
+            <textarea
+              name='project_description'
+              id='project_description'
+              rows='3'
+            >{project.project_description ?? ''}</textarea>
+          </div>
+
+          <div
+            class='field'
+            data-mode='target'
+          >
+            <label for='target_amount'>Meta (importe) *</label>
             <input
               type='number'
-              name='level_amount'
-              id='level_amount'
-              required
+              name='target_amount'
+              id='target_amount'
               min='1'
               step='0.01'
-              placeholder='25'
+              value={project.target_amount || ''}
+              data-required-in='target'
             />
           </div>
+
           <div class='field'>
-            <label for='level_emoji'>Emoji</label>
+            <label for='currency'>Moneda</label>
             <input
               type='text'
-              name='level_emoji'
-              id='level_emoji'
-              value='⭐'
-              maxlength='4'
+              name='currency'
+              id='currency'
+              value={project.currency ?? 'EUR'}
+              maxlength='5'
             />
           </div>
-          <div class='field'>
-            <label for='level_color'>Color</label>
+
+          <div class='field full'>
+            <label for='project_image'>
+              Imagen (subir desde el dispositivo)
+            </label>
             <input
-              type='color'
-              name='level_color'
-              id='level_color'
-              value='#6366f1'
+              type='file'
+              name='project_image'
+              id='project_image'
+              accept='image/jpeg,image/png,image/webp,image/gif'
+            />
+            <small>
+              JPG, PNG, WEBP o GIF, máximo 5 MB. Si subes un archivo, sustituye
+              a la imagen actual.
+            </small>
+            {project.project_image_url && (
+              <img
+                src={project.project_image_url}
+                alt='Imagen actual del proyecto'
+                class='image-preview'
+              />
+            )}
+          </div>
+
+          <div class='field full'>
+            <label for='project_image_url'>… o URL de la imagen</label>
+            <input
+              type='url'
+              name='project_image_url'
+              id='project_image_url'
+              value={project.project_image_url ?? ''}
+            />
+            <small data-mode='open'>
+              En campañas por tiempo es solo ilustrativa (no enlaza a ningún
+              producto).
+            </small>
+          </div>
+
+          <div class='field'>
+            <label for='start_date'>Fecha de inicio</label>
+            <input
+              type='date'
+              name='start_date'
+              id='start_date'
+              value={project.start_date ? project.start_date.split('T')[0] : ''}
             />
           </div>
+
           <div class='field'>
-            <label for='level_sort_order'>Orden</label>
+            <label for='end_date'>Fecha de cierre</label>
+            <input
+              type='date'
+              name='end_date'
+              id='end_date'
+              value={project.end_date ? project.end_date.split('T')[0] : ''}
+              data-required-in='open'
+            />
+            <small data-mode='open'>
+              Obligatoria: la campaña se cierra sola al terminar ese día.
+            </small>
+            <small data-mode='target'>
+              Opcional: si se indica, la campaña se cierra sola al terminar ese
+              día.
+            </small>
+          </div>
+
+          <div class='field full'>
+            <label for='redirect_url'>URL de redirección al finalizar</label>
+            <input
+              type='text'
+              name='redirect_url'
+              id='redirect_url'
+              value={project.redirect_url ?? '/'}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Aspecto</h2>
+        <p class='section-hint'>
+          Colores y emojis decorativos de la página del proyecto (no cambia los
+          emojis que escribes tú).
+        </p>
+        <div
+          class='theme-picker'
+          id='themePicker'
+        >
+          <div
+            class='theme-tiles'
+            role='radiogroup'
+            aria-label='Tema visual'
+          >
+            {THEME_IDS.map((id) => {
+              const t = THEMES[id];
+              const [icon, ...words] = t.name.split(' ');
+              return (
+                <label class='theme-tile'>
+                  <input
+                    type='radio'
+                    name='theme'
+                    value={id}
+                    checked={currentTheme === id}
+                  />
+                  <span
+                    class='theme-tile__icon'
+                    aria-hidden='true'
+                  >
+                    {icon}
+                  </span>
+                  <span class='theme-tile__name'>{words.join(' ')}</span>
+                  <span
+                    class='theme-swatch'
+                    aria-hidden='true'
+                  >
+                    {t.swatch.map((c) => (
+                      <i style={`background:${c}`} />
+                    ))}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {THEME_IDS.map((id) => {
+            const t = THEMES[id];
+            return (
+              <div
+                class='theme-detail'
+                data-theme-detail={id}
+                hidden={currentTheme !== id}
+              >
+                <strong>{t.name}</strong>
+                <span>{t.description}</span>
+                <span
+                  class='theme-emojis'
+                  aria-hidden='true'
+                >
+                  {t.emojis.levels} {t.emojis.message} {t.emojis.support}{' '}
+                  {t.emojis.family} {t.emojis.modal} {t.emojis.spark}
+                </span>
+                <small>
+                  «{t.texts.familyTitle}» · {t.texts.contributorsStat} ·{' '}
+                  {t.texts.levelsTitle}
+                </small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Aportaciones</h2>
+        <div class='form-grid'>
+          <div
+            class='field'
+            data-mode='open'
+          >
+            <label for='base_amount'>
+              Aportación base (la pone la familia)
+            </label>
             <input
               type='number'
-              name='level_sort_order'
-              id='level_sort_order'
-              value={levels ? levels.length : 0}
+              name='base_amount'
+              id='base_amount'
               min='0'
+              step='0.01'
+              value={project.base_amount ?? 0}
+            />
+          </div>
+          <div
+            class='field'
+            data-mode='open'
+          >
+            <label for='base_label'>Etiqueta de la aportación base</label>
+            <input
+              type='text'
+              name='base_label'
+              id='base_label'
+              placeholder='Papá y mamá'
+              maxlength='60'
+              value={project.base_label ?? ''}
+            />
+          </div>
+          <div class='field field--check'>
+            <label
+              class='check-label'
+              for='allow_custom_amount'
+            >
+              <input
+                type='checkbox'
+                name='allow_custom_amount'
+                id='allow_custom_amount'
+                checked={!!project.allow_custom_amount}
+              />
+              <span>Permitir "otra cantidad"</span>
+            </label>
+            <small>
+              Además de los niveles, se puede aportar cualquier importe (a
+              partir del mínimo de al lado).
+            </small>
+          </div>
+          <div class='field'>
+            <label for='min_custom_amount'>Mínimo para "otra cantidad"</label>
+            <input
+              type='number'
+              name='min_custom_amount'
+              id='min_custom_amount'
+              min='1'
+              step='0.01'
+              value={project.min_custom_amount ?? 5}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Pago — Bizum</h2>
+        <div class='form-grid'>
+          <div class='field'>
+            <label for='bizum_phone'>Número de Bizum</label>
+            <input
+              type='text'
+              name='bizum_phone'
+              id='bizum_phone'
+              value={project.bizum_phone ?? ''}
+            />
+          </div>
+          <div class='field'>
+            <label for='bizum_concept'>Concepto Bizum</label>
+            <input
+              type='text'
+              name='bizum_concept'
+              id='bizum_concept'
+              value={project.bizum_concept ?? ''}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Contenido de la página</h2>
+        <div class='form-grid'>
+          <div class='field full'>
+            <label for='pageTitle'>Título de la página</label>
+            <input
+              type='text'
+              name='pageTitle'
+              id='pageTitle'
+              value={pc.pageTitle ?? ''}
             />
           </div>
           <div class='field full'>
-            <label for='level_description'>Descripción (opcional)</label>
+            <label for='pageSubtitle'>Subtítulo</label>
             <input
               type='text'
-              name='level_description'
-              id='level_description'
-              placeholder='Para los más generosos...'
+              name='pageSubtitle'
+              id='pageSubtitle'
+              value={pc.pageSubtitle ?? ''}
+            />
+          </div>
+          <div
+            class='field full'
+            data-mode='target'
+          >
+            <label for='productUrl'>URL del producto</label>
+            <input
+              type='url'
+              name='productUrl'
+              id='productUrl'
+              value={pc.productUrl ?? ''}
+            />
+          </div>
+
+          <div class='field'>
+            <label for='progressTitle'>Título sección progreso</label>
+            <input
+              type='text'
+              name='progressTitle'
+              id='progressTitle'
+              value={pc.progressTitle ?? '🎯 Progreso'}
+            />
+          </div>
+          <div class='field'>
+            <label for='contributorsTitle'>Título sección contribuidores</label>
+            <input
+              type='text'
+              name='contributorsTitle'
+              id='contributorsTitle'
+              value={pc.contributorsTitle ?? '✨ Contribuidores'}
+            />
+          </div>
+          <div class='field full'>
+            <label for='photoSectionTitle'>Título sección fotos</label>
+            <input
+              type='text'
+              name='photoSectionTitle'
+              id='photoSectionTitle'
+              value={pc.photoSectionTitle ?? '📸 Fotos'}
             />
           </div>
         </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Mensaje principal de la familia</h2>
+        <div class='form-grid'>
+          <div class='field full'>
+            <label for='mainMessage_message'>Mensaje</label>
+            <textarea
+              name='mainMessage_message'
+              id='mainMessage_message'
+              rows='5'
+            >{mm.message ?? ''}</textarea>
+          </div>
+          <div class='field'>
+            <label for='mainMessage_signature'>Firma</label>
+            <input
+              type='text'
+              name='mainMessage_signature'
+              id='mainMessage_signature'
+              value={mm.signature ?? ''}
+            />
+          </div>
+          <div class='field'>
+            <label for='mainMessage_familyName'>Nombre de familia</label>
+            <input
+              type='text'
+              name='mainMessage_familyName'
+              id='mainMessage_familyName'
+              value={mm.familyName ?? ''}
+            />
+          </div>
+          <div class='field'>
+            <label for='mainMessage_date'>Fecha del mensaje</label>
+            <input
+              type='text'
+              name='mainMessage_date'
+              id='mainMessage_date'
+              value={mm.date ?? ''}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class='form-section'>
+        <h2 class='section-title'>Call to Action (CTA)</h2>
+        <div class='form-grid'>
+          <div class='field'>
+            <label for='cta_icon'>Icono (emoji)</label>
+            <input
+              type='text'
+              name='cta_icon'
+              id='cta_icon'
+              value={cta.icon ?? '🎁'}
+              maxlength='4'
+            />
+          </div>
+          <div class='field'>
+            <label for='cta_title'>Título del CTA</label>
+            <input
+              type='text'
+              name='cta_title'
+              id='cta_title'
+              value={cta.title ?? ''}
+            />
+          </div>
+          <div class='field full'>
+            <label for='cta_text'>Texto del CTA</label>
+            <textarea
+              name='cta_text'
+              id='cta_text'
+              rows='3'
+            >{cta.text ?? ''}</textarea>
+          </div>
+        </div>
+      </section>
+
+      <div
+        class='save-bar'
+        id='saveBar'
+        data-dirty='false'
+      >
+        <span
+          class='save-bar-status'
+          data-status
+          aria-live='polite'
+        ></span>
+        <a
+          href='/admin'
+          class='btn-ghost'
+        >
+          ← Volver
+        </a>
         <button
           type='submit'
           class='btn-primary'
-          style='margin-top: 12px;'
         >
-          Añadir nivel
+          Guardar cambios
         </button>
-      </form>
-    </details>
-  </section>
+      </div>
+    </form>
+  </div>
 
-  <!-- ── Emoji options ──────────────────────────────────────────────────── -->
-  <section class='form-section levels-section'>
-    <h2 class='section-title'>Emojis del modal de contribución</h2>
-    <p class='section-hint'>
-      Los contribuidores eligen uno al registrar su aportación.
-      {emojiOptions.length === 0 &&
-        ' Sin emojis propios se usará el fallback del sistema.'}
+  <div
+    id='panel-extras'
+    class='tab-panel'
+    role='tabpanel'
+    aria-labelledby='tab-extras'
+    hidden={initialTab !== 'extras'}
+  >
+    <p
+      class='tab-note'
+      data-dirty-note
+      hidden
+    >
+      ⚠️ Tienes cambios sin guardar en «Datos del proyecto». Estos apartados
+      recargan la página al guardar: vuelve y pulsa «Guardar cambios» antes, o
+      los perderás.
+    </p>
+    <p class='tab-hint'>
+      Cada apartado se guarda al momento con su propio botón.
     </p>
 
-    {emojiOptions.length > 0 ? (
-      <div class='emoji-list'>
-        {emojiOptions.map((opt, i) => (
-          <div class='emoji-row'>
-            <span class='emoji-icon'>{opt.value}</span>
-            <div class='emoji-info'>
-              <strong>{opt.label}</strong>
-            </div>
-            <form
-              method='POST'
-              class='delete-form'
-            >
-              <input
-                type='hidden'
-                name='_action'
-                value='delete_emoji'
+    <section class='form-section photos-section'>
+      <h2 class='section-title'>Fotos de la familia</h2>
+      <p class='section-hint'>
+        Se muestran en la sección "{pc.photoSectionTitle ?? '📸 Fotos'}" de la
+        página pública, en el orden en que se suben.
+      </p>
+      {photos.length > 0 ? (
+        <ul class='photos-grid'>
+          {photos.map((photo) => (
+            <li class='photo-item'>
+              <img
+                src={photo.url}
+                alt=''
+                loading='lazy'
               />
-              <input
-                type='hidden'
-                name='emoji_index'
-                value={i}
-              />
-              <button
-                type='submit'
-                class='btn-delete'
-                onclick="return confirm('¿Eliminar este emoji?')"
+              <form
+                method='POST'
+                class='delete-form photo-delete'
+                onsubmit="return confirm('¿Borrar esta foto?')"
               >
-                🗑
-              </button>
-            </form>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p class='no-levels'>Sin emojis personalizados todavía.</p>
-    )}
-
-    <details class='add-level-details'>
-      <summary class='add-level-summary'>➕ Añadir emoji</summary>
+                <input
+                  type='hidden'
+                  name='_action'
+                  value='delete_photo'
+                />
+                <input
+                  type='hidden'
+                  name='photo_name'
+                  value={photo.name}
+                />
+                <button
+                  type='submit'
+                  class='photo-delete-btn'
+                  aria-label='Borrar foto'
+                >
+                  ✕
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class='photos-empty'>Todavía no hay fotos.</p>
+      )}
       <form
         method='POST'
-        class='add-level-form'
+        class='photos-upload'
+        enctype='multipart/form-data'
       >
         <input
           type='hidden'
           name='_action'
-          value='add_emoji'
+          value='add_photos'
         />
-        <div class='form-grid'>
-          <div class='field'>
-            <label for='emoji_value'>Emoji *</label>
-            <input
-              type='text'
-              name='emoji_value'
-              id='emoji_value'
-              required
-              maxlength='4'
-              placeholder='🙂'
-            />
-            <small>Un solo emoji</small>
-          </div>
-          <div class='field'>
-            <label for='emoji_label'>Etiqueta *</label>
-            <input
-              type='text'
-              name='emoji_label'
-              id='emoji_label'
-              required
-              placeholder='Amigo de la familia'
-            />
-            <small>Texto que verá el contribuidor</small>
-          </div>
-        </div>
+        <label for='photos'>Subir fotos (puedes elegir varias)</label>
+        <input
+          type='file'
+          name='photos'
+          id='photos'
+          accept='image/jpeg,image/png,image/webp,image/gif'
+          multiple
+          required
+        />
+        <small>JPG, PNG, WEBP o GIF, máximo 5 MB cada una y 12 por vez.</small>
         <button
           type='submit'
-          class='btn-primary'
-          style='margin-top: 12px;'
+          class='btn-secondary'
         >
-          Añadir emoji
+          📸 Subir
         </button>
       </form>
-    </details>
-  </section>
+    </section>
+
+    <section class='form-section levels-section'>
+      <h2 class='section-title'>Niveles de contribución</h2>
+
+      {levels && levels.length > 0 ? (
+        <div class='levels-list'>
+          {levels.map((level) => (
+            <div class='level-row'>
+              <span class='level-emoji'>{level.emoji}</span>
+              <div class='level-info'>
+                <strong>{level.name}</strong>
+                <span class='level-amount'>
+                  {level.amount} {project.currency}
+                </span>
+                {level.description && (
+                  <span class='level-desc'>{level.description}</span>
+                )}
+              </div>
+              <div class='level-meta'>
+                <span
+                  class='color-dot'
+                  style={`background: ${level.color}`}
+                />
+                <span class='sort-badge'>#{level.sort_order}</span>
+              </div>
+              <form
+                method='POST'
+                class='delete-form'
+              >
+                <input
+                  type='hidden'
+                  name='_action'
+                  value='delete_level'
+                />
+                <input
+                  type='hidden'
+                  name='level_id'
+                  value={level.id}
+                />
+                <button
+                  type='submit'
+                  class='btn-delete'
+                  onclick="return confirm('¿Eliminar este nivel?')"
+                >
+                  🗑
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class='no-levels'>No hay niveles todavía. Añade el primero.</p>
+      )}
+
+      <details class='add-level-details'>
+        <summary class='add-level-summary'>➕ Añadir nivel</summary>
+        <form
+          method='POST'
+          class='add-level-form'
+        >
+          <input
+            type='hidden'
+            name='_action'
+            value='add_level'
+          />
+          <div class='form-grid'>
+            <div class='field'>
+              <label for='level_name'>Nombre *</label>
+              <input
+                type='text'
+                name='level_name'
+                id='level_name'
+                required
+                placeholder='Paladín'
+              />
+            </div>
+            <div class='field'>
+              <label for='level_amount'>Importe (€) *</label>
+              <input
+                type='number'
+                name='level_amount'
+                id='level_amount'
+                required
+                min='1'
+                step='0.01'
+                placeholder='25'
+              />
+            </div>
+            <div class='field'>
+              <label for='level_emoji'>Emoji</label>
+              <input
+                type='text'
+                name='level_emoji'
+                id='level_emoji'
+                value='⭐'
+                maxlength='4'
+              />
+            </div>
+            <div class='field'>
+              <label for='level_color'>Color</label>
+              <input
+                type='color'
+                name='level_color'
+                id='level_color'
+                value='#6366f1'
+              />
+            </div>
+            <div class='field'>
+              <label for='level_sort_order'>Orden</label>
+              <input
+                type='number'
+                name='level_sort_order'
+                id='level_sort_order'
+                value={levels ? levels.length : 0}
+                min='0'
+              />
+            </div>
+            <div class='field full'>
+              <label for='level_description'>Descripción (opcional)</label>
+              <input
+                type='text'
+                name='level_description'
+                id='level_description'
+                placeholder='Para los más generosos...'
+              />
+            </div>
+          </div>
+          <button
+            type='submit'
+            class='btn-primary'
+            style='margin-top: 12px;'
+          >
+            Añadir nivel
+          </button>
+        </form>
+      </details>
+    </section>
+
+    <!-- ── Emoji options ──────────────────────────────────────────────────── -->
+    <section class='form-section levels-section'>
+      <h2 class='section-title'>Emojis del modal de contribución</h2>
+      <p class='section-hint'>
+        Los contribuidores eligen uno al registrar su aportación.
+        {emojiOptions.length === 0 &&
+          ' Sin emojis propios se usará el fallback del sistema.'}
+      </p>
+
+      {emojiOptions.length > 0 ? (
+        <div class='emoji-list'>
+          {emojiOptions.map((opt, i) => (
+            <div class='emoji-row'>
+              <span class='emoji-icon'>{opt.value}</span>
+              <div class='emoji-info'>
+                <strong>{opt.label}</strong>
+              </div>
+              <form
+                method='POST'
+                class='delete-form'
+              >
+                <input
+                  type='hidden'
+                  name='_action'
+                  value='delete_emoji'
+                />
+                <input
+                  type='hidden'
+                  name='emoji_index'
+                  value={i}
+                />
+                <button
+                  type='submit'
+                  class='btn-delete'
+                  onclick="return confirm('¿Eliminar este emoji?')"
+                >
+                  🗑
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class='no-levels'>Sin emojis personalizados todavía.</p>
+      )}
+
+      <details class='add-level-details'>
+        <summary class='add-level-summary'>➕ Añadir emoji</summary>
+        <form
+          method='POST'
+          class='add-level-form'
+        >
+          <input
+            type='hidden'
+            name='_action'
+            value='add_emoji'
+          />
+          <div class='form-grid'>
+            <div class='field'>
+              <label for='emoji_value'>Emoji *</label>
+              <input
+                type='text'
+                name='emoji_value'
+                id='emoji_value'
+                required
+                maxlength='4'
+                placeholder='🙂'
+              />
+              <small>Un solo emoji</small>
+            </div>
+            <div class='field'>
+              <label for='emoji_label'>Etiqueta *</label>
+              <input
+                type='text'
+                name='emoji_label'
+                id='emoji_label'
+                required
+                placeholder='Amigo de la familia'
+              />
+              <small>Texto que verá el contribuidor</small>
+            </div>
+          </div>
+          <button
+            type='submit'
+            class='btn-primary'
+            style='margin-top: 12px;'
+          >
+            Añadir emoji
+          </button>
+        </form>
+      </details>
+    </section>
+  </div>
 
   <!-- ── Enlace a la página pública ─────────────────────────────────────── -->
   <div class='public-link'>
@@ -1394,24 +1467,64 @@ const levelsForAi = (levels ?? []).map((l) => ({
     }
   }
 
-  /* Separador de las secciones con formulario propio (fotos, niveles, emojis). */
-  .instant-divider {
-    margin: 36px 0 4px;
-    padding-top: 22px;
-    border-top: 2px dashed var(--color-admin-border);
+  /* Pestañas: "Datos del proyecto" (formulario) / "Fotos, niveles y emojis" (al momento). */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0 0 20px;
+    border-bottom: 1px solid var(--color-admin-border);
   }
 
-  .instant-title {
-    margin: 0 0 4px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+  .tabs [role='tab'] {
+    margin-bottom: -1px;
+    padding: 10px 16px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
     color: #64748b;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
   }
 
-  .instant-hint {
-    margin: 0;
+  .tabs [role='tab']:hover {
+    color: #1f2937;
+  }
+
+  .tabs [role='tab'][aria-selected='true'] {
+    color: var(--color-admin-primary);
+    border-bottom-color: var(--color-admin-primary);
+  }
+
+  .tabs [role='tab']:focus-visible {
+    outline: 2px solid var(--color-admin-primary);
+    outline-offset: -2px;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .tab-panel[hidden] {
+    display: none;
+  }
+
+  .tab-note {
+    margin: 0 0 -8px;
+    padding: 12px 14px;
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-md);
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.92rem;
+  }
+
+  .tab-hint {
+    margin: 0 0 -8px;
     font-size: 0.9rem;
     color: #64748b;
   }
@@ -1930,12 +2043,16 @@ const levelsForAi = (levels ?? []).map((l) => ({
 <script>
   import { initCampaignForm } from '@/lib/client/campaign-form';
   import { initSaveBar } from '@/lib/client/save-bar';
+  import { initTabs } from '@/lib/client/tabs';
   import { initThemePicker } from '@/lib/client/theme-picker';
 
   const projectForm =
     document.querySelector<HTMLFormElement>('form.project-form');
   initCampaignForm(projectForm);
-  initSaveBar(projectForm, document.getElementById('saveBar'));
+  const saveBar = initSaveBar(projectForm, document.getElementById('saveBar'));
+  initTabs(document.getElementById('projectTabs'), {
+    isDirty: saveBar.isDirty,
+  });
   initThemePicker(document.getElementById('themePicker'));
 </script>
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-28] — Edición de proyecto en dos pestañas
+
+- **Qué cambió:** La pantalla de edición se divide en dos pestañas: **Datos del proyecto** (panel de IA, formulario largo y barra de guardado) y **Fotos, niveles y emojis** (los tres apartados que se guardan al momento con su propio botón). Pestañas accesibles (`role=tablist`, flechas del teclado) en `src/lib/client/tabs.ts`; la activa va en la URL (`?tab=extras`), así que una recarga o el POST de un apartado "al momento" vuelven a la misma pestaña; el servidor también la abre cuando la acción enviada es de esos apartados, al crear un proyecto sin niveles o si falló la creación de niveles. Si el formulario tiene cambios sin guardar, la segunda pestaña muestra un aviso (esos apartados recargan la página; el navegador además pide confirmación). Desaparece el separador "Se guardan al momento".
+- **Por qué:** El usuario prefería separar claramente lo que se guarda con "Guardar cambios" de lo que se guarda al instante.
+- **Archivos tocados:** `src/lib/client/tabs.ts`, `src/pages/admin/projects/[id]/edit.astro`, `tests/tabs.test.ts`, `docs/{FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Solo interfaz del backoffice; las acciones POST no cambian. El alta sigue en una sola pantalla.
+
+---
+
 ## [2026-09-28] — Tema "Princesas" y selector de temas compacto
 
 - **Qué cambió:** (1) Nuevo tema `princesas` (rosa, lila y dorado; coronas, castillos y unicornios; textos "La Corte del Palacio", "Hadas madrinas", "Joyas de la Corona"…) en `src/lib/themes.ts`; entra solo en el selector, en la IA (`theme` del borrador) y en las tarjetas de la home. (2) El selector de tema de alta y edición pasa de tarjetas grandes a una rejilla de fichas compactas (emoji, nombre y muestra de colores; `minmax(112px)`, crece a más columnas o filas según haga falta) con un panel debajo que muestra descripción, emojis y textos solo del tema elegido (`src/lib/client/theme-picker.ts`).
