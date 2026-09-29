@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Pie de página compacto
+
+- **Qué cambió:** `Footer.astro` pasa de tres bloques apilados (logo grande, lema, copyright) con 40 px de relleno a una sola fila: logo (150 px) a la izquierda, lema en el centro y copyright a la derecha, con enlace a `/privacidad` (hasta ahora esa página no estaba enlazada). En móvil se apila con separaciones cortas. Altura: de unos 220 px a 72 px en escritorio y 128 px en móvil.
+- **Por qué:** Petición del usuario: el pie ocupaba demasiado alto.
+- **Archivos tocados:** `src/layouts/Footer.astro`, `docs/CHANGELOG.md`.
+- **Impacto:** Solo estilos y estructura del pie.
+
+---
+
 ## [2026-09-29] — Cabecera en dos filas: logo | título | avatar y el subtítulo debajo a todo el ancho
 
 - **Qué cambió:** El subtítulo sale de la columna del título y pasa a una segunda fila de la rejilla que ocupa las tres columnas (`Header.astro`, área `sub`), centrado. La primera fila queda logo | título | menú. En móvil, tres filas: logo y avatar, título, subtítulo.
