@@ -114,8 +114,8 @@ const menuName = tenant?.name ?? user?.email ?? '';
 
     <div class='center'>
       <h1 class='title'>{title}</h1>
-      <p class='subtitle'>{subtitle}</p>
     </div>
+    <p class='subtitle'>{subtitle}</p>
 
     <div class='right'>
       {user ? (
@@ -183,7 +183,7 @@ const menuName = tenant?.name ?? user?.email ?? '';
 <style>
   .header-bg {
     /* Por encima del contenido (que usa position: relative; z-index: 1) para que el menú
-             desplegable del avatar no quede tapado por tarjetas ni partículas. */
+               desplegable del avatar no quede tapado por tarjetas ni partículas. */
     position: relative;
     z-index: 30;
     background: var(--color-header-bg);
@@ -200,20 +200,23 @@ const menuName = tenant?.name ?? user?.email ?? '';
       )
       1;
   }
-  /* Rejilla de tres columnas con los laterales iguales (1fr): el título queda centrado respecto a
-     la página y, como cada lateral mide al menos lo que ocupa su contenido, nunca se mete debajo
-     del logo ni del menú del avatar (el título largo se parte en varias líneas). */
+  /* Rejilla: fila 1 = logo | título | menú del avatar, fila 2 = subtítulo a todo el ancho.
+     Los laterales son iguales (1fr, mínimo 220px, lo que ocupa el menú con el nombre): el título
+     queda centrado respecto a la página y nunca se mete debajo del logo ni del menú (si no cabe,
+     se parte en líneas). */
   .header {
     position: relative;
     display: grid;
-    /* Laterales de al menos 220px (lo que ocupa el menú con el nombre): así siguen siendo
-         iguales y el título queda centrado aunque el ancho apriete. */
     grid-template-columns: minmax(220px, 1fr) minmax(0, auto) minmax(
         220px,
         1fr
       );
+    grid-template-areas:
+      'left center right'
+      'sub sub sub';
     align-items: center;
     column-gap: 20px;
+    row-gap: 6px;
     padding: 35px 20px;
     margin-bottom: 40px;
     width: 100%;
@@ -221,6 +224,7 @@ const menuName = tenant?.name ?? user?.email ?? '';
   }
 
   .left {
+    grid-area: left;
     justify-self: start;
     display: flex;
     align-items: center;
@@ -228,12 +232,14 @@ const menuName = tenant?.name ?? user?.email ?? '';
   }
 
   .center {
+    grid-area: center;
     min-width: 0;
     text-align: center;
   }
 
   /* Menú de usuario / accesos, a la derecha. */
   .right {
+    grid-area: right;
     justify-self: end;
     position: relative;
     z-index: 40;
@@ -402,10 +408,17 @@ const menuName = tenant?.name ?? user?.email ?? '';
   }
 
   .subtitle {
+    grid-area: sub;
+    margin: 0;
     font-size: var(--text-md);
     color: var(--color-header-subtitle);
-    margin-top: 6px;
+    text-align: center;
     animation: fadeInUp 0.6s 0.15s ease both;
+  }
+
+  /* Sin subtítulo no hay segunda fila. */
+  .subtitle:empty {
+    display: none;
   }
 
   /* Móvil: logo a la izquierda, avatar (solo icono) a la derecha y título + subtítulo debajo, centrados. */
@@ -415,9 +428,10 @@ const menuName = tenant?.name ?? user?.email ?? '';
       grid-template-columns: auto 1fr auto;
       grid-template-areas:
         'left . right'
-        'center center center';
+        'center center center'
+        'sub sub sub';
       align-items: center;
-      row-gap: 14px;
+      row-gap: 6px;
       padding: 18px 16px 22px;
       margin-bottom: 28px;
     }
@@ -432,6 +446,7 @@ const menuName = tenant?.name ?? user?.email ?? '';
 
     .center {
       grid-area: center;
+      margin-top: 8px;
     }
 
     .logo-svg {

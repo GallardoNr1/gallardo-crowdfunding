@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Cabecera en dos filas: logo | título | avatar y el subtítulo debajo a todo el ancho
+
+- **Qué cambió:** El subtítulo sale de la columna del título y pasa a una segunda fila de la rejilla que ocupa las tres columnas (`Header.astro`, área `sub`), centrado. La primera fila queda logo | título | menú. En móvil, tres filas: logo y avatar, título, subtítulo.
+- **Por qué:** Petición del usuario (boceto): el subtítulo largo no cabe en la columna central sin apretarse.
+- **Archivos tocados:** `src/layouts/Header.astro`, `docs/CHANGELOG.md`.
+- **Impacto:** Solo estilos y estructura de la cabecera.
+
+---
+
 ## [2026-09-29] — Cabecera: el título ya no se mete debajo del menú del avatar
 
 - **Qué cambió:** `Header.astro` pasa de logo y menú en posición absoluta (con un padding fijo en el título) a una rejilla de tres columnas con laterales iguales (`1fr auto 1fr`). El título sigue centrado respecto a la página y, al medir cada lateral al menos lo que ocupa su contenido, un título o subtítulo largos se parten en líneas en vez de solaparse con el logo o con el menú.
