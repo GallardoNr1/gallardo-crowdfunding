@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — El código QR se abre en un modal
+
+- **Qué cambió:** Los enlaces del QR (icono en las tarjetas de la lista y "Código QR" en la página del proyecto) abren un modal (`src/components/QrModal.astro`, sobre `UI/Modal.astro`) con el QR, la dirección, "Imprimir" (abre la hoja `/…/qr`) y "Descargar SVG". El SVG se genera en servidor por proyecto. Sin JavaScript, o con Ctrl/Cmd+clic, el enlace sigue llevando a la hoja imprimible (`src/lib/client/qr-modal.ts`).
+- **Por qué:** Petición del usuario: ver el QR sin salir de la página.
+- **Archivos tocados:** `src/components/{QrModal,ProjectsList,ProductCard}.astro`, `src/pages/[tenant]/projects/[slug].astro`, `src/lib/client/qr-modal.ts`, `tests/{qr-modal,projects-list}.test.ts`, `docs/{FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Solo interfaz. La hoja `/…/qr` se mantiene como destino de "Imprimir" y como alternativa sin JS.
+
+---
+
 ## [2026-09-29] — Icono del QR en las tarjetas de la lista
 
 - **Qué cambió:** En las tarjetas de proyecto (landing y portada del espacio), junto al icono de compartir hay un icono de código QR que abre `/…/qr`. En la página del proyecto, el enlace "Código QR" usa el mismo icono.

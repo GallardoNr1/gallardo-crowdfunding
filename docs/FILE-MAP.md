@@ -23,6 +23,7 @@ gallardo-crowdfunding/
 │   │   ├── ProjectsList.astro         # Tarjetas de proyecto (home y portada del espacio)
 │   │   ├── Breadcrumbs.astro          # Migas "Inicio › Espacio › Proyecto"
 │   │   ├── ShareButton.astro          # Compartir (Web Share API / copiar) + WhatsApp
+│   │   ├── QrModal.astro             # Modal con el código QR del proyecto (imprimir y descargar SVG)
 │   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
 │   │   ├── OpenCampaignSection.astro  # Progreso de campañas por tiempo (totales + cuenta atrás)
 │   │   ├── ContributionModal.astro    # Modal: formulario → POST /api/contributions
@@ -74,6 +75,7 @@ gallardo-crowdfunding/
 │   │   ├── client/theme-picker.ts    # Backoffice (alta y edición): fichas de tema + detalle del tema elegido
 │   │   ├── client/tabs.ts            # Backoffice (edición): pestañas Datos / Fotos-niveles-emojis, ?tab= en la URL
 │   │   ├── client/image-resize.ts    # Reduce las imágenes en el navegador antes de subirlas (portada, fotos, avatar)
+│   │   ├── client/qr-modal.ts        # Los enlaces del QR abren el modal si hay JS de modales; si no, van a /qr
 │   │   ├── project-draft.ts          # Borrador IA: esquemas Zod, normalizeDraft, prompt de sistema (puro)
 │   │   ├── project-draft-form.ts     # Borrador IA → valores de los campos del formulario (sin Zod)
 │   │   ├── project-draft-route.ts    # Lógica de POST /admin/api/draft-project (inyectable, testeable)
@@ -118,7 +120,7 @@ gallardo-crowdfunding/
 │   ├── email-templates/       # Plantillas de Supabase Auth (confirmation, recovery, invite, email_change) + subjects.json
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
 ├── scripts/apply-email-templates.mjs  # Aplica supabase/email-templates/ a Supabase Auth (Management API)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), levels-form, project-duplicate, pending, theme-preview, notifications-thanks, image-resize, qr, projects-list (Container API), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), levels-form, project-duplicate, pending, theme-preview, notifications-thanks, image-resize, qr, projects-list (Container API), qr-modal (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
 ├── astro.config.mjs

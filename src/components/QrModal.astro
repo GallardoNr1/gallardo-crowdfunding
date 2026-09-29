@@ -1,0 +1,129 @@
+---
+// Modal con el código QR de un proyecto. El SVG llega ya generado (projectQrSvg); "Imprimir" abre
+// la hoja imprimible (/…/qr), que es también adonde llevan los enlaces del QR si no hay JS.
+import Modal from '@/components/UI/Modal.astro';
+
+export interface Props {
+  /** Id del modal (los enlaces lo abren con data-qr-modal). */
+  id: string;
+  title: string;
+  slug: string;
+  /** URL absoluta que codifica el QR (se muestra debajo). */
+  url: string;
+  /** Hoja imprimible del QR. */
+  printHref: string;
+  svg: string;
+}
+
+const { id, title, slug, url, printHref, svg } = Astro.props;
+const download = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+---
+
+<Modal
+  id={id}
+  title='Código QR'
+  size='sm'
+  showFooter={false}
+>
+  <div class='qr-modal'>
+    <p class='qr-modal__title'>{title}</p>
+    <p class='qr-modal__hint'>
+      Escanea el código para ver el proyecto y aportar
+    </p>
+    <div
+      class='qr-modal__code'
+      set:html={svg}
+    />
+    <p class='qr-modal__url'>{url}</p>
+    <div class='qr-modal__actions'>
+      <a
+        class='qr-modal__btn'
+        href={printHref}
+        target='_blank'
+        rel='noopener'
+      >
+        🖨 Imprimir
+      </a>
+      <a
+        class='qr-modal__link'
+        href={download}
+        download={`qr-${slug}.svg`}
+      >
+        ⬇ Descargar SVG
+      </a>
+    </div>
+  </div>
+</Modal>
+
+<script>
+  import { initQrLinks } from '@/lib/client/qr-modal';
+  initQrLinks();
+</script>
+
+<style>
+  .qr-modal {
+    text-align: center;
+  }
+
+  .qr-modal__title {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text-primary, #1f2937);
+  }
+
+  .qr-modal__hint {
+    margin: 0 0 16px;
+    font-size: 0.95rem;
+    color: var(--color-text-secondary, #4b5563);
+  }
+
+  .qr-modal__code {
+    width: min(70vw, 260px);
+    margin: 0 auto 14px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 12px;
+  }
+
+  .qr-modal__code :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .qr-modal__url {
+    margin: 0 0 18px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    word-break: break-all;
+  }
+
+  .qr-modal__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 18px;
+  }
+
+  .qr-modal__btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: var(--color-brand-orange, #ff6b35);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .qr-modal__link {
+    color: var(--color-brand-primary, #d32f2f);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .qr-modal__link:hover,
+  .qr-modal__btn:hover {
+    text-decoration: underline;
+  }
+</style>

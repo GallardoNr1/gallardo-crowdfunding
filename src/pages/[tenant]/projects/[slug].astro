@@ -5,6 +5,7 @@ import ContributorsListReact from '@/components/ContributorsListReact.astro';
 import FamilyPhotos from '@/components/FamilyPhotos.astro';
 import MessageSection from '@/components/MessageSection.astro';
 import ProductCard from '@/components/ProductCard.astro';
+import QrModal from '@/components/QrModal.astro';
 import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -17,6 +18,7 @@ import {
   isCampaignOpen,
 } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
+import { projectQrSvg } from '@/lib/qr';
 import { resolvePreviewTheme } from '@/lib/theme-preview';
 import { getTheme } from '@/lib/themes';
 import {
@@ -50,6 +52,7 @@ const backHref = tenantUrl(tenant.number);
 // Enlace absoluto para el botón de compartir (detrás de nginx el origen sale de X-Forwarded-*).
 const shareUrl =
   siteOrigin(Astro.request.headers, Astro.url.origin) + Astro.url.pathname;
+const qrSvg = await projectQrSvg(shareUrl);
 // Vista previa al compartir por WhatsApp: subtítulo o descripción (recortada) y la imagen del proyecto.
 const shareDescription = (
   normalizeProjectPageContent(projectConfig.page_content).pageSubtitle ||
@@ -165,11 +168,20 @@ const minLevelAmount = levelAmounts.length
       contributeHref={open ? '#contribuir' : undefined}
       contributeLabel={`${theme.emojis.spark} Quiero aportar`}
       qrHref={`${Astro.url.pathname}/qr`}
+      qrModalId='qr-project'
       share={{
         url: shareUrl,
         title: content.pageTitle || projectConfig.project_name,
         text: shareDescription,
       }}
+    />
+    <QrModal
+      id='qr-project'
+      title={projectConfig.project_name}
+      slug={projectConfig.slug}
+      url={shareUrl}
+      printHref={`${Astro.url.pathname}/qr`}
+      svg={qrSvg}
     />
 
     {mode === 'open' ? (

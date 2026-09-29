@@ -20,6 +20,8 @@ export interface Props {
   share?: { url: string; title: string; text?: string };
   /** Página del código QR del proyecto (enlace junto a Compartir). */
   qrHref?: string;
+  /** Id del QrModal que abre el enlace (sin él, o sin JS, navega a qrHref). */
+  qrModalId?: string;
 }
 
 const {
@@ -36,6 +38,7 @@ const {
   contributeLabel = '💛 Quiero aportar',
   share,
   qrHref,
+  qrModalId,
 } = Astro.props;
 ---
 
@@ -87,7 +90,8 @@ const {
         <a
           class='qr-link'
           href={qrHref}
-          title='Código QR para imprimir'
+          data-qr-modal={qrModalId}
+          title='Código QR'
         >
           <svg
             viewBox='0 0 24 24'

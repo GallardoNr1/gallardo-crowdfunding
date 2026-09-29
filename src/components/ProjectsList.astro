@@ -2,6 +2,7 @@
 // Lista de tarjetas de proyecto (home y portada de cada espacio).
 // Cada elemento trae su URL ya resuelta (/<número>/projects/<slug>) y, opcionalmente, "por <espacio>".
 import CompletedBage from '@/components/UI/CompletedBage.astro';
+import QrModal from '@/components/QrModal.astro';
 import ShareButton from '@/components/ShareButton.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
@@ -9,7 +10,9 @@ import {
   normalizeProjectPageContent,
   type ProjectConfig,
 } from '@/lib/supabase';
+import { projectQrSvg } from '@/lib/qr';
 import { getTheme } from '@/lib/themes';
+import { siteOrigin } from '@/lib/tenants';
 
 export interface ProjectListItem {
   project: ProjectConfig;
@@ -26,6 +29,12 @@ export interface Props {
 }
 
 const { items, emptyText = 'No hay proyectos todavía.' } = Astro.props;
+
+// Código QR de cada proyecto para su modal (la URL absoluta sale de X-Forwarded-* detrás de nginx).
+const origin = siteOrigin(Astro.request.headers, Astro.url.origin);
+const qrSvgs = await Promise.all(
+  items.map((item) => projectQrSvg(origin + item.href))
+);
 
 const countdownLabel = (p: ProjectConfig) => {
   if (!isCampaignOpen(p)) return '🏁 Cerrada';
@@ -150,7 +159,8 @@ const progressPct = (p: ProjectConfig) =>
           <a
             class='card-qr'
             href={`${href}/qr`}
-            title='Código QR para imprimir'
+            data-qr-modal={`qr-${project.id}`}
+            title='Código QR'
             aria-label={`Código QR de ${project.project_name}`}
           >
             <svg
@@ -191,6 +201,14 @@ const progressPct = (p: ProjectConfig) =>
             </svg>
           </a>
         </div>
+        <QrModal
+          id={`qr-${project.id}`}
+          title={project.project_name}
+          slug={project.slug}
+          url={origin + href}
+          printHref={`${href}/qr`}
+          svg={qrSvgs[index] ?? ''}
+        />
       </li>
     ))}
   </ul>

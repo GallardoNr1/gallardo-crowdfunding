@@ -34,5 +34,9 @@ describe('ProjectsList', () => {
     expect(html).toContain('href="/328614/projects/bici-maximo/qr"');
     expect(html).toContain('class="card-qr');
     expect(html).toContain('aria-label="Código QR de Bici para Máximo"');
+    // El enlace abre el modal con el QR (y sin JS sigue llevando a /qr).
+    expect(html).toContain('data-qr-modal="qr-p1"');
+    expect(html).toContain('id="qr-p1-overlay"');
+    expect(html).toContain('<svg');
   });
 });
