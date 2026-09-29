@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Compartir con el mismo estilo que Código QR en la página del proyecto
+
+- **Qué cambió:** En la tarjeta del proyecto, el botón Compartir deja de ser una píldora con degradado y pasa a verse como el enlace "Código QR" de al lado: icono y texto en el color de acento, sin fondo, subrayado al pasar el ratón (`src/components/ShareButton.astro`, variante `share--inline`). En las tarjetas de la lista ya eran iguales (solo icono).
+- **Por qué:** Petición del usuario: que los dos se vean y se comporten igual.
+- **Archivos tocados:** `src/components/ShareButton.astro`, `docs/CHANGELOG.md`.
+- **Impacto:** Solo estilos.
+
+---
+
 ## [2026-09-29] — El código QR se abre en un modal
 
 - **Qué cambió:** Los enlaces del QR (icono en las tarjetas de la lista y "Código QR" en la página del proyecto) abren un modal (`src/components/QrModal.astro`, sobre `UI/Modal.astro`) con el QR, la dirección, "Imprimir" (abre la hoja `/…/qr`) y "Descargar SVG". El SVG se genera en servidor por proyecto. Sin JavaScript, o con Ctrl/Cmd+clic, el enlace sigue llevando a la hoja imprimible (`src/lib/client/qr-modal.ts`).

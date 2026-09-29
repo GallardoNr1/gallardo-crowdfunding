@@ -149,10 +149,25 @@ const { url, title, text = '', iconOnly = false, inline = false } = Astro.props;
     stroke-linejoin: round;
   }
 
-  /* Dentro de la tarjeta del proyecto: centrado bajo la descripción. */
+  /* Dentro de la tarjeta del proyecto: mismo aspecto que el enlace "Código QR" (icono + texto, sin fondo). */
   .share--inline {
     justify-content: center;
     margin: 0 0 22px;
+  }
+
+  .share--inline .share-btn {
+    padding: 0;
+    gap: 6px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--color-accent-dark, #c2185b);
+  }
+
+  .share--inline .share-btn:hover {
+    transform: none;
+    box-shadow: none;
+    text-decoration: underline;
   }
 
   /* Solo icono (tarjetas de la lista): botón redondo con el icono centrado. */
