@@ -23,6 +23,8 @@ export interface Props {
 
   emojiOptions?: EmojiOption[];
   projectId?: string;
+  /** Espacio de quien mira, si está conectado: casilla para mostrarlo junto a su nombre. */
+  spaceName?: string;
 
   // Fallbacks por si no vienen en config
   bizumNumber?: string;
@@ -37,6 +39,7 @@ const {
   currency = '€',
   emojiOptions,
   projectId = '',
+  spaceName = '',
   bizumNumber = '',
   bizumConcept = '',
 } = Astro.props;
@@ -87,8 +90,7 @@ const {
     data-project-id={projectId}
     data-bizum-number={bizumNumber}
     data-bizum-concept={bizumConcept}
-  >
-  </div>
+  ></div>
 
   <div class='dialog-content'>
     <form
@@ -189,8 +191,9 @@ const {
             </div>
 
             <div class='form-group full-width'>
-              <label for='contributorMessage'>Mensaje de Apoyo (opcional)</label
-              >
+              <label for='contributorMessage'>
+                Mensaje de Apoyo (opcional)
+              </label>
               <textarea
                 id='contributorMessage'
                 name='contributorMessage'
@@ -213,13 +216,11 @@ const {
                 id='contributorEmoji'
                 name='contributorEmoji'
               >
-                {
-                  emojiOptions?.map((opt) => (
-                    <option value={opt.value}>
-                      {opt.value} {opt.label}
-                    </option>
-                  ))
-                }
+                {emojiOptions?.map((opt) => (
+                  <option value={opt.value}>
+                    {opt.value} {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -233,6 +234,28 @@ const {
                 <label for='isAnonymous'>🥷 Contribución anónima</label>
               </div>
             </div>
+
+            {spaceName ? (
+              <div class='form-group'>
+                <div class='checkbox-group'>
+                  <input
+                    type='checkbox'
+                    id='showSpace'
+                    name='showSpace'
+                    checked
+                  />
+                  <label for='showSpace'>
+                    🏠 Mostrar mi espacio «{spaceName}» junto a mi nombre
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <p class='space-hint'>
+                ¿Tienes tu propio regalo entre manos?{' '}
+                <a href='/registro'>Crea tu espacio</a> y podrás mostrarlo junto
+                a tu nombre.
+              </p>
+            )}
           </div>
         </section>
 
@@ -241,49 +264,47 @@ const {
 
           <fieldset class='payment-methods'>
             <legend class='sr-only'>Selecciona tu método de pago</legend>
-            {
-              paymentMethods.map((method) => (
-                <label
-                  class={`payment-method ${!method.is_active ? 'disabled' : ''}`}
-                >
-                  <input
-                    type='radio'
-                    name='paymentMethod'
-                    value={method.payment_method}
-                    disabled={!method.is_active}
-                    required
-                  />
-                  <div class='method-content'>
-                    <div
-                      class='method-icon'
-                      aria-hidden='true'
-                    >
+            {paymentMethods.map((method) => (
+              <label
+                class={`payment-method ${!method.is_active ? 'disabled' : ''}`}
+              >
+                <input
+                  type='radio'
+                  name='paymentMethod'
+                  value={method.payment_method}
+                  disabled={!method.is_active}
+                  required
+                />
+                <div class='method-content'>
+                  <div
+                    class='method-icon'
+                    aria-hidden='true'
+                  >
+                    {method.payment_method === 'bizum'
+                      ? '📱'
+                      : method.payment_method === 'cash'
+                        ? '🤝'
+                        : '🏦'}
+                  </div>
+                  <div class='method-info'>
+                    <div class='method-name'>
                       {method.payment_method === 'bizum'
-                        ? '📱'
+                        ? 'Bizum'
                         : method.payment_method === 'cash'
-                          ? '🤝'
-                          : '🏦'}
+                          ? 'En efectivo'
+                          : 'Transferencia'}
                     </div>
-                    <div class='method-info'>
-                      <div class='method-name'>
-                        {method.payment_method === 'bizum'
-                          ? 'Bizum'
-                          : method.payment_method === 'cash'
-                            ? 'En efectivo'
-                            : 'Transferencia'}
-                      </div>
-                      <div class='method-description'>
-                        {method.payment_method === 'bizum'
-                          ? 'Pago instantáneo desde tu móvil'
-                          : method.payment_method === 'cash'
-                            ? 'Pago en mano'
-                            : 'Transferencia bancaria'}
-                      </div>
+                    <div class='method-description'>
+                      {method.payment_method === 'bizum'
+                        ? 'Pago instantáneo desde tu móvil'
+                        : method.payment_method === 'cash'
+                          ? 'Pago en mano'
+                          : 'Transferencia bancaria'}
                     </div>
                   </div>
-                </label>
-              ))
-            }
+                </div>
+              </label>
+            ))}
           </fieldset>
 
           <!-- Instrucciones dinámicas -->
@@ -297,8 +318,7 @@ const {
             <div
               class='instructions-content'
               id='instructionsContent'
-            >
-            </div>
+            ></div>
           </div>
 
           <div class='security-info'>
@@ -306,8 +326,9 @@ const {
               <span
                 class='security-icon'
                 aria-hidden='true'
-                >🔒</span
               >
+                🔒
+              </span>
               <span class='security-text'>Contribución 100% segura</span>
             </div>
             <div class='trust-indicators'>
@@ -327,11 +348,13 @@ const {
               required
             />
             <label for='acceptTerms'>
-              Acepto los <a
+              Acepto los{' '}
+              <a
                 href='#'
                 class='terms-link'
-                >términos y condiciones</a
               >
+                términos y condiciones
+              </a>
               y entiendo que es un proyecto familiar
             </label>
           </div>
@@ -350,8 +373,7 @@ const {
         <div
           class='loading-spinner'
           aria-hidden='true'
-        >
-        </div>
+        ></div>
         <div class='loading-text'>Procesando tu contribución...</div>
         <div class='loading-subtext'>Por favor, no cierres esta ventana</div>
       </div>
@@ -365,8 +387,9 @@ const {
         <span
           class='total-value'
           id='totalAmount'
-          >0 {currency}</span
         >
+          0 {currency}
+        </span>
       </div>
     </div>
 
@@ -388,14 +411,16 @@ const {
         <span
           class='button-icon'
           aria-hidden='true'
-          >🚀</span
         >
+          🚀
+        </span>
         <span class='button-text'>{confirmButtonText}</span>
         <span
           class='button-icon'
           aria-hidden='true'
-          >✨</span
         >
+          ✨
+        </span>
       </button>
     </div>
   </div>
@@ -435,7 +460,11 @@ const {
 
   /* Resumen de Contribución */
   .contribution-summary {
-    background: linear-gradient(145deg, var(--color-section-progress-from), var(--color-brand-yellow));
+    background: linear-gradient(
+      145deg,
+      var(--color-section-progress-from),
+      var(--color-brand-yellow)
+    );
     border-radius: 15px;
     padding: 20px;
     margin-bottom: 25px;
@@ -877,7 +906,11 @@ const {
   }
 
   .contribute-final-button {
-    background: linear-gradient(145deg, var(--color-brand-green), var(--color-brand-green-dark));
+    background: linear-gradient(
+      145deg,
+      var(--color-brand-green),
+      var(--color-brand-green-dark)
+    );
     color: white;
     border: none;
     padding: 12px 30px;
@@ -1214,6 +1247,17 @@ const {
       outline-offset: 2px;
     }
   }
+
+  .space-hint {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  .space-hint a {
+    color: var(--color-brand-primary);
+    font-weight: 600;
+  }
 </style>
 
 <script>
@@ -1532,6 +1576,7 @@ const {
           contributorMessage: String(formData.get('contributorMessage') || ''),
           contributorEmoji: String(formData.get('contributorEmoji') || ''),
           isAnonymous: formData.get('isAnonymous') === 'on',
+          showSpace: formData.get('showSpace') === 'on',
           paymentMethod: String(formData.get('paymentMethod') || ''),
           projectId: this.projectId,
         };
@@ -1541,14 +1586,24 @@ const {
         this.hideLoading();
 
         if (result?.success) {
-          (window as any).showToast?.('¡Gracias! Hemos registrado tu aportación. La familia la confirmará en cuanto reciba el pago 💛', 'success', 8000);
+          (window as any).showToast?.(
+            '¡Gracias! Hemos registrado tu aportación. La familia la confirmará en cuanto reciba el pago 💛',
+            'success',
+            8000
+          );
           this.closeModal();
         } else {
-          (window as any).showToast?.(result?.error || 'Error al procesar la contribución', 'error');
+          (window as any).showToast?.(
+            result?.error || 'Error al procesar la contribución',
+            'error'
+          );
         }
       } catch {
         this.hideLoading();
-        (window as any).showToast?.('Error al enviar la contribución. Inténtalo de nuevo.', 'error');
+        (window as any).showToast?.(
+          'Error al enviar la contribución. Inténtalo de nuevo.',
+          'error'
+        );
       }
     }
 
@@ -1563,13 +1618,16 @@ const {
           body: JSON.stringify({
             projectId: data.projectId,
             levelId: data.levelId || undefined,
-            customAmount: data.customAmount ? Number(data.customAmount) : undefined,
+            customAmount: data.customAmount
+              ? Number(data.customAmount)
+              : undefined,
             contributorName: data.contributorName,
             contributorEmail: data.contributorEmail,
             contributorEmoji: data.contributorEmoji,
             message: data.contributorMessage || undefined,
             paymentMethod: data.paymentMethod,
             isAnonymous: !!data.isAnonymous,
+            showSpace: !!data.showSpace,
           }),
         });
         const payload = await res.json().catch(() => ({}));
@@ -1687,7 +1745,10 @@ const {
               1500
             );
           } catch {
-            (window as any).showToast?.('No se pudo copiar al portapapeles', 'warning');
+            (window as any).showToast?.(
+              'No se pudo copiar al portapapeles',
+              'warning'
+            );
           }
         }
       });

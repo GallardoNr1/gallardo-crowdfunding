@@ -18,6 +18,7 @@ En orden, una a una. Cada archivo lleva su bloque `-- down` comentado.
 | 7 | `20260922110000_open_campaigns.sql` | Campañas por tiempo: `campaign_mode`, aportación base, cantidad libre; recrea `public_contributions` con LEFT JOIN | Antes de crear el proyecto de la bici |
 | 8 | `20260923100000_tenants.sql` | Espacios: tabla `tenants`, trigger que crea el espacio de cada usuario nuevo, backfill del usuario actual, `tenant_id` + `visibility` en `project_config`, slug único **por espacio** (sustituye a la 5) | Después de la 5; **antes** de desplegar la fase 1 de espacios (compatible con el código anterior) |
 | 9 | `20260923110000_avatars_bucket.sql` | Bucket público `avatars` (foto de cada espacio) con política de lectura | Antes de desplegar la fase 2 (cuentas) |
+| 10 | `20260929120000_supporter_tenant.sql` | Red de colaboración: `supporter_tenant_id` en `contributions` y `support_messages`, permiso de lectura para anon y `public_contributions` con la columna (null en anónimas) | **Antes** de desplegar la red de colaboración (el código anterior la ignora) |
 
 **Opción A — SQL Editor:** pegar y ejecutar cada archivo en el dashboard (Database → SQL Editor).
 

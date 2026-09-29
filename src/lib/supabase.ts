@@ -152,6 +152,8 @@ export interface SupportMessage {
   is_approved: boolean;
   created_at: string;
   updated_at: string;
+  /** Espacio de quien escribió, si quiso mostrarlo. */
+  supporter_tenant_id?: string | null;
 }
 
 /** Fila de la vista `public_contributions` (sin email, solo completadas y no de prueba). */
@@ -165,6 +167,8 @@ export interface PublicContribution {
   created_at: string;
   level_color: string;
   level_emoji: string;
+  /** Espacio de quien aportó, si quiso mostrarlo (null en anónimas). */
+  supporter_tenant_id?: string | null;
 }
 
 // ===============================================

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import type { SupportMessage } from '../../../lib/supabase';
-import { getSupportMessages, subscribeToProjectEvents } from '../../../lib/supabase';
+import {
+  getSupportMessages,
+  subscribeToProjectEvents,
+} from '../../../lib/supabase';
 import SupportMessageComponent from './SupportMessage';
 import { getTimeAgo } from '../../../helpers/timeFormating';
 import './style.css';
@@ -14,6 +17,8 @@ interface Props {
   /** Textos del tema del proyecto. */
   title?: string;
   emptyText?: string;
+  /** Etiqueta por espacio (id → nombre y enlace) de quienes han apoyado y tienen proyectos activos. */
+  supporters?: Record<string, { name: string; href: string }>;
 }
 
 const byNewest = (a: SupportMessage, b: SupportMessage) =>
@@ -26,6 +31,7 @@ const SupportMessageSection: React.FC<Props> = ({
   emptyEmoji = '👋',
   title = 'Mensajes de Apoyo',
   emptyText = '¡Sé el primero en dejar un mensaje de apoyo!',
+  supporters = {},
 }) => {
   const [comments, setComments] = useState<SupportMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +95,9 @@ const SupportMessageSection: React.FC<Props> = ({
     <div className='message-section'>
       <div className='comments-section'>
         <div className='comments-header'>
-          <h4 className='comments-title'>{titleEmoji} {title}</h4>
+          <h4 className='comments-title'>
+            {titleEmoji} {title}
+          </h4>
         </div>
 
         {error && (
@@ -103,7 +111,9 @@ const SupportMessageSection: React.FC<Props> = ({
 
           {!isLoading && comments.length === 0 ? (
             <div className='no-comments'>
-              <p>{emptyEmoji} {emptyText}</p>
+              <p>
+                {emptyEmoji} {emptyText}
+              </p>
             </div>
           ) : (
             comments.map((comment, index) => (
@@ -117,6 +127,11 @@ const SupportMessageSection: React.FC<Props> = ({
                   text={comment.message}
                   time={getTimeAgo(comment.created_at)}
                   isFromContributor={comment.is_from_contributor}
+                  supporter={
+                    comment.supporter_tenant_id
+                      ? (supporters[comment.supporter_tenant_id] ?? null)
+                      : null
+                  }
                 />
               </div>
             ))

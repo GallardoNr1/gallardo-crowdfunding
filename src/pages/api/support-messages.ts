@@ -6,12 +6,13 @@ import { createRateLimiter } from '@/lib/rate-limit';
 import { SupportMessageInput, fieldErrors } from '@/lib/schemas';
 import { createSupportMessage } from '@/lib/support-messages-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { supporterFromSession } from '@/lib/supporters';
 import { notifySupportMessageAsync } from '@/lib/notifications-server';
 import { siteOrigin } from '@/lib/tenants';
 
 const limiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 10 });
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, clientAddress, locals }) => {
   const limit = limiter.hit(`support:${clientIp(request, clientAddress)}`);
   if (!limit.ok) {
     return json(
@@ -34,7 +35,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   const admin = createAdminClient();
-  const result = await createSupportMessage(admin, parsed.data);
+  const result = await createSupportMessage(admin, parsed.data, {
+    supporterTenantId: supporterFromSession(locals, parsed.data.showSpace),
+  });
   if (!result.ok)
     return json({ error: result.error }, { status: result.status });
 

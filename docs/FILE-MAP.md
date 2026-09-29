@@ -24,6 +24,7 @@ gallardo-crowdfunding/
 │   │   ├── Breadcrumbs.astro          # Migas "Inicio › Espacio › Proyecto"
 │   │   ├── ShareButton.astro          # Compartir (Web Share API / copiar) + WhatsApp
 │   │   ├── QrModal.astro             # Modal con el código QR del proyecto (imprimir y descargar SVG)
+│   │   ├── SupporterProjects.astro   # "También están recaudando": proyectos de las familias que apoyaron
 │   │   ├── ContributionLevels.astro   # Niveles (botones) + tarjeta "Otra cantidad" → evento levelSelected
 │   │   ├── OpenCampaignSection.astro  # Progreso de campañas por tiempo (totales + cuenta atrás)
 │   │   ├── ContributionModal.astro    # Modal: formulario → POST /api/contributions
@@ -64,6 +65,8 @@ gallardo-crowdfunding/
 │   │   ├── pending.ts                # Pendientes del backoffice: recuento por proyecto y resumen (puro)
 │   │   ├── theme-preview.ts          # ?theme= en la página pública solo para quien gestiona el proyecto
 │   │   ├── qr.ts                     # Código QR (SVG) de la página del proyecto
+│   │   ├── supporters.ts             # Red de colaboración (puro): espacios que apoyan, etiquetas, proyectos a mostrar
+│   │   ├── supporters-server.ts      # Red de colaboración con Supabase (proyectos activos de quienes apoyaron)
 │   │   ├── notifications.ts          # Emails al organizador (textos + orquestación, puro)
 │   │   ├── notifications-server.ts   # Avisos con Supabase (dueño del espacio) + SMTP
 │   │   ├── mailer.ts                 # Transporte SMTP (nodemailer) según env.smtp
@@ -118,9 +121,9 @@ gallardo-crowdfunding/
 │   ├── README.md              # Cómo aplicar migraciones, baseline, rol admin
 │   ├── migrations/*.sql       # Trigger de importe, broadcast, moderación, slug único, RLS, campañas abiertas
 │   ├── email-templates/       # Plantillas de Supabase Auth (confirmation, recovery, invite, email_change) + subjects.json
-│   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
+│   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo), espacio de pruebas y red de colaboración
 ├── scripts/apply-email-templates.mjs  # Aplica supabase/email-templates/ a Supabase Auth (Management API)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), levels-form, project-duplicate, pending, theme-preview, notifications-thanks, image-resize, qr, projects-list (Container API), qr-modal (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), levels-form, project-duplicate, pending, theme-preview, notifications-thanks, image-resize, qr, projects-list (Container API), qr-modal (happy-dom), supporters, tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
 ├── astro.config.mjs

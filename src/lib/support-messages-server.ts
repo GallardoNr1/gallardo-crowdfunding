@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { supporterTenantToStore } from './supporters';
 import type { SupportMessageInput } from './schemas';
 
 // Mensajes de apoyo: solo servidor (service_role). Nacen pendientes de aprobación.
@@ -19,11 +20,12 @@ export type CreateSupportMessageResult =
 
 export async function createSupportMessage(
   admin: SupabaseClient,
-  input: SupportMessageInput
+  input: SupportMessageInput,
+  options: { supporterTenantId?: string | null } = {}
 ): Promise<CreateSupportMessageResult> {
   const { data: project } = await admin
     .from('project_config')
-    .select('id, project_status')
+    .select('id, project_status, tenant_id')
     .eq('id', input.projectId)
     .maybeSingle();
   if (!project || project.project_status === 'cancelled') {
@@ -55,8 +57,14 @@ export async function createSupportMessage(
       is_from_contributor: !!contribution,
       contribution_id: contribution?.id ?? null,
       is_approved: false,
+      supporter_tenant_id: supporterTenantToStore(
+        options.supporterTenantId,
+        project.tenant_id
+      ),
     })
-    .select('id, author_name, author_emoji, message, is_from_contributor, is_approved, created_at')
+    .select(
+      'id, author_name, author_emoji, message, is_from_contributor, is_approved, created_at'
+    )
     .single();
 
   if (error || !data) {
@@ -102,7 +110,9 @@ export async function listSupportMessages(
 ): Promise<AdminSupportMessageRow[]> {
   const { data, error } = await admin
     .from('support_messages')
-    .select('id, author_name, author_emoji, message, is_from_contributor, is_approved, created_at')
+    .select(
+      'id, author_name, author_emoji, message, is_from_contributor, is_approved, created_at'
+    )
     .eq('project_id', projectId)
     .order('created_at', { ascending: false });
   if (error) {

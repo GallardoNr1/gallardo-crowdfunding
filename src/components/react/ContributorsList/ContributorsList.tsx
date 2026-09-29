@@ -15,6 +15,8 @@ export interface PublicContribution {
   level_emoji?: string;
   message?: string;
   created_at: string;
+  /** Espacio de quien aportó, si tiene proyectos activos y quiso mostrarlo. */
+  supporter?: { name: string; href: string } | null;
 }
 
 export interface ContributorsListProps {
@@ -64,7 +66,9 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
     return subscribeToProjectEvents(projectId, {
       onContribution: (ev) => {
         // Deduplicación por id de fila: el mismo evento puede llegar más de una vez.
-        setItems((prev) => (prev.some((c) => c.id === ev.id) ? prev : [fromEvent(ev), ...prev]));
+        setItems((prev) =>
+          prev.some((c) => c.id === ev.id) ? prev : [fromEvent(ev), ...prev]
+        );
         document.dispatchEvent(
           new CustomEvent('contributionCompleted', {
             detail: {
@@ -86,7 +90,10 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
   const totalContributors = items.length;
   const totalAmount = items.reduce((sum, c) => sum + (c.amount || 0), 0);
   const displayedContributors = showAll ? items : items.slice(0, maxDisplay);
-  const hiddenCount = Math.max(0, totalContributors - displayedContributors.length);
+  const hiddenCount = Math.max(
+    0,
+    totalContributors - displayedContributors.length
+  );
 
   return (
     <div className='contributors-section'>
@@ -109,7 +116,10 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
         </div>
       </div>
 
-      <div className='contributors-grid' id='contributorsGrid'>
+      <div
+        className='contributors-grid'
+        id='contributorsGrid'
+      >
         {displayedContributors.map((contributor, index) => (
           <div
             key={contributor.id}
@@ -123,15 +133,31 @@ export const ContributorsList: React.FC<ContributorsListProps> = ({
             }
           >
             <div className='contributor-avatar'>
-              <span className='avatar-emoji'>{contributor.contributor_emoji}</span>
+              <span className='avatar-emoji'>
+                {contributor.contributor_emoji}
+              </span>
               <div className='avatar-ring' />
-              <div className='level-badge' title={`Nivel: ${contributor.level_name ?? ''}`}>
+              <div
+                className='level-badge'
+                title={`Nivel: ${contributor.level_name ?? ''}`}
+              >
                 {contributor.level_emoji}
               </div>
             </div>
 
             <div className='contributor-info'>
-              <div className='contributor-name'>{contributor.contributor_name}</div>
+              <div className='contributor-name'>
+                {contributor.contributor_name}
+              </div>
+              {contributor.supporter && (
+                <a
+                  className='supporter-badge'
+                  href={contributor.supporter.href}
+                  title={`Espacio de ${contributor.supporter.name}`}
+                >
+                  🏠 {contributor.supporter.name}
+                </a>
+              )}
               <div className='contributor-amount'>
                 {contributor.amount} {currency}
               </div>

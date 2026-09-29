@@ -47,6 +47,8 @@ export const ContributionInput = z
     ),
     paymentMethod: PaymentMethod,
     isAnonymous: z.boolean().default(false),
+    /** Mostrar el espacio de quien aporta junto a su nombre (solo cuenta si está conectado). */
+    showSpace: z.boolean().default(false),
   })
   .refine(
     (d) => (d.levelId ? 1 : 0) + (d.customAmount !== undefined ? 1 : 0) === 1,
@@ -69,6 +71,8 @@ export const SupportMessageInput = z.strictObject({
     emptyToUndefined,
     z.email().trim().toLowerCase().optional()
   ),
+  /** Mostrar el espacio de quien escribe junto a su nombre (solo cuenta si está conectado). */
+  showSpace: z.boolean().default(false),
 });
 export type SupportMessageInput = z.infer<typeof SupportMessageInput>;
 

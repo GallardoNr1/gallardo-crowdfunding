@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Red de colaboración: quien apoya y tiene proyectos, se ve
+
+- **Qué cambió:** (1) Quien aporta o escribe un mensaje **estando conectado** puede marcar "🏠 Mostrar mi espacio junto a mi nombre" (marcada por defecto); se guarda su espacio (`supporter_tenant_id`, migración `20260929120000_supporter_tenant.sql`) tomándolo de la sesión en el servidor, nunca del cuerpo, y nunca el propio espacio del proyecto. Sin cuenta se muestra un reclamo "Crea tu espacio". (2) En la página del proyecto, junto al nombre de quien aportó o escribió, una etiqueta "🏠 Familia X" que lleva a su portada, solo si ese espacio tiene proyectos activos y públicos; y el bloque "🤝 También están recaudando" con hasta seis proyectos activos de esas familias (`SupporterProjects.astro`). (3) En el backoffice, "🤝 Devuelve el apoyo": espacios que te han apoyado y tienen proyectos activos, con enlaces. Lógica pura en `src/lib/supporters.ts` (tests) y acceso a datos en `supporters-server.ts`. (4) Seed `supabase/seeds/2026-09-29_red_colaboracion.sql` con datos de prueba (Familia Pruebas ↔ Familia Gallardo), aplicado en producción junto con el seed del espacio de pruebas.
+- **Por qué:** Idea del usuario para crear red entre familias: quien viene a aportar descubre los regalos de quienes ya apoyaron, y el organizador puede devolver el gesto.
+- **Archivos tocados:** `supabase/migrations/20260929120000_supporter_tenant.sql`, `supabase/seeds/2026-09-29_red_colaboracion.sql`, `src/lib/{supporters,supporters-server,schemas,supabase,contributions-server,support-messages-server}.ts`, `src/pages/api/{contributions,support-messages}.ts`, `src/components/{ContributionModal,SupportMessageFrom,MessageSection,SupporterProjects}.astro`, `src/components/react/**`, `src/layouts/BaseLayout.astro`, `src/pages/[tenant]/projects/[slug].astro`, `src/pages/admin/index.astro`, `tests/supporters.test.ts`, `docs/*`, `supabase/README.md`.
+- **Impacto:** Migración 10 aplicada en producción. Las aportaciones anónimas nunca muestran espacio. Los mensajes que llegan en tiempo real no llevan etiqueta hasta recargar. Los datos de prueba se borran con el bloque comentado del seed (y el espacio de pruebas, desde "Mi cuenta").
+
+---
+
 ## [2026-09-29] — Pie de página compacto
 
 - **Qué cambió:** `Footer.astro` pasa de tres bloques apilados (logo grande, lema, copyright) con 40 px de relleno a una sola fila: logo (150 px) a la izquierda, lema en el centro y copyright a la derecha, con enlace a `/privacidad` (hasta ahora esa página no estaba enlazada). En móvil se apila con separaciones cortas. Altura: de unos 220 px a 72 px en escritorio y 128 px en móvil.

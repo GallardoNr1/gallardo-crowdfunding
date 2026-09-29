@@ -1,0 +1,195 @@
+---
+// "También están recaudando": proyectos activos y públicos de las familias que han apoyado este
+// proyecto (aportando o escribiendo estando conectadas). Tarjetas compactas con enlace.
+import type { SupporterProject } from '@/lib/supporters';
+
+export interface Props {
+  projects: SupporterProject[];
+  currency?: string;
+  title?: string;
+  hint?: string;
+}
+
+const {
+  projects,
+  currency = '€',
+  title = '🤝 También están recaudando',
+  hint = 'Familias que han apoyado este proyecto y tienen el suyo en marcha. Devuélveles el gesto.',
+} = Astro.props;
+
+const pct = (p: SupporterProject) =>
+  p.campaignMode === 'target' && p.targetAmount > 0
+    ? Math.min(100, Math.round((p.currentAmount / p.targetAmount) * 100))
+    : null;
+---
+
+{projects.length > 0 && (
+  <section
+    class='supporters'
+    aria-labelledby='supporters-title'
+  >
+    <h2
+      id='supporters-title'
+      class='supporters__title'
+    >
+      {title}
+    </h2>
+    <p class='supporters__hint'>{hint}</p>
+    <ul class='supporters__list'>
+      {projects.map((p) => (
+        <li class='supporters__item'>
+          <a
+            href={p.href}
+            class='supporters__card'
+          >
+            {p.imageUrl ? (
+              <img
+                src={p.imageUrl}
+                alt=''
+                loading='lazy'
+                class='supporters__img'
+              />
+            ) : (
+              <div class='supporters__img supporters__img--empty'>🎁</div>
+            )}
+            <div class='supporters__body'>
+              <strong class='supporters__name'>{p.name}</strong>
+              <span class='supporters__space'>de {p.spaceName}</span>
+              {pct(p) !== null ? (
+                <>
+                  <span class='supporters__progress'>
+                    <span
+                      class='supporters__bar'
+                      style={`width:${pct(p)}%`}
+                    />
+                  </span>
+                  <span class='supporters__pct'>
+                    {pct(p)}% de {p.targetAmount} {currency}
+                  </span>
+                </>
+              ) : (
+                <span class='supporters__pct'>
+                  {p.currentAmount} {currency} reunidos · campaña abierta
+                </span>
+              )}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .supporters {
+    margin: 32px 0;
+    padding: 24px;
+    background: var(--color-surface, #fff);
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.08));
+  }
+
+  .supporters__title {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+    color: var(--color-brand-primary);
+    text-align: center;
+  }
+
+  .supporters__hint {
+    margin: 0 0 18px;
+    text-align: center;
+    color: var(--color-text-secondary, #4b5563);
+    font-size: 0.95rem;
+  }
+
+  .supporters__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .supporters__card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    color: inherit;
+    text-decoration: none;
+    background: var(--color-surface, #fff);
+    transition:
+      transform 0.15s,
+      box-shadow 0.15s;
+  }
+
+  .supporters__card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .supporters__img {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--color-accent-bg, #f3f4f6);
+    display: grid;
+    place-items: center;
+    font-size: 1.6rem;
+  }
+
+  .supporters__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .supporters__name {
+    font-size: 1rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .supporters__space {
+    font-size: 0.85rem;
+    color: var(--color-accent-dark, #c2185b);
+    font-weight: 600;
+  }
+
+  .supporters__progress {
+    position: relative;
+    display: block;
+    height: 6px;
+    margin-top: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .supporters__bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--color-brand-green, #4caf50);
+    border-radius: 999px;
+  }
+
+  .supporters__pct {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary, #6b7280);
+  }
+
+  .supporters__progress + .supporters__pct {
+    margin-top: 2px;
+  }
+</style>

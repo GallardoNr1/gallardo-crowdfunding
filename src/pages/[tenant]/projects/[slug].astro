@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard.astro';
 import QrModal from '@/components/QrModal.astro';
 import OpenCampaignSection from '@/components/OpenCampaignSection.astro';
 import ProgressSection from '@/components/ProgressSection.astro';
+import SupporterProjects from '@/components/SupporterProjects.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/layouts/Footer.astro';
 import {
@@ -19,6 +20,13 @@ import {
 } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
 import { projectQrSvg } from '@/lib/qr';
+import { createAdminClient } from '@/lib/supabase-server';
+import {
+  supporterBadge,
+  supporterBadges,
+  supporterTenantIds,
+} from '@/lib/supporters';
+import { getSupporterNetwork } from '@/lib/supporters-server';
 import { resolvePreviewTheme } from '@/lib/theme-preview';
 import { getTheme } from '@/lib/themes';
 import {
@@ -28,6 +36,7 @@ import {
   getPaymentMethods,
   getProjectByTenantAndSlug,
   getPublicContributions,
+  getSupportMessages,
   getTenantByNumber,
   normalizeProjectPageContent,
 } from '@/lib/supabase';
@@ -67,13 +76,34 @@ const [
   familyMembers,
   photos,
   paymentMethods,
+  supportMessagesResult,
 ] = await Promise.all([
   getContributionLevels(projectConfig.id),
   getPublicContributions(projectConfig.id),
   getFamilyMembers(projectConfig.id),
   getImagesFromFolder(projectConfig.id),
   getPaymentMethods(),
+  getSupportMessages(projectConfig.id, 100),
 ]);
+
+// Red de colaboración: espacios (con proyectos activos y públicos) de quienes han apoyado.
+const supporterIds = supporterTenantIds(
+  [...contributions, ...(supportMessagesResult.data ?? [])],
+  projectConfig.tenant_id
+);
+const network = await getSupporterNetwork(
+  createAdminClient(),
+  supporterIds,
+  projectConfig.tenant_id
+);
+const contributorsWithSpace = contributions.map((c) => ({
+  ...c,
+  supporter: supporterBadge(network.spaces, c.supporter_tenant_id),
+}));
+const supporterBadgeMap = supporterBadges(network.spaces);
+const viewerSpaceName = Astro.locals.adminTenantOverride
+  ? undefined
+  : (Astro.locals.tenant?.name ?? undefined);
 
 const completed = projectConfig.project_status === 'completed';
 const mode = projectConfig.campaign_mode === 'open' ? 'open' : 'target';
@@ -267,13 +297,18 @@ const minLevelAmount = levelAmounts.length
 
     {!completed && (
       <ContributorsListReact
-        contributors={contributions}
+        contributors={contributorsWithSpace}
         contributorsTitle={content.contributorsTitle}
         projectId={projectConfig.id}
         currency={currency}
         contributorsStat={theme.texts.contributorsStat}
       />
     )}
+
+    <SupporterProjects
+      projects={network.projects}
+      currency={currency}
+    />
 
     <MessageSection
       familyMembers={familyMembers}
@@ -288,6 +323,8 @@ const minLevelAmount = levelAmounts.length
       sectionTitle={theme.texts.messageTitle}
       supportTitle={theme.texts.supportTitle}
       supportEmpty={theme.texts.emptySupport}
+      spaceName={viewerSpaceName}
+      supporters={supporterBadgeMap}
     />
 
     <p class='back-link'>

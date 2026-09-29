@@ -6,13 +6,14 @@ import { createPendingContribution } from '@/lib/contributions-server';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { ContributionInput, fieldErrors } from '@/lib/schemas';
 import { createAdminClient } from '@/lib/supabase-server';
+import { supporterFromSession } from '@/lib/supporters';
 import { notifyContributionAsync } from '@/lib/notifications-server';
 import { siteOrigin } from '@/lib/tenants';
 
 // 10 altas por IP cada 10 minutos: una reunión familiar detrás del mismo router cabe de sobra.
 const limiter = createRateLimiter({ windowMs: 10 * 60 * 1000, max: 10 });
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, clientAddress, locals }) => {
   const limit = limiter.hit(
     `contributions:${clientIp(request, clientAddress)}`
   );
@@ -37,7 +38,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   const admin = createAdminClient();
-  const result = await createPendingContribution(admin, parsed.data);
+  const result = await createPendingContribution(admin, parsed.data, {
+    supporterTenantId: supporterFromSession(locals, parsed.data.showSpace),
+  });
   if (!result.ok)
     return json({ error: result.error }, { status: result.status });
 

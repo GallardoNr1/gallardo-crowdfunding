@@ -92,6 +92,7 @@ Registro de cada aportación económica.
 | `payment_status` | text | `pending` \| `processing` \| `completed` \| `failed` \| `refunded`. Nace `pending` (lo fija `/api/contributions`); el backoffice lo pasa a `completed` al recibir el pago. Solo `completed` cuenta para `current_amount` y la vista pública. |
 | `payment_reference` | text | Referencia del pago (opcional) |
 | `is_anonymous` | boolean | Si el contribuidor quiere ser anónimo |
+| `supporter_tenant_id` | uuid FK → `tenants.id` (null) | Espacio de quien aportó, solo si estaba conectado y marcó "mostrar mi espacio"; nunca el propio espacio del proyecto |
 | `is_test` | boolean | Si es una contribución de prueba |
 | `metadata` | jsonb | Datos adicionales |
 | `created_at` | timestamptz | Fecha de creación |
@@ -152,6 +153,7 @@ Mensajes de apoyo públicos.
 | `message` | text | Contenido del mensaje |
 | `is_from_contributor` | boolean | Si el autor es un contribuidor registrado |
 | `contribution_id` | uuid FK → `contributions.id` | Contribución vinculada (opcional) |
+| `supporter_tenant_id` | uuid FK → `tenants.id` (null) | Espacio de quien escribió, solo si estaba conectado y marcó "mostrar mi espacio" |
 | `is_approved` | boolean | Si el mensaje es visible. Por defecto `false` (migración `20260922100200`); se aprueba desde `/admin/projects/:id/messages` |
 | `created_at` | timestamptz | Fecha de creación |
 | `updated_at` | timestamptz | Última actualización |
@@ -201,6 +203,7 @@ Vista de contribuciones visibles (completadas, no de test), redefinida en `20260
 | `level_name` | text |
 | `level_color` | text |
 | `level_emoji` | text |
+| `supporter_tenant_id` | uuid (null en las anónimas) |
 | `message` | text |
 | `created_at` | timestamptz |
 

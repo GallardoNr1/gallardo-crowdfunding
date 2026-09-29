@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isCampaignOpen } from './campaign';
+import { supporterTenantToStore } from './supporters';
 import type { ContributionInput, ContributionStatus } from './schemas';
 
 // Lógica de contribuciones que SOLO corre en servidor con el cliente service_role.
@@ -18,14 +19,18 @@ export type CreateContributionResult =
 
 export async function createPendingContribution(
   admin: SupabaseClient,
-  input: ContributionInput
+  input: ContributionInput,
+  options: { supporterTenantId?: string | null } = {}
 ): Promise<CreateContributionResult> {
   const { data: project } = await admin
     .from('project_config')
-    .select('id, project_status, end_date, allow_custom_amount, min_custom_amount')
+    .select(
+      'id, project_status, end_date, allow_custom_amount, min_custom_amount, tenant_id'
+    )
     .eq('id', input.projectId)
     .maybeSingle();
-  if (!project) return { ok: false, status: 404, error: 'Proyecto no encontrado.' };
+  if (!project)
+    return { ok: false, status: 404, error: 'Proyecto no encontrado.' };
   if (!isCampaignOpen(project)) {
     return {
       ok: false,
@@ -47,19 +52,31 @@ export async function createPendingContribution(
       .eq('project_id', input.projectId)
       .maybeSingle();
     if (!level || !level.is_active) {
-      return { ok: false, status: 422, error: 'El nivel elegido no existe o no está disponible.' };
+      return {
+        ok: false,
+        status: 422,
+        error: 'El nivel elegido no existe o no está disponible.',
+      };
     }
     amount = Number(level.amount);
     levelId = level.id;
     levelName = level.name;
   } else {
     if (!project.allow_custom_amount) {
-      return { ok: false, status: 422, error: 'Este proyecto no admite cantidades libres.' };
+      return {
+        ok: false,
+        status: 422,
+        error: 'Este proyecto no admite cantidades libres.',
+      };
     }
     const min = Number(project.min_custom_amount) || 1;
     const custom = Math.round(Number(input.customAmount) * 100) / 100;
     if (!Number.isFinite(custom) || custom < min) {
-      return { ok: false, status: 422, error: `La aportación mínima es de ${min} €.` };
+      return {
+        ok: false,
+        status: 422,
+        error: `La aportación mínima es de ${min} €.`,
+      };
     }
     amount = custom;
     levelName = 'Aportación libre';
@@ -91,13 +108,21 @@ export async function createPendingContribution(
       is_anonymous: input.isAnonymous,
       is_test: false,
       metadata: {},
+      supporter_tenant_id: supporterTenantToStore(
+        options.supporterTenantId,
+        project.tenant_id
+      ),
     })
     .select('id, amount, level_name, payment_status')
     .single();
 
   if (error || !data) {
     console.error('[contributions] insert failed:', error?.message);
-    return { ok: false, status: 500, error: 'No se pudo registrar la contribución.' };
+    return {
+      ok: false,
+      status: 500,
+      error: 'No se pudo registrar la contribución.',
+    };
   }
   return { ok: true, contribution: data as CreatedContribution };
 }
@@ -117,14 +142,21 @@ export async function recalcProjectAmount(
     .eq('project_id', projectId)
     .eq('payment_status', 'completed')
     .eq('is_test', false);
-  if (error) throw new Error(`No se pudo leer contribuciones: ${error.message}`);
+  if (error)
+    throw new Error(`No se pudo leer contribuciones: ${error.message}`);
 
-  const total = (data ?? []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const total = (data ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
+    0
+  );
   const { error: updateError } = await admin
     .from('project_config')
     .update({ current_amount: total, updated_at: new Date().toISOString() })
     .eq('id', projectId);
-  if (updateError) throw new Error(`No se pudo actualizar current_amount: ${updateError.message}`);
+  if (updateError)
+    throw new Error(
+      `No se pudo actualizar current_amount: ${updateError.message}`
+    );
   return total;
 }
 

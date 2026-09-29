@@ -173,6 +173,11 @@ const ogImage = new URL(image || '/og-default.png', origin + '/').toString();
               ]
         }
         projectId={project.id}
+        spaceName={
+          Astro.locals.adminTenantOverride
+            ? undefined
+            : (Astro.locals.tenant?.name ?? undefined)
+        }
       />
     )}
   </body>

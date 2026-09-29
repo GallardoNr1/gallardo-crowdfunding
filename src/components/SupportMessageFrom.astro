@@ -1,9 +1,11 @@
 ---
 interface Props {
   project_id: string;
+  /** Espacio de quien mira, si está conectado: casilla para mostrarlo junto a su nombre. */
+  spaceName?: string;
 }
 
-const { project_id } = Astro.props;
+const { project_id, spaceName = '' } = Astro.props;
 ---
 
 <div class='add-comment'>
@@ -16,8 +18,9 @@ const { project_id } = Astro.props;
       <label
         for='newComment'
         class='sr-only'
-        >Tu mensaje de apoyo</label
       >
+        Tu mensaje de apoyo
+      </label>
       <textarea
         id='newComment'
         name='comment'
@@ -56,6 +59,22 @@ const { project_id } = Astro.props;
         />
       </div>
 
+      {spaceName ? (
+        <label class='space-check'>
+          <input
+            type='checkbox'
+            name='show_space'
+            checked
+          />
+          🏠 Mostrar mi espacio «{spaceName}» junto a mi nombre
+        </label>
+      ) : (
+        <p class='space-hint'>
+          ¿Tienes tu propio regalo entre manos?{' '}
+          <a href='/registro'>Crea tu espacio</a>.
+        </p>
+      )}
+
       <!-- Campo oculto para identificar el proyecto -->
       <input
         type='hidden'
@@ -75,8 +94,9 @@ const { project_id } = Astro.props;
           <span
             class='loading-spinner'
             style='display: none;'
-            >⏳</span
           >
+            ⏳
+          </span>
         </button>
       </div>
     </div>
@@ -102,7 +122,11 @@ const { project_id } = Astro.props;
   .form-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(145deg, var(--color-brand-orange), var(--color-brand-orange-alt));
+    background: linear-gradient(
+      145deg,
+      var(--color-brand-orange),
+      var(--color-brand-orange-alt)
+    );
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -140,7 +164,11 @@ const { project_id } = Astro.props;
   }
 
   .send-button {
-    background: linear-gradient(145deg, var(--color-accent), var(--color-accent-dark));
+    background: linear-gradient(
+      145deg,
+      var(--color-accent),
+      var(--color-accent-dark)
+    );
     color: white;
     border: none;
     padding: 8px 15px;
@@ -232,7 +260,11 @@ const { project_id } = Astro.props;
   }
 
   .send-button.success {
-    background: linear-gradient(145deg, var(--color-brand-green), var(--color-brand-green-dark));
+    background: linear-gradient(
+      145deg,
+      var(--color-brand-green),
+      var(--color-brand-green-dark)
+    );
   }
 
   .form-error {
@@ -291,6 +323,27 @@ const { project_id } = Astro.props;
     .add-comment {
       padding: 10px;
     }
+  }
+
+  .space-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary, #4b5563);
+    cursor: pointer;
+  }
+
+  .space-hint {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  .space-hint a {
+    color: var(--color-brand-primary);
+    font-weight: 600;
   }
 </style>
 
@@ -416,6 +469,9 @@ const { project_id } = Astro.props;
         const commentValue = this.textarea.value.trim();
         const authorValue = this.authorInput?.value.trim() || '';
         const emailValue = this.emailInput?.value.trim() || '';
+        const showSpace = !!this.form.querySelector<HTMLInputElement>(
+          'input[name="show_space"]'
+        )?.checked;
         const projectId = this.getProjectId(); // ⬅️ AQUÍ SE USA
 
         const res = await fetch('/api/support-messages', {
@@ -426,6 +482,7 @@ const { project_id } = Astro.props;
             message: commentValue,
             authorName: authorValue || undefined,
             authorEmail: emailValue || undefined,
+            showSpace,
           }),
         });
         const payload = await res.json().catch(() => ({}));
@@ -534,7 +591,9 @@ const { project_id } = Astro.props;
     }
 
     private handleSuccess() {
-      this.showSuccess('¡Gracias! Tu mensaje se publicará en cuanto lo revise la familia 💛');
+      this.showSuccess(
+        '¡Gracias! Tu mensaje se publicará en cuanto lo revise la familia 💛'
+      );
       this.form.reset();
       this.updateCharCounter();
       this.autoResizeTextarea();

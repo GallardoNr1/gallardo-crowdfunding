@@ -24,6 +24,9 @@ export interface Props {
     stats: { number: string; label: string }[];
   };
   project_id: string;
+  /** Espacio de quien mira (casilla del formulario) y etiquetas de los espacios que han apoyado. */
+  spaceName?: string;
+  supporters?: Record<string, { name: string; href: string }>;
   /** Emojis del tema del proyecto. */
   sectionEmoji?: string;
   iconEmoji?: string;
@@ -49,20 +52,30 @@ const {
   sectionTitle = 'Mensaje de Nuestra Familia',
   supportTitle = 'Mensajes de Apoyo',
   supportEmpty = '¡Sé el primero en dejar un mensaje de apoyo!',
+  spaceName,
+  supporters = {},
 } = Astro.props;
 
 // La fecha del mensaje es texto libre en el backoffice ("Julio 2025"): solo se formatea si es ISO.
 const rawDate = mainMessage?.date?.trim() ?? '';
-const parsedDate = /^\d{4}-\d{2}-\d{2}/.test(rawDate) ? new Date(rawDate) : null;
+const parsedDate = /^\d{4}-\d{2}-\d{2}/.test(rawDate)
+  ? new Date(rawDate)
+  : null;
 const displayDate =
   parsedDate && !Number.isNaN(parsedDate.getTime())
-    ? parsedDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+    ? parsedDate.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
     : rawDate;
 ---
 
 <div class='message-section'>
   <div class='section-header'>
-    <h3 class='section-title'>{sectionEmoji} {sectionTitle}</h3>
+    <h3 class='section-title'>
+      {sectionEmoji} {sectionTitle}
+    </h3>
   </div>
 
   <div class='main-message'>
@@ -72,20 +85,16 @@ const displayDate =
         class='message-text'
         id='messageText'
       >
-        {
-          mainMessage?.message
-            .split('\n')
-            .map((paragraph) => paragraph.trim() && <p>{paragraph}</p>)
-        }
+        {mainMessage?.message
+          .split('\n')
+          .map((paragraph) => paragraph.trim() && <p>{paragraph}</p>)}
       </div>
     </div>
 
     <div class='message-signature'>
       <div class='signature-text'>{mainMessage?.signature}</div>
       <div class='family-name'>{mainMessage?.familyName}</div>
-      <div class='signature-date'>
-        {displayDate}
-      </div>
+      <div class='signature-date'>{displayDate}</div>
     </div>
   </div>
 
@@ -94,27 +103,33 @@ const displayDate =
     title={memberTitle}
   />
 
-  {
-    allowComments && (
-      <div class='comments-section'>
-        <SupportMessageSection
-          client:load
-          project_id={project_id}
-          titleEmoji={supportEmoji}
-          emptyEmoji={emptyEmoji}
-          title={supportTitle}
-          emptyText={supportEmpty}
-        />
-        <SupportMessageFrom project_id={project_id} />
-      </div>
-    )
-  }
+  {allowComments && (
+    <div class='comments-section'>
+      <SupportMessageSection
+        client:load
+        project_id={project_id}
+        titleEmoji={supportEmoji}
+        emptyEmoji={emptyEmoji}
+        title={supportTitle}
+        emptyText={supportEmpty}
+        supporters={supporters}
+      />
+      <SupportMessageFrom
+        project_id={project_id}
+        spaceName={spaceName}
+      />
+    </div>
+  )}
   <CallToAction callToAction={callToAction} />
 </div>
 
 <style>
   .message-section {
-    background: linear-gradient(145deg, var(--color-accent-bg), var(--color-accent-light));
+    background: linear-gradient(
+      145deg,
+      var(--color-accent-bg),
+      var(--color-accent-light)
+    );
     border-radius: 20px;
     padding: 30px;
     margin-bottom: 30px;

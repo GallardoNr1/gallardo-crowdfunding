@@ -5,6 +5,11 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { createAdminClient } from '@/lib/supabase-server';
 import { countByProject, pendingSummary } from '@/lib/pending';
+import type { SupporterNetwork } from '@/lib/supporters';
+import {
+  getSupporterNetwork,
+  getSupporterTenantIdsForTenant,
+} from '@/lib/supporters-server';
 import { projectUrl, tenantUrl } from '@/lib/tenants';
 
 const supabase = createAdminClient();
@@ -46,6 +51,19 @@ const pendingText = pendingSummary(
   totalPending(pendingMessageCount)
 );
 
+// Red de colaboración: espacios que han apoyado tus proyectos y tienen los suyos activos.
+const supporterNetwork: SupporterNetwork = tenant
+  ? await getSupporterNetwork(
+      supabase,
+      await getSupporterTenantIdsForTenant(supabase, tenant.id),
+      tenant.id,
+      24
+    )
+  : { spaces: new Map(), projects: [] };
+const supporterSpaces = [...supporterNetwork.spaces.values()].filter(
+  (s) => s.projects.length > 0
+);
+
 const statusLabel: Record<string, string> = {
   active: 'Activo',
   completed: 'Completado',
@@ -78,6 +96,39 @@ const statusColor: Record<string, string> = {
     >
       ⏳ Tienes <strong>{pendingText}</strong>.
     </div>
+  )}
+
+  {supporterSpaces.length > 0 && (
+    <section class='network-card'>
+      <h2>🤝 Devuelve el apoyo</h2>
+      <p>
+        Te han apoyado desde {supporterSpaces.length}{' '}
+        {supporterSpaces.length === 1
+          ? 'espacio que tiene'
+          : 'espacios que tienen'}{' '}
+        proyectos activos:
+      </p>
+      <ul>
+        {supporterSpaces.map((s) => (
+          <li>
+            <a
+              href={s.href}
+              class='network-space'
+            >
+              🏠 {s.name}
+            </a>
+            <span class='network-projects'>
+              {s.projects.map((p, i) => (
+                <>
+                  <a href={p.href}>{p.name}</a>
+                  {i < s.projects.length - 1 ? ' · ' : ''}
+                </>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )}
 
   {!tenant && (
@@ -397,6 +448,46 @@ const statusColor: Record<string, string> = {
     border-radius: var(--radius-sm);
     margin-bottom: 20px;
   }
+  .network-card {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    border: 1px solid #c7d2fe;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  }
+
+  .network-card h2 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+  }
+
+  .network-card p {
+    margin: 0 0 10px;
+    color: #475569;
+    font-size: 0.92rem;
+  }
+
+  .network-card ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .network-space {
+    font-weight: 700;
+    color: var(--color-admin-primary);
+    text-decoration: none;
+    margin-right: 10px;
+  }
+
+  .network-projects a {
+    color: #1f2937;
+    font-weight: 500;
+  }
+
   .pending-banner {
     margin-bottom: 20px;
     padding: 12px 16px;

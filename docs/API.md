@@ -64,9 +64,12 @@ Crea una contribución **pendiente**. El importe lo decide el servidor: del nive
   "contributorEmoji": "💛",
   "message": "opcional, ≤150 caracteres",
   "paymentMethod": "cash | bizum | bank_transfer",
-  "isAnonymous": false
+  "isAnonymous": false,
+  "showSpace": true
 }
 ```
+
+`showSpace` (opcional): si la persona está conectada y lo marca, la aportación guarda su espacio (`supporter_tenant_id`) para la etiqueta "🏠 Familia X"; el espacio se toma de la sesión en el servidor, nunca del cuerpo, y nunca el propio del proyecto. `POST /api/support-messages` admite el mismo campo.
 
 **Respuestas:**
 
