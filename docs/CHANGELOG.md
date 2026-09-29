@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Cabecera: el título ya no se mete debajo del menú del avatar
+
+- **Qué cambió:** `Header.astro` pasa de logo y menú en posición absoluta (con un padding fijo en el título) a una rejilla de tres columnas con laterales iguales (`1fr auto 1fr`). El título sigue centrado respecto a la página y, al medir cada lateral al menos lo que ocupa su contenido, un título o subtítulo largos se parten en líneas en vez de solaparse con el logo o con el menú.
+- **Por qué:** En anchos intermedios, con un nombre de espacio largo en el menú, el subtítulo quedaba debajo del botón del avatar.
+- **Archivos tocados:** `src/layouts/Header.astro`, `docs/CHANGELOG.md`.
+- **Impacto:** Solo estilos; el móvil mantiene su rejilla (logo, avatar y título debajo).
+
+---
+
 ## [2026-09-29] — Compartir con el mismo estilo que Código QR en la página del proyecto
 
 - **Qué cambió:** En la tarjeta del proyecto, el botón Compartir deja de ser una píldora con degradado y pasa a verse como el enlace "Código QR" de al lado: icono y texto en el color de acento, sin fondo, subrayado al pasar el ratón (`src/components/ShareButton.astro`, variante `share--inline`). En las tarjetas de la lista ya eran iguales (solo icono).

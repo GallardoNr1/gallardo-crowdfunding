@@ -183,7 +183,7 @@ const menuName = tenant?.name ?? user?.email ?? '';
 <style>
   .header-bg {
     /* Por encima del contenido (que usa position: relative; z-index: 1) para que el menú
-         desplegable del avatar no quede tapado por tarjetas ni partículas. */
+             desplegable del avatar no quede tapado por tarjetas ni partículas. */
     position: relative;
     z-index: 30;
     background: var(--color-header-bg);
@@ -200,43 +200,42 @@ const menuName = tenant?.name ?? user?.email ?? '';
       )
       1;
   }
+  /* Rejilla de tres columnas con los laterales iguales (1fr): el título queda centrado respecto a
+     la página y, como cada lateral mide al menos lo que ocupa su contenido, nunca se mete debajo
+     del logo ni del menú del avatar (el título largo se parte en varias líneas). */
   .header {
     position: relative;
-    display: flex;
+    display: grid;
+    /* Laterales de al menos 220px (lo que ocupa el menú con el nombre): así siguen siendo
+         iguales y el título queda centrado aunque el ancho apriete. */
+    grid-template-columns: minmax(220px, 1fr) minmax(0, auto) minmax(
+        220px,
+        1fr
+      );
     align-items: center;
-    justify-content: center;
+    column-gap: 20px;
     padding: 35px 20px;
     margin-bottom: 40px;
-    gap: 20px;
     width: 100%;
     max-width: 1200px;
   }
 
-  /* El logo va en absoluto: así el título se centra respecto a la página, no al hueco restante. */
   .left {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    justify-self: start;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .center {
-    flex: 1;
+    min-width: 0;
     text-align: center;
-    /* Que el título no se meta debajo del logo ni del menú en anchos intermedios. */
-    padding: 0 150px 0 88px;
   }
 
-  /* Menú de usuario / accesos, en absoluto a la derecha (simétrico al logo). */
+  /* Menú de usuario / accesos, a la derecha. */
   .right {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    /* El transform crea su propio contexto de apilamiento: el z-index va aquí. */
+    justify-self: end;
+    position: relative;
     z-index: 40;
     display: flex;
     align-items: center;
@@ -423,12 +422,6 @@ const menuName = tenant?.name ?? user?.email ?? '';
       margin-bottom: 28px;
     }
 
-    .left,
-    .right {
-      position: static;
-      transform: none;
-    }
-
     .left {
       grid-area: left;
     }
@@ -439,8 +432,6 @@ const menuName = tenant?.name ?? user?.email ?? '';
 
     .center {
       grid-area: center;
-      text-align: center;
-      padding: 0;
     }
 
     .logo-svg {
