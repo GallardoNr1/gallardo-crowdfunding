@@ -147,6 +147,49 @@ const progressPct = (p: ProjectConfig) =>
             text={project.project_description ?? ''}
             iconOnly
           />
+          <a
+            class='card-qr'
+            href={`${href}/qr`}
+            title='Código QR para imprimir'
+            aria-label={`Código QR de ${project.project_name}`}
+          >
+            <svg
+              viewBox='0 0 24 24'
+              width='22'
+              height='22'
+              fill='none'
+              stroke='currentColor'
+              stroke-width='2'
+              aria-hidden='true'
+            >
+              <rect
+                x='3'
+                y='3'
+                width='7'
+                height='7'
+                rx='1'
+              ></rect>
+              <rect
+                x='14'
+                y='3'
+                width='7'
+                height='7'
+                rx='1'
+              ></rect>
+              <rect
+                x='3'
+                y='14'
+                width='7'
+                height='7'
+                rx='1'
+              ></rect>
+              <path
+                d='M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM18 18h3v3h-3z'
+                fill='currentColor'
+                stroke='none'
+              ></path>
+            </svg>
+          </a>
         </div>
       </li>
     ))}
@@ -350,5 +393,23 @@ const progressPct = (p: ProjectConfig) =>
     right: 14px;
     bottom: 14px;
     z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  /* Icono del QR: mismo aspecto que el de compartir (solo icono, sin fondo). */
+  .card-qr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: var(--color-brand-primary);
+  }
+
+  .card-qr:hover {
+    background: color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
   }
 </style>

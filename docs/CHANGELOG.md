@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Icono del QR en las tarjetas de la lista
+
+- **Qué cambió:** En las tarjetas de proyecto (landing y portada del espacio), junto al icono de compartir hay un icono de código QR que abre `/…/qr`. En la página del proyecto, el enlace "Código QR" usa el mismo icono.
+- **Por qué:** Petición del usuario: tener el QR a mano también desde la lista, solo con el icono.
+- **Archivos tocados:** `src/components/{ProjectsList,ProductCard}.astro`, `tests/projects-list.test.ts`, `docs/{FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Solo interfaz.
+
+---
+
 ## [2026-09-29] — Gracias a quien aporta, fotos más ligeras y código QR del proyecto
 
 - **Qué cambió:** (1) Al confirmar un pago en el backoffice, quien aportó recibe un correo de agradecimiento con el importe, el nivel y el enlace al proyecto, si dejó su email (`buildThankYouEmail` / `notifyContributorThanks` en `notifications.ts`; datos y envío en `notifications-server.ts`; se lanza sin bloquear desde `contributions.astro`). (2) Las imágenes se reducen en el navegador antes de subirlas (`src/lib/client/image-resize.ts`): portada y fotos de la familia a 1600 px de lado como máximo, avatar a 512 px; jpeg/png/webp se re-codifican si pesan más de 1 MB, los gif no se tocan; si el navegador no puede, sube el original. (3) Página `/:tenant/projects/:slug/qr` con el código QR del proyecto (SVG, `qrcode`), botón de imprimir y descarga; enlace "▦ Código QR" junto a Compartir en la página del proyecto.
