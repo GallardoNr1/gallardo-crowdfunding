@@ -2,10 +2,15 @@
 export const prerender = false;
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { listContributions, setContributionStatus } from '@/lib/contributions-server';
+import {
+  listContributions,
+  setContributionStatus,
+} from '@/lib/contributions-server';
 import { currencySymbol } from '@/lib/format';
 import { ContributionStatus } from '@/lib/schemas';
+import { notifyContributorThanksAsync } from '@/lib/notifications-server';
 import { createAdminClient } from '@/lib/supabase-server';
+import { siteOrigin } from '@/lib/tenants';
 import { requireProjectInTenant } from '@/lib/tenants-server';
 
 const { id } = Astro.params;
@@ -26,13 +31,29 @@ if (Astro.request.method === 'POST') {
   const contributionId = String(form.get('contribution_id') ?? '');
   const status = ContributionStatus.safeParse(form.get('status'));
 
-  if (form.get('_action') === 'set_status' && contributionId && status.success) {
-    const result = await setContributionStatus(admin, contributionId, status.data);
+  if (
+    form.get('_action') === 'set_status' &&
+    contributionId &&
+    status.success
+  ) {
+    const result = await setContributionStatus(
+      admin,
+      contributionId,
+      status.data
+    );
     if (result.ok) {
       successMsg =
         status.data === 'completed'
-          ? '✅ Pago confirmado. El importe del proyecto se ha actualizado.'
+          ? '✅ Pago confirmado. El importe del proyecto se ha actualizado y, si dejó su email, le llega un correo de agradecimiento.'
           : `✅ Contribución marcada como "${status.data}".`;
+      // Agradecimiento a quien aportó, sin esperar: un fallo de email no afecta a la confirmación.
+      if (status.data === 'completed') {
+        void notifyContributorThanksAsync(
+          admin,
+          siteOrigin(Astro.request.headers, Astro.url.origin),
+          contributionId
+        );
+      }
     } else {
       error = result.error;
     }
@@ -71,15 +92,34 @@ const methodLabel: Record<string, string> = {
 
 const fmtDate = (iso: string | null) =>
   iso
-    ? new Date(iso).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
+    ? new Date(iso).toLocaleString('es-ES', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })
     : '—';
 ---
 
 <AdminLayout title={`Contribuciones: ${project.project_name}`}>
   <nav class='subnav'>
-    <a href={`/admin/projects/${project.id}/edit`} class='btn-ghost'>✏️ Editar proyecto</a>
-    <a href={`/admin/projects/${project.id}/messages`} class='btn-ghost'>💬 Mensajes de apoyo</a>
-    <a href={`/projects/${project.slug}`} target='_blank' class='btn-ghost'>👁 Ver página</a>
+    <a
+      href={`/admin/projects/${project.id}/edit`}
+      class='btn-ghost'
+    >
+      ✏️ Editar proyecto
+    </a>
+    <a
+      href={`/admin/projects/${project.id}/messages`}
+      class='btn-ghost'
+    >
+      💬 Mensajes de apoyo
+    </a>
+    <a
+      href={`/projects/${project.slug}`}
+      target='_blank'
+      class='btn-ghost'
+    >
+      👁 Ver página
+    </a>
   </nav>
 
   {successMsg && <div class='alert-success'>{successMsg}</div>}
@@ -104,95 +144,132 @@ const fmtDate = (iso: string | null) =>
     </div>
   </section>
 
-  {
-    rows.length === 0 ? (
-      <p class='empty-state'>Todavía no hay contribuciones registradas.</p>
-    ) : (
-      <div class='table-wrap'>
-        <table class='data-table'>
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Contribuidor</th>
-              <th>Nivel</th>
-              <th>Importe</th>
-              <th>Método</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+  {rows.length === 0 ? (
+    <p class='empty-state'>Todavía no hay contribuciones registradas.</p>
+  ) : (
+    <div class='table-wrap'>
+      <table class='data-table'>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Contribuidor</th>
+            <th>Nivel</th>
+            <th>Importe</th>
+            <th>Método</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((c) => (
+            <tr class={`row-${c.payment_status}`}>
+              <td>{fmtDate(c.created_at)}</td>
+              <td>
+                <strong>
+                  {c.contributor_emoji} {c.contributor_name}
+                </strong>
+                {c.is_anonymous && <span class='tag'>anónimo en público</span>}
+                <br />
+                <small>{c.contributor_email}</small>
+                {c.message && <div class='msg'>"{c.message}"</div>}
+              </td>
+              <td>{c.level_name ?? 'Aportación libre'}</td>
+              <td>
+                {Number(c.amount).toFixed(2)} {currency}
+              </td>
+              <td>{methodLabel[c.payment_method] ?? c.payment_method}</td>
+              <td>
+                <span class={`status status-${c.payment_status}`}>
+                  {statusLabel[c.payment_status] ?? c.payment_status}
+                </span>
+                {c.completed_at && <br />}
+                {c.completed_at && <small>{fmtDate(c.completed_at)}</small>}
+              </td>
+              <td class='actions'>
+                {c.payment_status !== 'completed' && (
+                  <form method='POST'>
+                    <input
+                      type='hidden'
+                      name='_action'
+                      value='set_status'
+                    />
+                    <input
+                      type='hidden'
+                      name='contribution_id'
+                      value={c.id}
+                    />
+                    <input
+                      type='hidden'
+                      name='status'
+                      value='completed'
+                    />
+                    <button
+                      type='submit'
+                      class='btn-primary btn-sm'
+                    >
+                      ✔ Confirmar pago
+                    </button>
+                  </form>
+                )}
+                {c.payment_status === 'completed' && (
+                  <form method='POST'>
+                    <input
+                      type='hidden'
+                      name='_action'
+                      value='set_status'
+                    />
+                    <input
+                      type='hidden'
+                      name='contribution_id'
+                      value={c.id}
+                    />
+                    <input
+                      type='hidden'
+                      name='status'
+                      value='pending'
+                    />
+                    <button
+                      type='submit'
+                      class='btn-secondary btn-sm'
+                      onclick="return confirm('¿Volver a marcar como pendiente? Se restará del importe recaudado.')"
+                    >
+                      ↩ Marcar pendiente
+                    </button>
+                  </form>
+                )}
+                {c.payment_status === 'pending' && (
+                  <form method='POST'>
+                    <input
+                      type='hidden'
+                      name='_action'
+                      value='set_status'
+                    />
+                    <input
+                      type='hidden'
+                      name='contribution_id'
+                      value={c.id}
+                    />
+                    <input
+                      type='hidden'
+                      name='status'
+                      value='failed'
+                    />
+                    <button
+                      type='submit'
+                      class='btn-delete btn-sm'
+                      onclick="return confirm('¿Anular esta contribución?')"
+                    >
+                      ✕ Anular
+                    </button>
+                  </form>
+                )}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((c) => (
-              <tr class={`row-${c.payment_status}`}>
-                <td>{fmtDate(c.created_at)}</td>
-                <td>
-                  <strong>
-                    {c.contributor_emoji} {c.contributor_name}
-                  </strong>
-                  {c.is_anonymous && <span class='tag'>anónimo en público</span>}
-                  <br />
-                  <small>{c.contributor_email}</small>
-                  {c.message && <div class='msg'>"{c.message}"</div>}
-                </td>
-                <td>{c.level_name ?? 'Aportación libre'}</td>
-                <td>
-                  {Number(c.amount).toFixed(2)} {currency}
-                </td>
-                <td>{methodLabel[c.payment_method] ?? c.payment_method}</td>
-                <td>
-                  <span class={`status status-${c.payment_status}`}>
-                    {statusLabel[c.payment_status] ?? c.payment_status}
-                  </span>
-                  {c.completed_at && <br />}
-                  {c.completed_at && <small>{fmtDate(c.completed_at)}</small>}
-                </td>
-                <td class='actions'>
-                  {c.payment_status !== 'completed' && (
-                    <form method='POST'>
-                      <input type='hidden' name='_action' value='set_status' />
-                      <input type='hidden' name='contribution_id' value={c.id} />
-                      <input type='hidden' name='status' value='completed' />
-                      <button type='submit' class='btn-primary btn-sm'>
-                        ✔ Confirmar pago
-                      </button>
-                    </form>
-                  )}
-                  {c.payment_status === 'completed' && (
-                    <form method='POST'>
-                      <input type='hidden' name='_action' value='set_status' />
-                      <input type='hidden' name='contribution_id' value={c.id} />
-                      <input type='hidden' name='status' value='pending' />
-                      <button
-                        type='submit'
-                        class='btn-secondary btn-sm'
-                        onclick="return confirm('¿Volver a marcar como pendiente? Se restará del importe recaudado.')"
-                      >
-                        ↩ Marcar pendiente
-                      </button>
-                    </form>
-                  )}
-                  {c.payment_status === 'pending' && (
-                    <form method='POST'>
-                      <input type='hidden' name='_action' value='set_status' />
-                      <input type='hidden' name='contribution_id' value={c.id} />
-                      <input type='hidden' name='status' value='failed' />
-                      <button
-                        type='submit'
-                        class='btn-delete btn-sm'
-                        onclick="return confirm('¿Anular esta contribución?')"
-                      >
-                        ✕ Anular
-                      </button>
-                    </form>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
 </AdminLayout>
 
 <style>

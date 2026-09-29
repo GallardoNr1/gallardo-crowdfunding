@@ -1101,7 +1101,10 @@ const levelsForAi = (levels ?? []).map((l) => ({
           multiple
           required
         />
-        <small>JPG, PNG, WEBP o GIF, máximo 5 MB cada una y 12 por vez.</small>
+        <small>
+          JPG, PNG, WEBP o GIF, máximo 5 MB cada una y 12 por vez. Las fotos
+          grandes se reducen solas a 1600 px antes de subir.
+        </small>
         <button
           type='submit'
           class='btn-secondary'
@@ -2322,6 +2325,7 @@ const levelsForAi = (levels ?? []).map((l) => ({
   import { initCampaignForm } from '@/lib/client/campaign-form';
   import { initSaveBar } from '@/lib/client/save-bar';
   import { initTabs } from '@/lib/client/tabs';
+  import { attachImageResize } from '@/lib/client/image-resize';
   import { initThemePicker } from '@/lib/client/theme-picker';
 
   const projectForm =
@@ -2332,6 +2336,8 @@ const levelsForAi = (levels ?? []).map((l) => ({
     isDirty: saveBar.isDirty,
   });
   initThemePicker(document.getElementById('themePicker'));
+  attachImageResize(document.querySelector('input[name="project_image"]'));
+  attachImageResize(document.querySelector('input[name="photos"]'));
 </script>
 
 <script>

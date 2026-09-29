@@ -10,6 +10,7 @@
 | Integración React | @astrojs/react | ^4.4 | Islands de React en Astro |
 | BaaS / DB | @supabase/supabase-js | ^2.117 | Postgres (RLS), Auth, Realtime Broadcast, Storage |
 | Validación | zod | ^4 | Cuerpos HTTP, formularios del backoffice y variables de entorno |
+| QR | qrcode | ^1.5 | Código QR (SVG) de la página del proyecto (`/:tenant/projects/:slug/qr`) |
 | IA | @anthropic-ai/sdk | ^0.128 | Borrador de proyecto en el backoffice (`POST /admin/api/draft-project`, `claude-opus-5` con salida estructurada) |
 | Lenguaje | TypeScript | ^5.9 | `tsconfig` estricto; `astro check` en CI |
 | Tests | vitest | ^5 | Unitarios de `src/lib` (`tests/`) |

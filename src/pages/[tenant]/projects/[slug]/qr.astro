@@ -1,0 +1,177 @@
+---
+// Código QR de la página pública del proyecto, listo para imprimir (invitación, fiesta…).
+export const prerender = false;
+
+import { projectQrSvg } from '@/lib/qr';
+import { getProjectByTenantAndSlug, getTenantByNumber } from '@/lib/supabase';
+import { parseTenantParam, projectUrl, siteOrigin } from '@/lib/tenants';
+
+const tenantNumber = parseTenantParam(Astro.params.tenant);
+const tenant = tenantNumber ? await getTenantByNumber(tenantNumber) : null;
+const { slug } = Astro.params;
+const project =
+  tenant && slug ? await getProjectByTenantAndSlug(tenant.id, slug) : null;
+if (!tenant || !project || project.project_status === 'cancelled') {
+  return new Response(null, { status: 404 });
+}
+
+const path = projectUrl(tenant.number, project.slug);
+const url = siteOrigin(Astro.request.headers, Astro.url.origin) + path;
+const svg = await projectQrSvg(url);
+const title = project.project_name;
+---
+
+<!doctype html>
+<html lang='es'>
+  <head>
+    <meta charset='utf-8' />
+    <meta
+      name='viewport'
+      content='width=device-width, initial-scale=1'
+    />
+    <meta
+      name='robots'
+      content='noindex'
+    />
+    <title>QR · {title}</title>
+  </head>
+  <body>
+    <main class='sheet'>
+      <p class='kicker'>{tenant.name}</p>
+      <h1>{title}</h1>
+      <p class='lead'>Escanea el código para ver el proyecto y aportar</p>
+      <div
+        class='qr'
+        set:html={svg}
+      />
+      <p class='url'>{url}</p>
+      <div class='actions'>
+        <button
+          type='button'
+          id='printQr'
+        >
+          🖨 Imprimir
+        </button>
+        <a
+          class='download'
+          href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}
+          download={`qr-${project.slug}.svg`}
+        >
+          ⬇ Descargar SVG
+        </a>
+        <a href={path}>← Volver al proyecto</a>
+      </div>
+    </main>
+
+    <script>
+      document
+        .getElementById('printQr')
+        ?.addEventListener('click', () => window.print());
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f4f4f5;
+        font-family: Poppins, 'Segoe UI', Arial, sans-serif;
+        color: #1f2937;
+      }
+
+      .sheet {
+        width: min(92vw, 520px);
+        margin: 24px 0;
+        padding: 36px 32px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+        text-align: center;
+      }
+
+      .kicker {
+        margin: 0 0 6px;
+        font-size: 0.9rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b7280;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 1.7rem;
+        line-height: 1.2;
+      }
+
+      .lead {
+        margin: 0 0 22px;
+        font-size: 1.05rem;
+        color: #374151;
+      }
+
+      .qr {
+        width: min(70vw, 320px);
+        margin: 0 auto 18px;
+      }
+
+      .qr :global(svg) {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .url {
+        margin: 0 0 24px;
+        font-size: 0.85rem;
+        color: #6b7280;
+        word-break: break-all;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 18px;
+        font-size: 0.95rem;
+      }
+
+      .actions button {
+        padding: 10px 18px;
+        border: 0;
+        border-radius: 10px;
+        background: #ff6b35;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .actions a {
+        align-self: center;
+        color: #4f46e5;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .sheet {
+          width: auto;
+          margin: 0;
+          box-shadow: none;
+        }
+
+        .actions {
+          display: none;
+        }
+      }
+    </style>
+  </body>
+</html>

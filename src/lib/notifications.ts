@@ -28,7 +28,8 @@ function wrapHtml(
   title: string,
   lines: string[],
   adminUrl: string,
-  cta: string
+  cta: string,
+  footer = FOOTER
 ): string {
   // Mismo diseño que las plantillas de Supabase Auth (supabase/email-templates/):
   // tarjeta blanca con cabecera naranja, todo en tablas e inline para los clientes de correo.
@@ -43,7 +44,7 @@ ${lines.map((l) => `<p style="margin:0 0 10px">${l}</p>`).join('\n')}
 </td></tr>
 <tr><td style="padding:20px 32px 28px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#ff6b35" style="background:#ff6b35;border-radius:10px"><a href="${url}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none">${escapeHtml(cta)}</a></td></tr></table></td></tr>
 </table>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px"><tr><td style="padding:18px 8px 0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center">${escapeHtml(FOOTER)}</td></tr></table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px"><tr><td style="padding:18px 8px 0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center">${escapeHtml(footer)}</td></tr></table>
 </td></tr>
 </table>`;
 }
@@ -177,4 +178,71 @@ export function notifySupportMessage(
       adminUrl: `${deps.siteOrigin}/admin/projects/${projectId}/messages`,
     })
   );
+}
+
+// ── Agradecimiento a quien aporta (cuando el organizador confirma el pago) ──
+
+const CONTRIBUTOR_FOOTER =
+  'Gallardo Crowdfunding · recibes este correo porque dejaste tu email al aportar.';
+
+export interface ContributorInfo {
+  email: string;
+  contributorName: string;
+  amount: number;
+  currency: string;
+  levelName: string | null;
+  projectName: string;
+  projectUrl: string;
+}
+
+export function buildThankYouEmail(
+  input: Omit<ContributorInfo, 'email'>
+): MailContent {
+  const amount = money(input.amount, input.currency);
+  const subject = `💛 ¡Gracias, ${input.contributorName}! Tu aportación a "${input.projectName}" está confirmada`;
+  const textLines = [
+    `Hola, ${input.contributorName}:`,
+    `Tu aportación de ${amount} a "${input.projectName}" ya está confirmada. ¡Mil gracias por formar parte!`,
+    ...(input.levelName ? [`Nivel: ${input.levelName}`] : []),
+    `Puedes seguir el proyecto aquí: ${input.projectUrl}`,
+  ];
+  const htmlLines = [
+    `Hola, ${escapeHtml(input.contributorName)}:`,
+    `Tu aportación de <strong>${escapeHtml(amount)}</strong> a <strong>${escapeHtml(input.projectName)}</strong> ya está confirmada. ¡Mil gracias por formar parte!`,
+    ...(input.levelName
+      ? [`Nivel: <strong>${escapeHtml(input.levelName)}</strong>`]
+      : []),
+  ];
+  return {
+    subject,
+    text: `${textLines.join('\n\n')}\n\n${CONTRIBUTOR_FOOTER}`,
+    html: wrapHtml(
+      subject,
+      htmlLines,
+      input.projectUrl,
+      'Ver el proyecto',
+      CONTRIBUTOR_FOOTER
+    ),
+  };
+}
+
+export interface ThanksDeps {
+  send: (mail: OrganizerMail) => Promise<void>;
+  getContributor: (contributionId: string) => Promise<ContributorInfo | null>;
+}
+
+/** Envía el agradecimiento si la aportación tiene email. Nunca lanza. */
+export async function notifyContributorThanks(
+  contributionId: string,
+  deps: ThanksDeps
+): Promise<boolean> {
+  try {
+    const info = await deps.getContributor(contributionId);
+    if (!info?.email) return false;
+    await deps.send({ to: info.email, ...buildThankYouEmail(info) });
+    return true;
+  } catch (err) {
+    console.warn('[notificaciones] no se pudo agradecer al contribuidor:', err);
+    return false;
+  }
 }

@@ -1188,12 +1188,14 @@ const aiConfigured = isDraftConfigured();
   } from '@/lib/client/form-restore';
   import { initLevelRows } from '@/lib/client/level-rows';
   import { initSaveBar } from '@/lib/client/save-bar';
+  import { attachImageResize } from '@/lib/client/image-resize';
   import { initThemePicker } from '@/lib/client/theme-picker';
 
   const form = document.querySelector<HTMLFormElement>('form.project-form');
   initCampaignForm(form);
   initSaveBar(form, document.getElementById('saveBar'));
   initThemePicker(document.getElementById('themePicker'));
+  attachImageResize(document.querySelector('input[name="project_image"]'));
   const levels = initLevelRows(document.getElementById('levelsSection'));
   if (form) {
     // Tras un error del servidor se recupera lo escrito (incluidos los niveles).

@@ -164,6 +164,7 @@ const minLevelAmount = levelAmounts.length
       currency={currency}
       contributeHref={open ? '#contribuir' : undefined}
       contributeLabel={`${theme.emojis.spark} Quiero aportar`}
+      qrHref={`${Astro.url.pathname}/qr`}
       share={{
         url: shareUrl,
         title: content.pageTitle || projectConfig.project_name,

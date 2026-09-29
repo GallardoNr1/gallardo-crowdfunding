@@ -298,6 +298,14 @@ if (Astro.request.method === 'POST' && tenant) {
 </AuthLayout>
 
 <script>
+  import { attachImageResize } from '@/lib/client/image-resize';
+  // El avatar se ve pequeño: 512 px de lado sobran.
+  attachImageResize(document.querySelector('input[name="avatar"]'), {
+    maxSize: 512,
+  });
+</script>
+
+<script>
   document
     .getElementById('deleteAccountForm')
     ?.addEventListener('submit', (ev) => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Gracias a quien aporta, fotos más ligeras y código QR del proyecto
+
+- **Qué cambió:** (1) Al confirmar un pago en el backoffice, quien aportó recibe un correo de agradecimiento con el importe, el nivel y el enlace al proyecto, si dejó su email (`buildThankYouEmail` / `notifyContributorThanks` en `notifications.ts`; datos y envío en `notifications-server.ts`; se lanza sin bloquear desde `contributions.astro`). (2) Las imágenes se reducen en el navegador antes de subirlas (`src/lib/client/image-resize.ts`): portada y fotos de la familia a 1600 px de lado como máximo, avatar a 512 px; jpeg/png/webp se re-codifican si pesan más de 1 MB, los gif no se tocan; si el navegador no puede, sube el original. (3) Página `/:tenant/projects/:slug/qr` con el código QR del proyecto (SVG, `qrcode`), botón de imprimir y descarga; enlace "▦ Código QR" junto a Compartir en la página del proyecto.
+- **Por qué:** Cerrar el círculo con la familia (saber que su aportación está confirmada), evitar portadas de varios MB que ralentizan la página y rompen la vista previa de WhatsApp, y poder llevar el proyecto en papel a una invitación o a la fiesta.
+- **Archivos tocados:** `src/lib/{notifications,notifications-server,qr}.ts`, `src/lib/client/image-resize.ts`, `src/pages/admin/projects/[id]/{contributions,edit}.astro`, `src/pages/admin/projects/new.astro`, `src/pages/cuenta/index.astro`, `src/components/ProductCard.astro`, `src/pages/[tenant]/projects/[slug].astro`, `src/pages/[tenant]/projects/[slug]/qr.astro`, `tests/{notifications-thanks,image-resize,qr}.test.ts`, `package.json` (`qrcode`), `docs/*`.
+- **Impacto:** El agradecimiento necesita el SMTP ya configurado; sin email en la aportación no se envía nada. La reducción de imágenes es solo en cliente: el servidor sigue validando tipo y tamaño (5 MB).
+
+---
+
 ## [2026-09-29] — Editar niveles y emojis, vista previa del tema, duplicar proyecto y pendientes a la vista
 
 - **Qué cambió:** (1) En la pestaña "Fotos, niveles y emojis", cada nivel y cada emoji se despliegan para editarlos en línea (acciones `update_level` y `update_emoji`; validación compartida con el alta en `src/lib/levels-form.ts`). (2) En el detalle de cada tema del selector, "Ver cómo queda" abre la página pública con `?theme=<id>` sin guardar nada; solo lo respeta si quien mira es el dueño del espacio o el superadmin (`src/lib/theme-preview.ts`), y la página muestra un aviso con enlace de vuelta. (3) "Duplicar" en la cabecera de edición crea una copia del proyecto con nombre "(copia)", slug `-copia`, mismo contenido, tema, emojis, CTA, Bizum, niveles, miembros de la familia y portada (copiada en Storage), en pausa y privada, sin aportaciones, mensajes ni fotos de la familia (`src/lib/project-duplicate{,-server}.ts`). (4) En la lista de proyectos, un aviso arriba con el total de aportaciones por confirmar y mensajes por moderar del espacio y una etiqueta por proyecto (`src/lib/pending.ts`).
