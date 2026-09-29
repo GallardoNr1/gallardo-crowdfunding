@@ -17,6 +17,7 @@ import {
   isCampaignOpen,
 } from '@/lib/campaign';
 import { currencySymbol } from '@/lib/format';
+import { resolvePreviewTheme } from '@/lib/theme-preview';
 import { getTheme } from '@/lib/themes';
 import {
   getContributionLevels,
@@ -90,7 +91,15 @@ const currency = currencySymbol(projectConfig.currency);
 const currentAmount = Number(projectConfig.current_amount) || 0;
 const targetAmount = Number(projectConfig.target_amount) || 0;
 const content = normalizeProjectPageContent(projectConfig.page_content);
-const theme = getTheme(content.theme);
+// Vista previa de tema (?theme=…) solo para quien gestiona el proyecto; no se guarda.
+const canManage =
+  Astro.locals.isSuperAdmin ||
+  Astro.locals.tenant?.id === projectConfig.tenant_id;
+const previewTheme = resolvePreviewTheme(
+  Astro.url.searchParams.get('theme'),
+  canManage
+);
+const theme = getTheme(previewTheme ?? content.theme);
 const heroSlots: [string, string, string][] = [
   ['4%', '0s', '4.2s'],
   ['14%', '0.7s', '5s'],
@@ -128,6 +137,16 @@ const minLevelAmount = levelAmounts.length
         { label: projectConfig.project_name },
       ]}
     />
+
+    {previewTheme && (
+      <div
+        class='theme-preview-banner'
+        role='status'
+      >
+        👁 Vista previa del tema <strong>{theme.name}</strong> (sin guardar).{' '}
+        <a href={`/admin/projects/${projectConfig.id}/edit`}>Volver a editar</a>
+      </div>
+    )}
 
     <ProductCard
       title={projectConfig.project_name}
@@ -474,6 +493,21 @@ const minLevelAmount = levelAmounts.length
   }
   .back-link a:hover {
     text-decoration: underline;
+  }
+
+  .theme-preview-banner {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.95rem;
+  }
+
+  .theme-preview-banner a {
+    color: inherit;
+    font-weight: 600;
   }
 </style>
 

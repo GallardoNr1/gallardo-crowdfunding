@@ -4,6 +4,7 @@ export const prerender = false;
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { campaignTotals, daysLeft, isCampaignOpen } from '@/lib/campaign';
 import { createAdminClient } from '@/lib/supabase-server';
+import { countByProject, pendingSummary } from '@/lib/pending';
 import { projectUrl, tenantUrl } from '@/lib/tenants';
 
 const supabase = createAdminClient();
@@ -31,13 +32,19 @@ const [{ data: pendingContribs }, { data: pendingMessages }] =
       .select('project_id')
       .eq('is_approved', false),
   ]);
-const countByProject = (rows: { project_id: string }[] | null) =>
-  (rows ?? []).reduce<Record<string, number>>((acc, r) => {
-    acc[r.project_id] = (acc[r.project_id] ?? 0) + 1;
-    return acc;
-  }, {});
 const pendingContribCount = countByProject(pendingContribs);
 const pendingMessageCount = countByProject(pendingMessages);
+// Resumen solo de los proyectos de este espacio (las consultas de arriba son globales).
+const projectIds = new Set((projects ?? []).map((p) => p.id));
+const totalPending = (counts: Record<string, number>) =>
+  Object.entries(counts).reduce(
+    (sum, [pid, n]) => sum + (projectIds.has(pid) ? n : 0),
+    0
+  );
+const pendingText = pendingSummary(
+  totalPending(pendingContribCount),
+  totalPending(pendingMessageCount)
+);
 
 const statusLabel: Record<string, string> = {
   active: 'Activo',
@@ -63,6 +70,15 @@ const statusColor: Record<string, string> = {
       ➕ Nuevo proyecto
     </a>
   </div>
+
+  {pendingText && (
+    <div
+      class='pending-banner'
+      role='status'
+    >
+      ⏳ Tienes <strong>{pendingText}</strong>.
+    </div>
+  )}
 
   {!tenant && (
     <div class='alert-error'>
@@ -125,6 +141,17 @@ const statusColor: Record<string, string> = {
                 <span class='vis-badge'>
                   {p.visibility === 'public' ? '🌍 Público' : '🔒 Privado'}
                 </span>
+                {Boolean(
+                  pendingContribCount[p.id] || pendingMessageCount[p.id]
+                ) && (
+                  <span class='pending-badge'>
+                    ⏳{' '}
+                    {pendingSummary(
+                      pendingContribCount[p.id] ?? 0,
+                      pendingMessageCount[p.id] ?? 0
+                    )}
+                  </span>
+                )}
               </div>
               <span
                 class='status-badge'
@@ -370,6 +397,26 @@ const statusColor: Record<string, string> = {
     border-radius: var(--radius-sm);
     margin-bottom: 20px;
   }
+  .pending-banner {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-md);
+    background: #fffbeb;
+    color: #92400e;
+  }
+
+  .pending-badge {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
   .has-pending {
     border-color: #f59e0b;
     color: #92400e;

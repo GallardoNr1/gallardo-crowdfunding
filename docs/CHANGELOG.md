@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-09-29] — Editar niveles y emojis, vista previa del tema, duplicar proyecto y pendientes a la vista
+
+- **Qué cambió:** (1) En la pestaña "Fotos, niveles y emojis", cada nivel y cada emoji se despliegan para editarlos en línea (acciones `update_level` y `update_emoji`; validación compartida con el alta en `src/lib/levels-form.ts`). (2) En el detalle de cada tema del selector, "Ver cómo queda" abre la página pública con `?theme=<id>` sin guardar nada; solo lo respeta si quien mira es el dueño del espacio o el superadmin (`src/lib/theme-preview.ts`), y la página muestra un aviso con enlace de vuelta. (3) "Duplicar" en la cabecera de edición crea una copia del proyecto con nombre "(copia)", slug `-copia`, mismo contenido, tema, emojis, CTA, Bizum, niveles, miembros de la familia y portada (copiada en Storage), en pausa y privada, sin aportaciones, mensajes ni fotos de la familia (`src/lib/project-duplicate{,-server}.ts`). (4) En la lista de proyectos, un aviso arriba con el total de aportaciones por confirmar y mensajes por moderar del espacio y una etiqueta por proyecto (`src/lib/pending.ts`).
+- **Por qué:** Peticiones del usuario tras revisar el backoffice: cambiar un nivel obligaba a borrarlo y crearlo, elegir tema entre 23 fichas necesitaba verlo, el regalo del año siguiente parte casi siempre del anterior y lo pendiente solo se veía dentro de cada botón.
+- **Archivos tocados:** `src/lib/{levels-form,project-duplicate,project-duplicate-server,pending,theme-preview}.ts`, `src/pages/admin/projects/[id]/edit.astro`, `src/pages/admin/index.astro`, `src/pages/[tenant]/projects/[slug].astro`, `tests/{levels-form,project-duplicate,pending,theme-preview}.test.ts`, `docs/{API,FILE-MAP,CHANGELOG}.md`.
+- **Impacto:** Sin cambios de esquema. El slug de la copia sigue la serie `<slug>-copia`, `<slug>-copia-2`… (el índice único de slug es global).
+
+---
+
 ## [2026-09-28] — Seis temas más: flores, sirenas, danza, glamour, bienestar y dulce
 
 - **Qué cambió:** Nuevos temas en `src/lib/themes.ts`: 🌸 Flores, 🧜‍♀️ Sirenas, 🩰 Danza, 💄 Glamour, 🧘‍♀️ Bienestar, 🧁 Dulce, cada uno con paleta, emojis y textos propios. Total: 23 temas.

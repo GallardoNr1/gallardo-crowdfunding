@@ -57,6 +57,11 @@ gallardo-crowdfunding/
 │   │   ├── campaign.ts               # isCampaignOpen, daysLeft, campaignTotals, formatEndDate
 │   │   ├── project-image-server.ts   # Subida de la imagen de portada a Storage (validación + ruta)
 │   │   ├── project-photos-server.ts  # Fotos de la familia (projects/<id>/fotoFami): listar, subir, borrar
+│   │   ├── levels-form.ts            # Formularios de niveles y emojis del modal (validación, edición), puro
+│   │   ├── project-duplicate.ts      # Duplicar proyecto: nombre/slug de la copia y payloads (puro)
+│   │   ├── project-duplicate-server.ts # Duplicar proyecto en Supabase (config, portada, niveles, familia)
+│   │   ├── pending.ts                # Pendientes del backoffice: recuento por proyecto y resumen (puro)
+│   │   ├── theme-preview.ts          # ?theme= en la página pública solo para quien gestiona el proyecto
 │   │   ├── notifications.ts          # Emails al organizador (textos + orquestación, puro)
 │   │   ├── notifications-server.ts   # Avisos con Supabase (dueño del espacio) + SMTP
 │   │   ├── mailer.ts                 # Transporte SMTP (nodemailer) según env.smtp
@@ -111,7 +116,7 @@ gallardo-crowdfunding/
 │   ├── email-templates/       # Plantillas de Supabase Auth (confirmation, recovery, invite, email_change) + subjects.json
 │   └── seeds/*.sql            # Datos de proyectos concretos (bici de Máximo)
 ├── scripts/apply-email-templates.mjs  # Aplica supabase/email-templates/ a Supabase Auth (Management API)
-├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
+├── tests/*.test.ts            # Vitest: env, schemas, project-form, project-draft(+route), client-forms, save-bar, theme-picker y tabs (happy-dom), levels-form, project-duplicate, pending, theme-preview, tenants, tenants-server, breadcrumbs, auth-gate, session-server, auth-routes, header, rate-limit, api, authz, format, html, themes
 ├── public/og-default.png      # Imagen por defecto de la vista previa al compartir (Open Graph)
 ├── .env.example
 ├── astro.config.mjs

@@ -10,6 +10,12 @@ import { createAdminClient } from '@/lib/supabase-server';
 import { projectUrl, siteOrigin } from '@/lib/tenants';
 import { requireProjectInTenant } from '@/lib/tenants-server';
 import {
+  parseEmojiForm,
+  parseLevelForm,
+  replaceEmojiOption,
+} from '@/lib/levels-form';
+import { duplicateProject } from '@/lib/project-duplicate-server';
+import {
   deleteProjectPhoto,
   listProjectPhotos,
   uploadProjectPhotos,
@@ -40,6 +46,13 @@ if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const action = form.get('_action') as string;
   postedAction = action;
+
+  // Duplicar proyecto: copia en pausa y privada, sin aportaciones ni mensajes.
+  if (action === 'duplicate_project') {
+    const copy = await duplicateProject(supabase, id!, current.tenant_id);
+    if (!copy.ok) error = copy.error;
+    else return Astro.redirect(`/admin/projects/${copy.id}/edit?duplicated=1`);
+  }
 
   // Actualizar datos del proyecto
   if (action === 'update_project') {
@@ -121,29 +134,39 @@ if (Astro.request.method === 'POST') {
 
   // Añadir nivel de contribución
   if (action === 'add_level') {
-    const name = String(form.get('level_name') ?? '').trim();
-    const amount = parseFloat(String(form.get('level_amount') ?? ''));
-    if (!name || !Number.isFinite(amount) || amount <= 0) {
-      error = 'El nivel necesita un nombre y un importe mayor que 0.';
+    const parsedLevel = parseLevelForm(form);
+    if (!parsedLevel.ok) {
+      error = parsedLevel.error;
     } else {
       const { error: dbErr } = await supabase
         .from('contribution_levels')
         .insert([
           {
             project_id: id,
-            name,
-            amount,
-            emoji: (form.get('level_emoji') as string) || '⭐',
-            description: (form.get('level_description') as string) || '',
-            color: (form.get('level_color') as string) || '#6366f1',
+            ...parsedLevel.level,
             rewards: [],
             is_active: true,
-            sort_order: parseInt(form.get('level_sort_order') as string) || 0,
           },
         ]);
-
       if (dbErr) error = dbErr.message;
       else successMsg = '✅ Nivel añadido.';
+    }
+  }
+
+  // Editar nivel de contribución
+  if (action === 'update_level') {
+    const levelId = String(form.get('level_id') ?? '');
+    const parsedLevel = parseLevelForm(form);
+    if (!parsedLevel.ok) {
+      error = parsedLevel.error;
+    } else {
+      const { error: dbErr } = await supabase
+        .from('contribution_levels')
+        .update({ ...parsedLevel.level, updated_at: new Date().toISOString() })
+        .eq('id', levelId)
+        .eq('project_id', id);
+      if (dbErr) error = dbErr.message;
+      else successMsg = '✅ Nivel actualizado.';
     }
   }
 
@@ -162,24 +185,48 @@ if (Astro.request.method === 'POST') {
 
   // Añadir emoji option
   if (action === 'add_emoji') {
-    const emojiValue = (form.get('emoji_value') as string).trim();
-    const emojiLabel = (form.get('emoji_label') as string).trim();
-    if (emojiValue && emojiLabel) {
+    const parsedEmoji = parseEmojiForm(form);
+    if (!parsedEmoji.ok) {
+      error = parsedEmoji.error;
+    } else {
       const currentOptions = (current.emoji_options ?? []) as {
         value: string;
         label: string;
       }[];
       const { error: dbErr } = await supabase
         .from('project_config')
-        .update({
-          emoji_options: [
-            ...currentOptions,
-            { value: emojiValue, label: emojiLabel },
-          ],
-        })
+        .update({ emoji_options: [...currentOptions, parsedEmoji.option] })
         .eq('id', id);
       if (dbErr) error = dbErr.message;
       else successMsg = '✅ Emoji añadido.';
+    }
+  }
+
+  // Editar emoji option
+  if (action === 'update_emoji') {
+    const parsedEmoji = parseEmojiForm(form);
+    const currentOptions = (current.emoji_options ?? []) as {
+      value: string;
+      label: string;
+    }[];
+    if (!parsedEmoji.ok) {
+      error = parsedEmoji.error;
+    } else {
+      const updated = replaceEmojiOption(
+        currentOptions,
+        parseInt(String(form.get('emoji_index') ?? ''), 10),
+        parsedEmoji.option
+      );
+      if (!updated) {
+        error = 'Ese emoji ya no existe.';
+      } else {
+        const { error: dbErr } = await supabase
+          .from('project_config')
+          .update({ emoji_options: updated })
+          .eq('id', id);
+        if (dbErr) error = dbErr.message;
+        else successMsg = '✅ Emoji actualizado.';
+      }
     }
   }
 
@@ -231,11 +278,17 @@ const emojiOptions = (project.emoji_options ?? []) as {
 
 const createdParam = Astro.url.searchParams.get('created');
 const createdLevels = Number(Astro.url.searchParams.get('levels')) || 0;
-if (createdParam) {
+// Solo en el GET de llegada: los POST de la misma URL (?created=1) tienen su propio mensaje.
+const arrived = Astro.request.method === 'GET';
+if (createdParam && arrived) {
   successMsg =
     createdLevels > 0
       ? `✅ Proyecto creado con ${createdLevels} ${createdLevels === 1 ? 'nivel' : 'niveles'} de contribución. Revísalo todo antes de compartirlo.`
       : '✅ Proyecto creado. Ahora añade los niveles de contribución.';
+}
+if (Astro.url.searchParams.get('duplicated') === '1' && arrived) {
+  successMsg =
+    '✅ Proyecto duplicado. La copia está en pausa y privada: revisa el nombre, las fechas y el enlace, y actívala cuando quieras. Las fotos de la familia no se copian.';
 }
 const imageErrorParam = Astro.url.searchParams.get('image_error');
 if (imageErrorParam) error = `La imagen no se ha subido: ${imageErrorParam}`;
@@ -249,8 +302,10 @@ const INSTANT_ACTIONS = [
   'add_photos',
   'delete_photo',
   'add_level',
+  'update_level',
   'delete_level',
   'add_emoji',
+  'update_emoji',
   'delete_emoji',
 ];
 const initialTab: 'datos' | 'extras' =
@@ -312,6 +367,23 @@ const levelsForAi = (levels ?? []).map((l) => ({
     >
       👁 Ver página
     </a>
+    <form
+      method='POST'
+      class='subnav-form'
+    >
+      <input
+        type='hidden'
+        name='_action'
+        value='duplicate_project'
+      />
+      <button
+        type='submit'
+        class='subnav-link'
+        onclick="return confirm('¿Duplicar este proyecto? La copia se crea en pausa y privada, con sus niveles y emojis pero sin aportaciones.')"
+      >
+        📄 Duplicar
+      </button>
+    </form>
   </nav>
 
   <div
@@ -679,6 +751,14 @@ const levelsForAi = (levels ?? []).map((l) => ({
                   «{t.texts.familyTitle}» · {t.texts.contributorsStat} ·{' '}
                   {t.texts.levelsTitle}
                 </small>
+                <a
+                  class='theme-preview-link'
+                  href={`${publicPath}?theme=${id}`}
+                  target='_blank'
+                  rel='noopener'
+                >
+                  👁 Ver cómo queda
+                </a>
               </div>
             );
           })}
@@ -1038,23 +1118,116 @@ const levelsForAi = (levels ?? []).map((l) => ({
         <div class='levels-list'>
           {levels.map((level) => (
             <div class='level-row'>
-              <span class='level-emoji'>{level.emoji}</span>
-              <div class='level-info'>
-                <strong>{level.name}</strong>
-                <span class='level-amount'>
-                  {level.amount} {project.currency}
-                </span>
-                {level.description && (
-                  <span class='level-desc'>{level.description}</span>
-                )}
-              </div>
-              <div class='level-meta'>
-                <span
-                  class='color-dot'
-                  style={`background: ${level.color}`}
-                />
-                <span class='sort-badge'>#{level.sort_order}</span>
-              </div>
+              <details class='row-details'>
+                <summary class='row-summary'>
+                  <span class='level-emoji'>{level.emoji}</span>
+                  <div class='level-info'>
+                    <strong>{level.name}</strong>
+                    <span class='level-amount'>
+                      {level.amount} {project.currency}
+                    </span>
+                    {level.description && (
+                      <span class='level-desc'>{level.description}</span>
+                    )}
+                  </div>
+                  <div class='level-meta'>
+                    <span
+                      class='color-dot'
+                      style={`background: ${level.color}`}
+                    />
+                    <span class='sort-badge'>#{level.sort_order}</span>
+                    <span class='edit-hint'>✏️ Editar</span>
+                  </div>
+                </summary>
+                <form
+                  method='POST'
+                  class='add-level-form row-edit-form'
+                >
+                  <input
+                    type='hidden'
+                    name='_action'
+                    value='update_level'
+                  />
+                  <input
+                    type='hidden'
+                    name='level_id'
+                    value={level.id}
+                  />
+                  <div class='form-grid'>
+                    <div class='field'>
+                      <label for={`level_name_${level.id}`}>Nombre *</label>
+                      <input
+                        type='text'
+                        name='level_name'
+                        id={`level_name_${level.id}`}
+                        required
+                        value={level.name}
+                      />
+                    </div>
+                    <div class='field'>
+                      <label for={`level_amount_${level.id}`}>
+                        Importe (€) *
+                      </label>
+                      <input
+                        type='number'
+                        name='level_amount'
+                        id={`level_amount_${level.id}`}
+                        required
+                        min='1'
+                        step='0.01'
+                        value={level.amount}
+                      />
+                    </div>
+                    <div class='field'>
+                      <label for={`level_emoji_${level.id}`}>Emoji</label>
+                      <input
+                        type='text'
+                        name='level_emoji'
+                        id={`level_emoji_${level.id}`}
+                        maxlength='4'
+                        value={level.emoji}
+                      />
+                    </div>
+                    <div class='field'>
+                      <label for={`level_color_${level.id}`}>Color</label>
+                      <input
+                        type='color'
+                        name='level_color'
+                        id={`level_color_${level.id}`}
+                        value={level.color || '#6366f1'}
+                      />
+                    </div>
+                    <div class='field'>
+                      <label for={`level_sort_order_${level.id}`}>Orden</label>
+                      <input
+                        type='number'
+                        name='level_sort_order'
+                        id={`level_sort_order_${level.id}`}
+                        min='0'
+                        value={level.sort_order}
+                      />
+                    </div>
+                    <div class='field full'>
+                      <label for={`level_description_${level.id}`}>
+                        Descripción (opcional)
+                      </label>
+                      <input
+                        type='text'
+                        name='level_description'
+                        id={`level_description_${level.id}`}
+                        value={level.description ?? ''}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type='submit'
+                    class='btn-primary'
+                    style='margin-top: 12px;'
+                  >
+                    Guardar nivel
+                  </button>
+                </form>
+              </details>
               <form
                 method='POST'
                 class='delete-form'
@@ -1181,10 +1354,60 @@ const levelsForAi = (levels ?? []).map((l) => ({
         <div class='emoji-list'>
           {emojiOptions.map((opt, i) => (
             <div class='emoji-row'>
-              <span class='emoji-icon'>{opt.value}</span>
-              <div class='emoji-info'>
-                <strong>{opt.label}</strong>
-              </div>
+              <details class='row-details'>
+                <summary class='row-summary'>
+                  <span class='emoji-icon'>{opt.value}</span>
+                  <div class='emoji-info'>
+                    <strong>{opt.label}</strong>
+                  </div>
+                  <span class='edit-hint'>✏️ Editar</span>
+                </summary>
+                <form
+                  method='POST'
+                  class='add-level-form row-edit-form'
+                >
+                  <input
+                    type='hidden'
+                    name='_action'
+                    value='update_emoji'
+                  />
+                  <input
+                    type='hidden'
+                    name='emoji_index'
+                    value={i}
+                  />
+                  <div class='form-grid'>
+                    <div class='field'>
+                      <label for={`emoji_value_${i}`}>Emoji *</label>
+                      <input
+                        type='text'
+                        name='emoji_value'
+                        id={`emoji_value_${i}`}
+                        required
+                        maxlength='4'
+                        value={opt.value}
+                      />
+                    </div>
+                    <div class='field'>
+                      <label for={`emoji_label_${i}`}>Etiqueta *</label>
+                      <input
+                        type='text'
+                        name='emoji_label'
+                        id={`emoji_label_${i}`}
+                        required
+                        value={opt.label}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type='submit'
+                    class='btn-primary'
+                    style='margin-top: 12px;'
+                  >
+                    Guardar emoji
+                  </button>
+                </form>
+              </details>
               <form
                 method='POST'
                 class='delete-form'
@@ -1636,6 +1859,61 @@ const levelsForAi = (levels ?? []).map((l) => ({
 
   .delete-form {
     flex-shrink: 0;
+  }
+
+  /* Filas de nivel/emoji desplegables: el resumen muestra el dato y dentro va el formulario. */
+  .row-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .row-summary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .row-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .edit-hint {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-admin-primary);
+  }
+
+  .row-details[open] .edit-hint {
+    color: #64748b;
+  }
+
+  .row-edit-form {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--color-admin-border);
+  }
+
+  .subnav-form {
+    display: contents;
+  }
+
+  button.subnav-link {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .theme-preview-link {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-admin-primary);
+    text-decoration: none;
+  }
+
+  .theme-preview-link:hover {
+    text-decoration: underline;
   }
 
   .btn-delete {
